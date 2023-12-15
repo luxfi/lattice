@@ -1,18 +1,16 @@
-// Package lintrans bundles generic parts of the homomorphic linear transformation circuit.
-package lintrans
+package he
 
 import (
 	"fmt"
 	"sort"
 
-	"github.com/tuneinsight/lattigo/v6/core/rlwe"
-	"github.com/tuneinsight/lattigo/v6/ring"
-	"github.com/tuneinsight/lattigo/v6/ring/ringqp"
-	"github.com/tuneinsight/lattigo/v6/schemes"
-	"github.com/tuneinsight/lattigo/v6/utils"
+	"github.com/luxdefi/lattice/v5/core/rlwe"
+	"github.com/luxdefi/lattice/v5/ring"
+	"github.com/luxdefi/lattice/v5/ring/ringqp"
+	"github.com/luxdefi/lattice/v5/utils"
 )
 
-// Parameters is a struct storing the parameterization of a
+// LinearTransformationParameters is a struct storing the parameterization of a
 // linear transformation.
 //
 // A homomorphic linear transformations on a ciphertext acts as evaluating:
@@ -46,20 +44,15 @@ import (
 //     than their matrix representation by being able to only store the non-zero diagonals.
 //
 // Finally, some metrics about the time and storage complexity of homomorphic linear transformations:
-//   - Storage: #diagonals polynomials mod Q * P
+//   - Storage: #diagonals polynomials mod Q_level * P
 //   - Evaluation: #diagonals multiplications and 2sqrt(#diagonals) ciphertexts rotations.
-type Parameters struct {
+type LinearTransformationParameters struct {
 	// DiagonalsIndexList is the list of the non-zero diagonals of the square matrix.
 	// A non zero diagonals is a diagonal with a least one non-zero element.
 	DiagonalsIndexList []int
 
-	// LevelQ is the level at which to encode the linear transformation.
-	LevelQ int
-
-	// LevelP is the level of the auxliary prime used during the automorphisms
-	// User must ensure that this value is the same as the one used to generate
-	// the evaluation keys used to perform the automorphisms.
-	LevelP int
+	// Level is the level at which to encode the linear transformation.
+	Level int
 
 	// Scale is the plaintext scale at which to encode the linear transformation.
 	Scale rlwe.Scale
@@ -71,13 +64,13 @@ type Parameters struct {
 	// the SIMD packed matrix.
 	LogDimensions ring.Dimensions
 
-	// LogBabyStepGiantStepRatio is the log2 of the ratio n1/n2 for n = n1 * n2 and
+	// LogBabyStepGianStepRatio is the log2 of the ratio n1/n2 for n = n1 * n2 and
 	// n is the dimension of the linear transformation. The number of Galois keys required
 	// is minimized when this value is 0 but the overall complexity of the homomorphic evaluation
 	// can be reduced by increasing the ratio (at the expanse of increasing the number of keys required).
 	// If the value returned is negative, then the baby-step giant-step algorithm is not used
 	// and the evaluation complexity (as well as the number of keys) becomes O(n) instead of O(sqrt(n)).
-	LogBabyStepGiantStepRatio int
+	LogBabyStepGianStepRatio int
 }
 
 type Diagonals[T any] map[int][]T
@@ -123,19 +116,18 @@ func (m Diagonals[T]) At(i, slots int) ([]T, error) {
 
 // LinearTransformation is a type for linear transformations on ciphertexts.
 // It stores a plaintext matrix in diagonal form and can be evaluated on a
-// ciphertext using a [Evaluator].
+// ciphertext using a LinearTransformationEvaluator.
 type LinearTransformation struct {
 	*rlwe.MetaData
-	LogBabyStepGiantStepRatio int
-	N1                        int
-	LevelQ                    int
-	LevelP                    int
-	Vec                       map[int]ringqp.Poly
+	LogBabyStepGianStepRatio int
+	N1                       int
+	Level                    int
+	Vec                      map[int]ringqp.Poly
 }
 
 // GaloisElements returns the list of Galois elements needed for the evaluation of the linear transformation.
 func (lt LinearTransformation) GaloisElements(params rlwe.ParameterProvider) (galEls []uint64) {
-	return GaloisElements(params, utils.GetKeys(lt.Vec), 1<<lt.LogDimensions.Cols, lt.LogBabyStepGiantStepRatio)
+	return GaloisElementsForLinearTransformation(params, utils.GetKeys(lt.Vec), 1<<lt.LogDimensions.Cols, lt.LogBabyStepGianStepRatio)
 }
 
 // BSGSIndex returns the BSGSIndex of the target linear transformation.
@@ -143,23 +135,22 @@ func (lt LinearTransformation) BSGSIndex() (index map[int][]int, n1, n2 []int) {
 	return BSGSIndex(utils.GetKeys(lt.Vec), 1<<lt.LogDimensions.Cols, lt.N1)
 }
 
-// NewLinearTransformation allocates a new LinearTransformation with zero values according to the parameters specified
-// by the [Parameters].
-func NewLinearTransformation(params rlwe.ParameterProvider, ltparams Parameters) LinearTransformation {
+// NewLinearTransformation allocates a new LinearTransformation with zero values according to the parameters specified by the LinearTransformationParameters.
+func NewLinearTransformation(params rlwe.ParameterProvider, ltparams LinearTransformationParameters) LinearTransformation {
 
 	p := params.GetRLWEParameters()
 
 	vec := make(map[int]ringqp.Poly)
 	cols := 1 << ltparams.LogDimensions.Cols
-	logBabyStepGiantStepRatio := ltparams.LogBabyStepGiantStepRatio
-	levelQ := ltparams.LevelQ
-	levelP := ltparams.LevelP
+	logBabyStepGianStepRatio := ltparams.LogBabyStepGianStepRatio
+	levelQ := ltparams.Level
+	levelP := p.MaxLevelP()
 	ringQP := p.RingQP().AtLevel(levelQ, levelP)
 
 	diagslislt := ltparams.DiagonalsIndexList
 
 	var N1 int
-	if logBabyStepGiantStepRatio < 0 {
+	if logBabyStepGianStepRatio < 0 {
 		N1 = 0
 		for _, i := range diagslislt {
 			idx := i
@@ -169,7 +160,7 @@ func NewLinearTransformation(params rlwe.ParameterProvider, ltparams Parameters)
 			vec[idx] = ringQP.NewPoly()
 		}
 	} else {
-		N1 = FindBestBSGSRatio(diagslislt, cols, logBabyStepGiantStepRatio)
+		N1 = FindBestBSGSRatio(diagslislt, cols, logBabyStepGianStepRatio)
 		index, _, _ := BSGSIndex(diagslislt, cols, N1)
 		for j := range index {
 			for _, i := range index[j] {
@@ -191,18 +182,16 @@ func NewLinearTransformation(params rlwe.ParameterProvider, ltparams Parameters)
 	}
 
 	return LinearTransformation{
-		MetaData:                  metadata,
-		LogBabyStepGiantStepRatio: logBabyStepGiantStepRatio,
-		N1:                        N1,
-		LevelQ:                    levelQ,
-		LevelP:                    levelP,
-		Vec:                       vec,
+		MetaData:                 metadata,
+		LogBabyStepGianStepRatio: logBabyStepGianStepRatio,
+		N1:                       N1,
+		Level:                    levelQ,
+		Vec:                      vec,
 	}
 }
 
-// Encode encodes on a pre-allocated LinearTransformation a set of non-zero diagonals of a matrix representing
-// a linear transformation.
-func Encode[T any](encoder schemes.Encoder, diagonals Diagonals[T], allocated LinearTransformation) (err error) {
+// EncodeLinearTransformation encodes on a pre-allocated LinearTransformation a set of non-zero diagonaes of a matrix representing a linear transformation.
+func EncodeLinearTransformation[T any](encoder Encoder[T, ringqp.Poly], diagonals Diagonals[T], allocated LinearTransformation) (err error) {
 
 	rows := 1 << allocated.LogDimensions.Rows
 	cols := 1 << allocated.LogDimensions.Cols
@@ -227,11 +216,11 @@ func Encode[T any](encoder schemes.Encoder, diagonals Diagonals[T], allocated Li
 			}
 
 			if vec, ok := allocated.Vec[idx]; !ok {
-				return fmt.Errorf("cannot Encode: error encoding on LinearTransformation: plaintext diagonal [%d] does not exist", idx)
+				return fmt.Errorf("cannot EncodeLinearTransformation: error encoding on LinearTransformation: plaintext diagonal [%d] does not exist", idx)
 			} else {
 
 				if v, err = diagonals.At(i, cols); err != nil {
-					return fmt.Errorf("cannot Encode: %w", err)
+					return fmt.Errorf("cannot EncodeLinearTransformation: %w", err)
 				}
 
 				if err = rotateAndEncodeDiagonal(v, encoder, 0, metaData, buf, vec); err != nil {
@@ -254,7 +243,7 @@ func Encode[T any](encoder schemes.Encoder, diagonals Diagonals[T], allocated Li
 				} else {
 
 					if v, err = diagonals.At(i+j, cols); err != nil {
-						return fmt.Errorf("cannot Encode: %w", err)
+						return fmt.Errorf("cannot EncodeLinearTransformation: %w", err)
 					}
 
 					if err = rotateAndEncodeDiagonal(v, encoder, rot, metaData, buf, vec); err != nil {
@@ -268,7 +257,7 @@ func Encode[T any](encoder schemes.Encoder, diagonals Diagonals[T], allocated Li
 	return
 }
 
-func rotateAndEncodeDiagonal[T any](v []T, encoder schemes.Encoder, rot int, metaData *rlwe.MetaData, buf []T, poly ringqp.Poly) (err error) {
+func rotateAndEncodeDiagonal[T any](v []T, encoder Encoder[T, ringqp.Poly], rot int, metaData *rlwe.MetaData, buf []T, poly ringqp.Poly) (err error) {
 
 	rows := 1 << metaData.LogDimensions.Rows
 	cols := 1 << metaData.LogDimensions.Cols
@@ -288,13 +277,12 @@ func rotateAndEncodeDiagonal[T any](v []T, encoder schemes.Encoder, rot int, met
 		values = v
 	}
 
-	return encoder.Embed(values, metaData, poly)
+	return encoder.Encode(values, metaData, poly)
 }
 
-// GaloisElements returns the list of Galois elements needed for the evaluation of a linear transformation
-// given the index of its non-zero diagonals, the number of slots in the plaintext and the LogBabyStepGiantStepRatio,
-// see [Parameters].
-func GaloisElements(params rlwe.ParameterProvider, diags []int, slots, logBabyStepGianStepRatio int) (galEls []uint64) {
+// GaloisElementsForLinearTransformation returns the list of Galois elements needed for the evaluation of a linear transformation
+// given the index of its non-zero diagonals, the number of slots in the plaintext and the LogBabyStepGianStepRatio (see LinearTransformationParameters).
+func GaloisElementsForLinearTransformation(params rlwe.ParameterProvider, diags []int, slots, logBabyStepGianStepRatio int) (galEls []uint64) {
 
 	p := params.GetRLWEParameters()
 

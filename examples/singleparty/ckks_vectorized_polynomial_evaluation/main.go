@@ -6,22 +6,21 @@ import (
 	"math"
 	"math/big"
 
-	"github.com/tuneinsight/lattigo/v6/circuits/ckks/polynomial"
-	"github.com/tuneinsight/lattigo/v6/core/rlwe"
-	"github.com/tuneinsight/lattigo/v6/ring"
-	"github.com/tuneinsight/lattigo/v6/schemes/ckks"
-	"github.com/tuneinsight/lattigo/v6/utils/bignum"
-	"github.com/tuneinsight/lattigo/v6/utils/sampling"
+	"github.com/luxdefi/lattice/v5/core/rlwe"
+	"github.com/luxdefi/lattice/v5/he/hefloat"
+	"github.com/luxdefi/lattice/v5/ring"
+	"github.com/luxdefi/lattice/v5/utils/bignum"
+	"github.com/luxdefi/lattice/v5/utils/sampling"
 )
 
 func main() {
 	var err error
-	var params ckks.Parameters
+	var params hefloat.Parameters
 
 	// 128-bit secure parameters enabling depth-7 circuits.
 	// LogN:14, LogQP: 431.
-	if params, err = ckks.NewParametersFromLiteral(
-		ckks.ParametersLiteral{
+	if params, err = hefloat.NewParametersFromLiteral(
+		hefloat.ParametersLiteral{
 			LogN:            14,                                    // log2(ring degree)
 			LogQ:            []int{55, 45, 45, 45, 45, 45, 45, 45}, // log2(primes Q) (ciphertext modulus)
 			LogP:            []int{61},                             // log2(primes P) (auxiliary modulus)
@@ -38,7 +37,7 @@ func main() {
 	sk := kgen.GenSecretKeyNew()
 
 	// Encoder
-	ecd := ckks.NewEncoder(params)
+	ecd := hefloat.NewEncoder(params)
 
 	// Encryptor
 	enc := rlwe.NewEncryptor(params, sk)
@@ -53,13 +52,13 @@ func main() {
 	evk := rlwe.NewMemEvaluationKeySet(rlk)
 
 	// Evaluator
-	eval := ckks.NewEvaluator(params, evk)
+	eval := hefloat.NewEvaluator(params, evk)
 
 	// Samples values in [-K, K]
 	K := 25.0
 
 	// Allocates a plaintext at the max level.
-	pt := ckks.NewPlaintext(params, params.MaxLevel())
+	pt := hefloat.NewPlaintext(params, params.MaxLevel())
 
 	// Vector of plaintext values
 	values := make([]float64, pt.Slots())
@@ -111,8 +110,8 @@ func main() {
 	}
 
 	// Vectorized Chebyhsev approximation of g0(x) and g1(x) in the domain [-K, K] of degree 63.
-	var polys polynomial.PolynomialVector
-	if polys, err = polynomial.NewPolynomialVector([]bignum.Polynomial{
+	var polys hefloat.PolynomialVector
+	if polys, err = hefloat.NewPolynomialVector([]bignum.Polynomial{
 		GetChebyshevPoly(K, 63, g0),
 		GetChebyshevPoly(K, 63, g1),
 	}, mapping); err != nil {
@@ -120,7 +119,7 @@ func main() {
 	}
 
 	// Instantiates the polynomial evaluator
-	polyEval := polynomial.NewEvaluator(params, eval)
+	polyEval := hefloat.NewPolynomialEvaluator(params, eval)
 
 	// Retrieves the vectorized change of basis y = scalar * x + constant
 	scalar, constant := polys.ChangeOfBasis(ct.Slots())
@@ -178,7 +177,7 @@ func GetChebyshevPoly(K float64, degree int, f64 func(x float64) (y float64)) bi
 }
 
 // PrintPrecisionStats decrypts, decodes and prints the precision stats of a ciphertext.
-func PrintPrecisionStats(params ckks.Parameters, ct *rlwe.Ciphertext, want []float64, ecd *ckks.Encoder, dec *rlwe.Decryptor) {
+func PrintPrecisionStats(params hefloat.Parameters, ct *rlwe.Ciphertext, want []float64, ecd *hefloat.Encoder, dec *rlwe.Decryptor) {
 
 	var err error
 
@@ -205,5 +204,5 @@ func PrintPrecisionStats(params ckks.Parameters, ct *rlwe.Ciphertext, want []flo
 	fmt.Printf("...\n")
 
 	// Pretty prints the precision stats
-	fmt.Println(ckks.GetPrecisionStats(params, ecd, dec, have, want, 0, false).String())
+	fmt.Println(hefloat.GetPrecisionStats(params, ecd, dec, have, want, 0, false).String())
 }

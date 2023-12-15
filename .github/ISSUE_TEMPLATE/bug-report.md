@@ -11,7 +11,7 @@ assignees: ''
 Please make sure you have answered all the following questions before submitting your issue!
 -->
 
-### What version of Lattigo are you using?
+### What version of Lattice are you using?
 
 ### Does this issue persist with the latest release?
 

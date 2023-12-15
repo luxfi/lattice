@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/tuneinsight/lattigo/v6/core/rlwe"
-	"github.com/tuneinsight/lattigo/v6/ring"
-	"github.com/tuneinsight/lattigo/v6/ring/ringqp"
-	"github.com/tuneinsight/lattigo/v6/utils"
-	"github.com/tuneinsight/lattigo/v6/utils/structs"
+	"github.com/luxdefi/lattice/v5/core/rlwe"
+	"github.com/luxdefi/lattice/v5/ring"
+	"github.com/luxdefi/lattice/v5/ring/ringqp"
+	"github.com/luxdefi/lattice/v5/utils"
 )
 
 type Integer interface {
@@ -22,7 +21,7 @@ type IntegerSlice interface {
 }
 
 // GaloisGen is an integer of order N=2^d modulo M=2N and that spans Z_M with the integer -1.
-// The j-th ring automorphism takes the root zeta to zeta^(5^j).
+// The j-th ring automorphism takes the root zeta to zeta^(5j).
 const GaloisGen uint64 = ring.GaloisGen
 
 // Encoder is a structure that stores the parameters to encode values on a plaintext in a SIMD (Single-Instruction Multiple-Data) fashion.
@@ -31,13 +30,9 @@ type Encoder struct {
 
 	indexMatrix []uint64
 
-	// BuffBigIntPool is allocated in the case when the degree of RingT is smaller
-	// than the degree of RingQ (gap > 1), hence a more involved conversion
-	// between the two structures is necessary.
-	// The size of an object returned from the pool MaxSlots() elements.
-	BuffBigIntPool structs.BufferPool[*[]*big.Int]
-	poolQ          *ring.BufferPool
-	poolT          *ring.BufferPool
+	bufQ ring.Poly
+	bufT ring.Poly
+	bufB []*big.Int
 
 	paramsQP []ring.ModUpConstants
 	qHalf    []*big.Int
@@ -45,7 +40,7 @@ type Encoder struct {
 	tInvModQ []*big.Int
 }
 
-// NewEncoder creates a new [Encoder] from the provided parameters.
+// NewEncoder creates a new Encoder from the provided parameters.
 func NewEncoder(parameters Parameters) *Encoder {
 
 	ringQ := parameters.RingQ()
@@ -70,40 +65,28 @@ func NewEncoder(parameters Parameters) *Encoder {
 		tInvModQ[i] = new(big.Int).ModInverse(TBig, ringQ.ModulusAtLevel[i])
 	}
 
-	var buffBigIntPool structs.BufferPool[*[]*big.Int]
+	var bufB []*big.Int
 
 	if parameters.LogMaxDimensions().Cols < parameters.LogN()-1 {
 
 		slots := parameters.MaxSlots()
-		buffBigIntPool = structs.NewSyncPool(func() *[]*big.Int {
-			buff := make([]*big.Int, slots)
-			for i := 0; i < slots; i++ {
-				buff[i] = new(big.Int)
-			}
-			return &buff
-		})
-	}
 
-	// create pools for polys in ringQ and ringT
-	backingPool := structs.NewSyncPoolUint64(ringQ.N())
-	poolQ := ring.NewPool(ringQ, backingPool)
+		bufB = make([]*big.Int, slots)
 
-	backingPoolT := backingPool
-	// we use the same backing pool only if ringQ and ringT have the same dimension
-	if ringQ.N() != ringT.N() {
-		backingPoolT = structs.NewSyncPoolUint64(ringT.N())
+		for i := 0; i < slots; i++ {
+			bufB[i] = new(big.Int)
+		}
 	}
-	poolT := ring.NewPool(ringT, backingPoolT)
 
 	return &Encoder{
-		parameters:     parameters,
-		indexMatrix:    permuteMatrix(parameters.LogMaxSlots()),
-		BuffBigIntPool: buffBigIntPool,
-		paramsQP:       paramsQP,
-		qHalf:          qHalf,
-		tInvModQ:       tInvModQ,
-		poolQ:          poolQ,
-		poolT:          poolT,
+		parameters:  parameters,
+		indexMatrix: permuteMatrix(parameters.LogMaxSlots()),
+		bufQ:        ringQ.NewPoly(),
+		bufT:        ringT.NewPoly(),
+		bufB:        bufB,
+		paramsQP:    paramsQP,
+		qHalf:       qHalf,
+		tInvModQ:    tInvModQ,
 	}
 }
 
@@ -115,7 +98,6 @@ func permuteMatrix(logN int) (perm []uint64) {
 
 	perm = make([]uint64, N)
 
-	/* #nosec G115 -- library requires 64-bit system -> int = int64 */
 	halfN := int(N >> 1)
 
 	for i, j := 0, halfN; i < halfN; i, j = i+1, j+1 {
@@ -132,17 +114,17 @@ func permuteMatrix(logN int) (perm []uint64) {
 	return perm
 }
 
-// GetRLWEParameters returns the underlying [rlwe.Parameters] of the target object.
+// GetRLWEParameters returns the underlying rlwe.Parameters of the target object.
 func (ecd Encoder) GetRLWEParameters() *rlwe.Parameters {
 	return &ecd.parameters.Parameters
 }
 
-// Encode encodes an [IntegerSlice] of size at most N, where N is the smallest value satisfying PlaintextModulus = 1 mod 2N,
+// Encode encodes an IntegerSlice of size at most N, where N is the smallest value satisfying PlaintextModulus = 1 mod 2N,
 // on a pre-allocated plaintext.
-func (ecd Encoder) Encode(values interface{}, pt *rlwe.Plaintext) (err error) {
+func (ecd Encoder) Encode(values IntegerSlice, pt *rlwe.Plaintext) (err error) {
 
 	if pt.IsBatched {
-		return ecd.EmbedScale(values, true, pt.MetaData, pt.Value)
+		return ecd.Embed(values, true, pt.MetaData, pt.Value)
 	} else {
 
 		ringT := ecd.parameters.RingT()
@@ -150,9 +132,7 @@ func (ecd Encoder) Encode(values interface{}, pt *rlwe.Plaintext) (err error) {
 		T := ringT.SubRings[0].Modulus
 		BRC := ringT.SubRings[0].BRedConstant
 
-		buffT := ecd.poolT.GetBuffPoly()
-		defer ecd.poolT.RecycleBuffPoly(buffT)
-		ptT := buffT.Coeffs[0]
+		ptT := ecd.bufT.Coeffs[0]
 
 		var valLen int
 		switch values := values.(type) {
@@ -172,9 +152,7 @@ func (ecd Encoder) Encode(values interface{}, pt *rlwe.Plaintext) (err error) {
 
 			var sign, abs uint64
 			for i, c := range values {
-				/* #nosec G115 -- type conversion purposefully used */
 				sign = uint64(c) >> 63
-				/* #nosec G115 -- converted value is ensured to be positive */
 				abs = ring.BRedAdd(uint64(c*((int64(sign)^1)-int64(sign))), T, BRC)
 				ptT[i] = sign*(T-abs) | (sign^1)*abs
 			}
@@ -186,8 +164,8 @@ func (ecd Encoder) Encode(values interface{}, pt *rlwe.Plaintext) (err error) {
 			ptT[i] = 0
 		}
 
-		ringT.MulScalar(*buffT, pt.Scale.Uint64(), *buffT)
-		ecd.RingT2Q(pt.Level(), true, *buffT, pt.Value)
+		ringT.MulScalar(ecd.bufT, pt.Scale.Uint64(), ecd.bufT)
+		ecd.RingT2Q(pt.Level(), true, ecd.bufT, pt.Value)
 
 		if pt.IsNTT {
 			ecd.parameters.RingQ().AtLevel(pt.Level()).NTT(pt.Value, pt.Value)
@@ -197,7 +175,7 @@ func (ecd Encoder) Encode(values interface{}, pt *rlwe.Plaintext) (err error) {
 	}
 }
 
-// EncodeRingT encodes an [IntegerSlice] at the given scale on a polynomial pT with coefficients modulo the plaintext modulus PlaintextModulus.
+// EncodeRingT encodes an IntegerSlice at the given scale on a polynomial pT with coefficients modulo the plaintext modulus PlaintextModulus.
 func (ecd Encoder) EncodeRingT(values IntegerSlice, scale rlwe.Scale, pT ring.Poly) (err error) {
 	perm := ecd.indexMatrix
 
@@ -234,9 +212,7 @@ func (ecd Encoder) EncodeRingT(values IntegerSlice, scale rlwe.Scale, pT ring.Po
 
 		var sign, abs uint64
 		for i, c := range values {
-			/* #nosec G115 -- c cannot be negative */
 			sign = uint64(c) >> 63
-			/* #nosec G115 -- converted value is ensured to be positive */
 			abs = ring.BRedAdd(uint64(c*((int64(sign)^1)-int64(sign))), T, BRC)
 			pt[perm[i]] = sign*(T-abs) | (sign^1)*abs
 		}
@@ -259,15 +235,13 @@ func (ecd Encoder) EncodeRingT(values IntegerSlice, scale rlwe.Scale, pT ring.Po
 	return nil
 }
 
-// EmbedScale is a generic method to encode an IntegerSlice on [ringqp.Poly] or *[ring.Poly].
+// Embed is a generic method to encode an IntegerSlice on ringqp.Poly or *ring.Poly.
 // If scaleUp is true, then the values will to be multiplied by PlaintextModulus^{-1} mod Q after being encoded on the polynomial.
 // Encoding is done according to the metadata.
 // Accepted polyOut.(type) are a ringqp.Poly and *ring.Poly
-func (ecd Encoder) EmbedScale(values IntegerSlice, scaleUp bool, metadata *rlwe.MetaData, polyOut interface{}) (err error) {
+func (ecd Encoder) Embed(values IntegerSlice, scaleUp bool, metadata *rlwe.MetaData, polyOut interface{}) (err error) {
 
-	buffT := ecd.poolT.GetBuffPoly()
-	defer ecd.poolT.RecycleBuffPoly(buffT)
-	pT := *buffT
+	pT := ecd.bufT
 
 	if err = ecd.EncodeRingT(values, metadata.Scale, pT); err != nil {
 		return
@@ -331,20 +305,13 @@ func (ecd Encoder) EmbedScale(values IntegerSlice, scaleUp bool, metadata *rlwe.
 	return
 }
 
-func (ecd Encoder) Embed(values interface{}, metadata *rlwe.MetaData, polyOut interface{}) (err error) {
-	return ecd.EmbedScale(values, false, metadata, polyOut)
-}
-
 // DecodeRingT decodes a polynomial pT with coefficients modulo the plaintext modulu PlaintextModulus on an InterSlice at the given scale.
 func (ecd Encoder) DecodeRingT(pT ring.Poly, scale rlwe.Scale, values IntegerSlice) (err error) {
 	ringT := ecd.parameters.RingT()
-	buffT := ecd.poolT.GetBuffPoly()
-	defer ecd.poolT.RecycleBuffPoly(buffT)
+	ringT.MulScalar(pT, ring.ModExp(scale.Uint64(), ringT.SubRings[0].Modulus-2, ringT.SubRings[0].Modulus), ecd.bufT)
+	ringT.NTT(ecd.bufT, ecd.bufT)
 
-	ringT.MulScalar(pT, ring.ModExp(scale.Uint64(), ringT.SubRings[0].Modulus-2, ringT.SubRings[0].Modulus), *buffT)
-	ringT.NTT(*buffT, *buffT)
-
-	tmp := buffT.Coeffs[0]
+	tmp := ecd.bufT.Coeffs[0]
 
 	switch values := values.(type) {
 	case []uint64:
@@ -352,12 +319,10 @@ func (ecd Encoder) DecodeRingT(pT ring.Poly, scale rlwe.Scale, values IntegerSli
 			values[i] = tmp[ecd.indexMatrix[i]]
 		}
 	case []int64:
-		/* #nosec G115 -- PlaintextModulus <= 61 bits */
 		modulus := int64(ecd.parameters.PlaintextModulus())
 		modulusHalf := modulus >> 1
 		var value int64
 		for i := range values {
-			/* #nosec G115 -- values <= 61 bits */
 			if value = int64(tmp[ecd.indexMatrix[i]]); value >= modulusHalf {
 				values[i] = value - modulus
 			} else {
@@ -410,16 +375,12 @@ func (ecd Encoder) RingT2Q(level int, scaleUp bool, pT, pQ ring.Poly) {
 func (ecd Encoder) RingQ2T(level int, scaleDown bool, pQ, pT ring.Poly) {
 
 	ringQ := ecd.parameters.RingQ().AtLevel(level)
-	poolQ := ecd.poolQ.AtLevel(level)
 	ringT := ecd.parameters.RingT()
 
 	var poly ring.Poly
-	buffQ := poolQ.GetBuffPoly()
-	defer poolQ.RecycleBuffPoly(buffQ)
-
 	if scaleDown {
-		ringQ.MulScalar(pQ, ecd.parameters.PlaintextModulus(), *buffQ)
-		poly = *buffQ
+		ringQ.MulScalar(pQ, ecd.parameters.PlaintextModulus(), ecd.bufQ)
+		poly = ecd.bufQ
 	} else {
 		poly = pQ
 	}
@@ -429,28 +390,25 @@ func (ecd Encoder) RingQ2T(level int, scaleDown bool, pQ, pT ring.Poly) {
 	if level > 0 {
 
 		if gap == 1 {
-			ringQ.AddScalarBigint(poly, ecd.qHalf[level], *buffQ)
-			ring.ModUpExact(buffQ.Coeffs[:level+1], pT.Coeffs, ringQ, ringT, ecd.paramsQP[level])
+			ringQ.AddScalarBigint(poly, ecd.qHalf[level], ecd.bufQ)
+			ring.ModUpExact(ecd.bufQ.Coeffs[:level+1], pT.Coeffs, ringQ, ringT, ecd.paramsQP[level])
 			ringT.SubScalarBigint(pT, ecd.qHalf[level], pT)
 		} else {
-			buffB := ecd.BuffBigIntPool.Get()
-			ringQ.PolyToBigintCentered(poly, gap, *buffB)
-			ringT.SetCoefficientsBigint(*buffB, pT)
-			// buffB only used in this block, can be put back in the pool:
-			ecd.BuffBigIntPool.Put(buffB)
+			ringQ.PolyToBigintCentered(poly, gap, ecd.bufB)
+			ringT.SetCoefficientsBigint(ecd.bufB, pT)
 		}
 
 	} else {
 
 		if gap == 1 {
-			ringQ.AddScalar(poly, ringQ.SubRings[0].Modulus>>1, *buffQ)
-			ringT.Reduce(*buffQ, pT)
+			ringQ.AddScalar(poly, ringQ.SubRings[0].Modulus>>1, ecd.bufQ)
+			ringT.Reduce(ecd.bufQ, pT)
 		} else {
 
 			n := pT.N()
 
 			pQCoeffs := poly.Coeffs[0]
-			bufQCoeffs := buffQ.Coeffs[0]
+			bufQCoeffs := ecd.bufQ.Coeffs[0]
 
 			for i := 0; i < n; i++ {
 				bufQCoeffs[i] = pQCoeffs[i*gap]
@@ -465,43 +423,36 @@ func (ecd Encoder) RingQ2T(level int, scaleDown bool, pQ, pT ring.Poly) {
 }
 
 // Decode decodes a plaintext on an IntegerSlice mod PlaintextModulus of size at most N, where N is the smallest value satisfying PlaintextModulus = 1 mod 2N.
-func (ecd Encoder) Decode(pt *rlwe.Plaintext, values interface{}) (err error) {
+func (ecd Encoder) Decode(pt *rlwe.Plaintext, values IntegerSlice) (err error) {
 
-	buffT := ecd.poolT.GetBuffPoly()
-	defer ecd.poolT.RecycleBuffPoly(buffT)
+	bufT := ecd.bufT
 
 	if pt.IsNTT {
-		ringQ := ecd.parameters.RingQ().AtLevel(pt.Level())
-		poolQ := ecd.poolQ.AtLevel(pt.Level())
-		buffQ := poolQ.GetBuffPoly()
-		ringQ.INTT(pt.Value, *buffQ)
-		ecd.RingQ2T(pt.Level(), true, *buffQ, *buffT)
-		poolQ.RecycleBuffPoly(buffQ)
+		ecd.parameters.RingQ().AtLevel(pt.Level()).INTT(pt.Value, ecd.bufQ)
+		ecd.RingQ2T(pt.Level(), true, ecd.bufQ, bufT)
 	} else {
-		ecd.RingQ2T(pt.Level(), true, pt.Value, *buffT)
+		ecd.RingQ2T(pt.Level(), true, pt.Value, bufT)
 	}
 
 	if pt.IsBatched {
-		return ecd.DecodeRingT(*buffT, pt.Scale, values)
+		return ecd.DecodeRingT(ecd.bufT, pt.Scale, values)
 	} else {
 		ringT := ecd.parameters.RingT()
-		ringT.MulScalar(*buffT, ring.ModExp(pt.Scale.Uint64(), ringT.SubRings[0].Modulus-2, ringT.SubRings[0].Modulus), *buffT)
+		ringT.MulScalar(bufT, ring.ModExp(pt.Scale.Uint64(), ringT.SubRings[0].Modulus-2, ringT.SubRings[0].Modulus), bufT)
 
 		switch values := values.(type) {
 		case []uint64:
-			copy(values, buffT.Coeffs[0])
+			copy(values, ecd.bufT.Coeffs[0])
 		case []int64:
 
-			ptT := buffT.Coeffs[0]
+			ptT := bufT.Coeffs[0]
 
 			N := ecd.parameters.RingT().N()
-			/* #nosec G115 -- PlaintextModulus <= 61 bits */
 			modulus := int64(ecd.parameters.PlaintextModulus())
 			modulusHalf := modulus >> 1
 
 			var value int64
 			for i := 0; i < N; i++ {
-				/* #nosec G115 -- values <= 61 bits */
 				if value = int64(ptT[i]); value >= modulusHalf {
 					values[i] = value - modulus
 				} else {
@@ -514,5 +465,19 @@ func (ecd Encoder) Decode(pt *rlwe.Plaintext, values interface{}) (err error) {
 		}
 
 		return
+	}
+}
+
+// ShallowCopy returns a lightweight copy of the target object
+// that can be used concurrently with the original object.
+func (ecd Encoder) ShallowCopy() *Encoder {
+	return &Encoder{
+		parameters:  ecd.parameters,
+		indexMatrix: ecd.indexMatrix,
+		bufQ:        ecd.parameters.RingQ().NewPoly(),
+		bufT:        ecd.parameters.RingT().NewPoly(),
+		paramsQP:    ecd.paramsQP,
+		qHalf:       ecd.qHalf,
+		tInvModQ:    ecd.tInvModQ,
 	}
 }

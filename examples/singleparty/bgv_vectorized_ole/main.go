@@ -6,9 +6,9 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/tuneinsight/lattigo/v6/ring"
-	"github.com/tuneinsight/lattigo/v6/utils/bignum"
-	"github.com/tuneinsight/lattigo/v6/utils/sampling"
+	"github.com/luxdefi/lattice/v5/ring"
+	"github.com/luxdefi/lattice/v5/utils/bignum"
+	"github.com/luxdefi/lattice/v5/utils/sampling"
 )
 
 // Vectorized oblivious evaluation is a two-party protocol for the function f(x) = ax + b where a sender
@@ -90,7 +90,6 @@ func newvOLErings(params parameters) *vOLErings {
 
 	rings := new(vOLErings)
 
-	/* #nosec G115 -- logQ and N expected to not be negative */
 	g := ring.NewNTTFriendlyPrimesGenerator(uint64(params.logQ[1]), uint64(2*N))
 
 	// Generate logQ[0] NTT-friendly primes each close to 2^logQ[1]

@@ -7,16 +7,15 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/tuneinsight/lattigo/v6/core/rlwe"
-	"github.com/tuneinsight/lattigo/v6/schemes/ckks"
-	"github.com/tuneinsight/lattigo/v6/utils"
-	"github.com/tuneinsight/lattigo/v6/utils/sampling"
+	"github.com/luxdefi/lattice/v5/core/rlwe"
+	"github.com/luxdefi/lattice/v5/he/hefloat"
+	"github.com/luxdefi/lattice/v5/utils"
+	"github.com/luxdefi/lattice/v5/utils/sampling"
 )
 
 var minPrec float64 = 12.0
 
-func ParamsToString(params ckks.Parameters, LogSlots int, opname string) string {
+func ParamsToString(params hefloat.Parameters, LogSlots int, opname string) string {
 	return fmt.Sprintf("%slogN=%d/LogSlots=%d/logQP=%f/levels=%d/a=%d/b=%d",
 		opname,
 		params.LogN(),
@@ -54,7 +53,7 @@ func TestParametersMarshalling(t *testing.T) {
 	t.Run("Parameters", func(t *testing.T) {
 		paramSet := DefaultParametersSparse[0]
 
-		params, err := ckks.NewParametersFromLiteral(paramSet.SchemeParams)
+		params, err := hefloat.NewParametersFromLiteral(paramSet.SchemeParams)
 		require.Nil(t, err)
 
 		btpParams, err := NewParametersFromLiteral(params, paramSet.BootstrappingParams)
@@ -94,7 +93,7 @@ func TestCircuitWithEncapsulation(t *testing.T) {
 
 		paramsSetCpy.BootstrappingParams.LogSlots = &LogSlots
 
-		params, err := ckks.NewParametersFromLiteral(paramsSetCpy.SchemeParams)
+		params, err := hefloat.NewParametersFromLiteral(paramsSetCpy.SchemeParams)
 		require.NoError(t, err)
 
 		btpParams, err := NewParametersFromLiteral(params, paramsSetCpy.BootstrappingParams)
@@ -137,7 +136,7 @@ func TestCircuitOriginal(t *testing.T) {
 
 		paramsSetCpy.BootstrappingParams.LogSlots = &LogSlots
 
-		params, err := ckks.NewParametersFromLiteral(paramsSetCpy.SchemeParams)
+		params, err := hefloat.NewParametersFromLiteral(paramsSetCpy.SchemeParams)
 		require.NoError(t, err)
 
 		btpParams, err := NewParametersFromLiteral(params, paramsSetCpy.BootstrappingParams)
@@ -156,13 +155,13 @@ func TestCircuitOriginal(t *testing.T) {
 	testRawCircuitHighPrecision(paramSet, t)
 }
 
-func testRawCircuit(params ckks.Parameters, btpParams Parameters, level int, t *testing.T) {
+func testRawCircuit(params hefloat.Parameters, btpParams Parameters, level int, t *testing.T) {
 
 	t.Run(ParamsToString(params, btpParams.LogMaxSlots(), ""), func(t *testing.T) {
 
 		kgen := rlwe.NewKeyGenerator(btpParams.BootstrappingParameters)
 		sk := kgen.GenSecretKeyNew()
-		encoder := ckks.NewEncoder(params)
+		encoder := hefloat.NewEncoder(params)
 
 		encryptor := rlwe.NewEncryptor(params, sk)
 		decryptor := rlwe.NewDecryptor(params, sk)
@@ -186,19 +185,22 @@ func testRawCircuit(params ckks.Parameters, btpParams Parameters, level int, t *
 			values[3] = complex(0.9238795325112867, 0.3826834323650898)
 		}
 
-		plaintext := ckks.NewPlaintext(params, 0)
+		plaintext := hefloat.NewPlaintext(params, 0)
 		plaintext.Scale = params.DefaultScale()
 		plaintext.LogDimensions = btpParams.LogMaxDimensions()
 		encoder.Encode(values, plaintext)
 
-		n := 2
+		n := 1
 
 		ciphertexts := make([]*rlwe.Ciphertext, n)
+		evaluators := make([]*Evaluator, n)
+		evaluators[0] = eval
 		ciphertexts[0], err = encryptor.EncryptNew(plaintext)
 		require.NoError(t, err)
 		for i := 1; i < len(ciphertexts); i++ {
 			ciphertexts[i], err = encryptor.EncryptNew(plaintext)
 			require.NoError(t, err)
+			evaluators[i] = evaluators[0].ShallowCopy()
 		}
 
 		var wg sync.WaitGroup
@@ -206,7 +208,7 @@ func testRawCircuit(params ckks.Parameters, btpParams Parameters, level int, t *
 		for i := range ciphertexts {
 			go func(index int) {
 				var err error
-				ciphertexts[index], err = eval.Evaluate(ciphertexts[index])
+				ciphertexts[index], err = evaluators[index].Evaluate(ciphertexts[index])
 				require.NoError(t, err)
 				wg.Done()
 			}(i)
@@ -238,7 +240,7 @@ func testRawCircuitHighPrecision(paramSet defaultParametersLiteral, t *testing.T
 			ReservedPrimeBitSize:   28,
 		}
 
-		params, err := ckks.NewParametersFromLiteral(paramSet.SchemeParams)
+		params, err := hefloat.NewParametersFromLiteral(paramSet.SchemeParams)
 		if err != nil {
 			panic(err)
 		}
@@ -259,7 +261,7 @@ func testRawCircuitHighPrecision(paramSet defaultParametersLiteral, t *testing.T
 
 			kgen := rlwe.NewKeyGenerator(btpParams.BootstrappingParameters)
 			sk := kgen.GenSecretKeyNew()
-			encoder := ckks.NewEncoder(params)
+			encoder := hefloat.NewEncoder(params)
 			encryptor := rlwe.NewEncryptor(params, sk)
 			decryptor := rlwe.NewDecryptor(params, sk)
 
@@ -282,7 +284,7 @@ func testRawCircuitHighPrecision(paramSet defaultParametersLiteral, t *testing.T
 				values[3] = complex(0.9238795325112867, 0.3826834323650898)
 			}
 
-			plaintext := ckks.NewPlaintext(params, level)
+			plaintext := hefloat.NewPlaintext(params, level)
 			plaintext.Scale = params.DefaultScale()
 
 			plaintext.LogDimensions = btpParams.LogMaxDimensions()
@@ -303,14 +305,14 @@ func testRawCircuitHighPrecision(paramSet defaultParametersLiteral, t *testing.T
 	})
 }
 
-func verifyTestVectors(params ckks.Parameters, encoder *ckks.Encoder, decryptor *rlwe.Decryptor, valuesWant, valuesHave interface{}, t *testing.T) {
-	precStats := ckks.GetPrecisionStats(params, encoder, decryptor, valuesWant, valuesHave, 0, false)
+func verifyTestVectors(params hefloat.Parameters, encoder *hefloat.Encoder, decryptor *rlwe.Decryptor, valuesWant, valuesHave interface{}, t *testing.T) {
+	precStats := hefloat.GetPrecisionStats(params, encoder, decryptor, valuesWant, valuesHave, 0, false)
 	if *printPrecisionStats {
 		t.Log(precStats.String())
 	}
 
-	rf64 := precStats.AVGLog2Prec.Real
-	if64 := precStats.AVGLog2Prec.Imag
+	rf64, _ := precStats.MeanPrecision.Real.Float64()
+	if64, _ := precStats.MeanPrecision.Imag.Float64()
 
 	require.GreaterOrEqual(t, rf64, minPrec)
 	require.GreaterOrEqual(t, if64, minPrec)

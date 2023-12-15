@@ -1,18 +1,17 @@
-// Package polynomial bundles generic parts of the homomorphic polynomial evaluation circuit.
-package polynomial
+package he
 
 import (
 	"fmt"
 	"math/bits"
 
-	"github.com/tuneinsight/lattigo/v6/core/rlwe"
-	"github.com/tuneinsight/lattigo/v6/utils"
-	"github.com/tuneinsight/lattigo/v6/utils/bignum"
+	"github.com/luxdefi/lattice/v5/core/rlwe"
+	"github.com/luxdefi/lattice/v5/utils"
+	"github.com/luxdefi/lattice/v5/utils/bignum"
 )
 
 // Polynomial is a struct for representing plaintext polynomials
 // for their homomorphic evaluation in an encrypted point. The
-// type wraps a [bignum.Polynomial] along with several evaluation-
+// type wraps a bignum.Polynomial along with several evaluation-
 // related parameters.
 type Polynomial struct {
 	bignum.Polynomial
@@ -24,7 +23,7 @@ type Polynomial struct {
 }
 
 // NewPolynomial returns an instantiated Polynomial for the
-// provided [bignum.Polynomial].
+// provided bignum.Polynomial.
 func NewPolynomial(poly bignum.Polynomial) Polynomial {
 	return Polynomial{
 		Polynomial: poly,
@@ -69,12 +68,11 @@ type PatersonStockmeyerPolynomial struct {
 	Value  []Polynomial
 }
 
-// PatersonStockmeyerPolynomial returns the Paterson Stockmeyer polynomial decomposition of the target polynomial.
+// GetPatersonStockmeyerPolynomial returns the Paterson Stockmeyer polynomial decomposition of the target polynomial.
 // The decomposition is done with the power of two basis.
-func (p Polynomial) PatersonStockmeyerPolynomial(params rlwe.ParameterProvider, inputLevel int, inputScale, outputScale rlwe.Scale, eval SimEvaluator) PatersonStockmeyerPolynomial {
+func (p Polynomial) GetPatersonStockmeyerPolynomial(params rlwe.ParameterProvider, inputLevel int, inputScale, outputScale rlwe.Scale, eval SimEvaluator) PatersonStockmeyerPolynomial {
 
 	// ceil(log2(degree))
-	/* #nosec G115 -- degree cannot be negative */
 	logDegree := bits.Len64(uint64(p.Degree()))
 
 	// optimal ratio between degree(pi(X)) et degree(P(X))
@@ -110,10 +108,8 @@ func recursePS(params rlwe.ParameterProvider, logSplit, targetLevel int, p Polyn
 
 	if p.Degree() < (1 << logSplit) {
 
-		/* #nosec G115 -- MaxDeg cannot be negative */
 		if p.Lead && logSplit > 1 && p.MaxDeg > (1<<bits.Len64(uint64(p.MaxDeg)))-(1<<(logSplit-1)) {
 
-			/* #nosec G115 -- Degree cannot be negative */
 			logDegree := int(bits.Len64(uint64(p.Degree())))
 			logSplit := bignum.OptimalSplit(logDegree)
 
@@ -161,9 +157,9 @@ type PolynomialVector struct {
 	Mapping map[int][]int
 }
 
-// NewPolynomialVector instantiates a new [PolynomialVector] from a set of [bignum.Polynomial] and a mapping indicating
+// NewPolynomialVector instantiates a new PolynomialVector from a set of bignum.Polynomial and a mapping indicating
 // which polynomial has to be evaluated on which slot.
-// For example, if we are given two polynomials P0(X) and P1(X) and the following mapping: map[int][]int{0:[0, 1, 2], 1:[3, 4, 5]},
+// For example, if we are given two polynomials P0(X) and P1(X) and the folling mapping: map[int][]int{0:[0, 1, 2], 1:[3, 4, 5]},
 // then the polynomial evaluation on a vector [a, b, c, d, e, f, g, h] will evaluate to [P0(a), P0(b), P0(c), P1(d), P1(e), P1(f), 0, 0]
 func NewPolynomialVector(polys []bignum.Polynomial, mapping map[int][]int) (PolynomialVector, error) {
 	var maxDeg int
@@ -230,18 +226,18 @@ func (p PolynomialVector) Factorize(n int) (polyq, polyr PolynomialVector) {
 
 // PatersonStockmeyerPolynomialVector is a struct implementing the
 // Paterson Stockmeyer decomposition of a PolynomialVector.
-// See [PatersonStockmeyerPolynomial] for additional information.
+// See PatersonStockmeyerPolynomial for additional information.
 type PatersonStockmeyerPolynomialVector struct {
 	Value   []PatersonStockmeyerPolynomial
 	Mapping map[int][]int
 }
 
-// PatersonStockmeyerPolynomial returns the Paterson Stockmeyer polynomial decomposition of the target PolynomialVector.
+// GetPatersonStockmeyerPolynomial returns the Paterson Stockmeyer polynomial decomposition of the target PolynomialVector.
 // The decomposition is done with the power of two basis
-func (p PolynomialVector) PatersonStockmeyerPolynomial(params rlwe.Parameters, inputLevel int, inputScale, outputScale rlwe.Scale, eval SimEvaluator) PatersonStockmeyerPolynomialVector {
+func (p PolynomialVector) GetPatersonStockmeyerPolynomial(params rlwe.Parameters, inputLevel int, inputScale, outputScale rlwe.Scale, eval SimEvaluator) PatersonStockmeyerPolynomialVector {
 	Value := make([]PatersonStockmeyerPolynomial, len(p.Value))
 	for i := range Value {
-		Value[i] = p.Value[i].PatersonStockmeyerPolynomial(params, inputLevel, inputScale, outputScale, eval)
+		Value[i] = p.Value[i].GetPatersonStockmeyerPolynomial(params, inputLevel, inputScale, outputScale, eval)
 	}
 
 	return PatersonStockmeyerPolynomialVector{

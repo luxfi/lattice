@@ -3,8 +3,8 @@ package ring
 import (
 	"math/big"
 
-	"github.com/tuneinsight/lattigo/v6/utils"
-	"github.com/tuneinsight/lattigo/v6/utils/bignum"
+	"github.com/luxdefi/lattice/v5/utils"
+	"github.com/luxdefi/lattice/v5/utils/bignum"
 )
 
 // Add evaluates p3 = p1 + p2 coefficient-wise in the ring.
@@ -379,7 +379,7 @@ func (r Ring) MulByVectorMontgomeryThenAddLazy(p1 Poly, vector []uint64, p2 Poly
 // MapSmallDimensionToLargerDimensionNTT maps Y = X^{N/n} -> X directly in the NTT domain
 func MapSmallDimensionToLargerDimensionNTT(polSmall, polLarge Poly) {
 	gap := len(polLarge.Coeffs[0]) / len(polSmall.Coeffs[0])
-	for j := 0; j <= min(polSmall.Level(), polLarge.Level()); j++ {
+	for j := range polSmall.Coeffs {
 		tmp0 := polSmall.Coeffs[j]
 		tmp1 := polLarge.Coeffs[j]
 		for i := range polSmall.Coeffs[0] {

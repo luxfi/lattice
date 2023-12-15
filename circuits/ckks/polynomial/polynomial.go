@@ -1,35 +1,34 @@
-// Package polynomial implements a homomorphic polynomial evaluator for the CKKS scheme.
-package polynomial
+package hefloat
 
 import (
 	"math/big"
 
-	"github.com/tuneinsight/lattigo/v6/circuits/common/polynomial"
-	"github.com/tuneinsight/lattigo/v6/utils/bignum"
+	"github.com/luxdefi/lattice/v5/he"
+	"github.com/luxdefi/lattice/v5/utils/bignum"
 )
 
-// Polynomial is a type wrapping the type [polynomial.Polynomial].
-type Polynomial polynomial.Polynomial
+// Polynomial is a type wrapping the type he.Polynomial.
+type Polynomial he.Polynomial
 
-// NewPolynomial creates a new Polynomial from a [bignum.Polynomial].
+// NewPolynomial creates a new Polynomial from a bignum.Polynomial.
 func NewPolynomial(poly bignum.Polynomial) Polynomial {
-	return Polynomial(polynomial.NewPolynomial(poly))
+	return Polynomial(he.NewPolynomial(poly))
 }
 
-// PolynomialVector is a type wrapping the type [polynomial.PolynomialVector].
-type PolynomialVector polynomial.PolynomialVector
+// PolynomialVector is a type wrapping the type he.PolynomialVector.
+type PolynomialVector he.PolynomialVector
 
-// Depth returns the depth of the target [PolynomialVector].
+// Depth returns the depth of the target PolynomialVector.
 func (p PolynomialVector) Depth() int {
 	return p.Value[0].Depth()
 }
 
-// NewPolynomialVector creates a new PolynomialVector from a list of [bignum.Polynomial] and a mapping
+// NewPolynomialVector creates a new PolynomialVector from a list of bignum.Polynomial and a mapping
 // map[poly_index][slots_index] which stores which polynomial has to be evaluated on which slot.
 // Slots that are not referenced in this mapping will be evaluated to zero.
 // User must ensure that a same slot is not referenced twice.
 func NewPolynomialVector(polys []bignum.Polynomial, mapping map[int][]int) (PolynomialVector, error) {
-	p, err := polynomial.NewPolynomialVector(polys, mapping)
+	p, err := he.NewPolynomialVector(polys, mapping)
 	return PolynomialVector(p), err
 }
 

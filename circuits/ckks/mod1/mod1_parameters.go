@@ -1,4 +1,4 @@
-package mod1
+package hefloat
 
 import (
 	"encoding/json"
@@ -7,60 +7,57 @@ import (
 	"math/big"
 	"math/bits"
 
-	"github.com/tuneinsight/lattigo/v6/core/rlwe"
-	"github.com/tuneinsight/lattigo/v6/schemes/ckks"
-	"github.com/tuneinsight/lattigo/v6/utils"
-	"github.com/tuneinsight/lattigo/v6/utils/bignum"
-	"github.com/tuneinsight/lattigo/v6/utils/cosine"
+	"github.com/luxdefi/lattice/v5/core/rlwe"
+	"github.com/luxdefi/lattice/v5/he/hefloat/cosine"
+	"github.com/luxdefi/lattice/v5/utils"
+	"github.com/luxdefi/lattice/v5/utils/bignum"
 )
 
-// Type is the type of function/approximation used to evaluate x mod 1.
-type Type uint64
+// Mod1Type is the type of function/approximation used to evaluate x mod 1.
+type Mod1Type uint64
 
-// Sin and Cos are the two proposed functions for [Type].
+// Sin and Cos are the two proposed functions for Mod1Type.
 // These trigonometric functions offer a good approximation of the function x mod 1 when the values are close to the origin.
 const (
-	CosDiscrete   = Type(0) // Special approximation (Han and Ki) of pow((1/2pi), 1/2^r) * cos(2pi(x-0.25)/2^r); this method requires a minimum degree of 2*(K-1).
-	SinContinuous = Type(1) // Standard Chebyshev approximation of (1/2pi) * sin(2pix) on the full interval
-	CosContinuous = Type(2) // Standard Chebyshev approximation of pow((1/2pi), 1/2^r) * cos(2pi(x-0.25)/2^r) on the full interval
+	CosDiscrete   = Mod1Type(0) // Special approximation (Han and Ki) of pow((1/2pi), 1/2^r) * cos(2pi(x-0.25)/2^r); this method requires a minimum degree of 2*(K-1).
+	SinContinuous = Mod1Type(1) // Standard Chebyshev approximation of (1/2pi) * sin(2pix) on the full interval
+	CosContinuous = Mod1Type(2) // Standard Chebyshev approximation of pow((1/2pi), 1/2^r) * cos(2pi(x-0.25)/2^r) on the full interval
 )
 
-// ParametersLiteral a struct for the parameters of the mod 1 procedure.
+// Mod1ParametersLiteral a struct for the parameters of the mod 1 procedure.
 // The x mod 1 procedure goal is to homomorphically evaluate a modular reduction by Q[0] (the first prime of the moduli chain) on the encrypted plaintext.
-// This struct is consumed by [NewParametersFromLiteral] to generate the [ParametersLiteral] struct, which notably stores
+// This struct is consumed by `NewMod1ParametersLiteralFromLiteral` to generate the `Mod1ParametersLiteral` struct, which notably stores
 // the coefficient of the polynomial approximating the function x mod Q[0].
-type ParametersLiteral struct {
-	LevelQ          int     // Starting level of x mod 1
-	LogScale        int     // Log2 of the scaling factor used during x mod 1
-	Mod1Type        Type    // Chose between [Sin(2*pi*x)] or [cos(2*pi*x/r) with double angle formula]
-	Scaling         float64 // Value by which the output is scaled by
-	LogMessageRatio int     // Log2 of the ratio between Q0 and m, i.e. Q[0]/|m|
-	K               int     // K parameter (interpolation in the range -K to K)
-	Mod1Degree      int     // Degree of f: x mod 1
-	DoubleAngle     int     // Number of rescale and double angle formula (only applies for cos and is ignored if sin is used)
-	Mod1InvDegree   int     // Degree of f^-1: (x mod 1)^-1
+type Mod1ParametersLiteral struct {
+	LevelStart      int      // Starting level of x mod 1
+	LogScale        int      // Log2 of the scaling factor used during x mod 1
+	Mod1Type        Mod1Type // Chose between [Sin(2*pi*x)] or [cos(2*pi*x/r) with double angle formula]
+	Scaling         float64  // Value by which the output is scaled by
+	LogMessageRatio int      // Log2 of the ratio between Q0 and m, i.e. Q[0]/|m|
+	K               int      // K parameter (interpolation in the range -K to K)
+	Mod1Degree      int      // Degree of f: x mod 1
+	DoubleAngle     int      // Number of rescale and double angle formula (only applies for cos and is ignored if sin is used)
+	Mod1InvDegree   int      // Degree of f^-1: (x mod 1)^-1
 }
 
 // MarshalBinary returns a JSON representation of the the target Mod1ParametersLiteral struct on a slice of bytes.
-// See Marshal from the [encoding/json] package.
-func (evm ParametersLiteral) MarshalBinary() (data []byte, err error) {
+// See `Marshal` from the `encoding/json` package.
+func (evm Mod1ParametersLiteral) MarshalBinary() (data []byte, err error) {
 	return json.Marshal(evm)
 }
 
 // UnmarshalBinary reads a JSON representation on the target Mod1ParametersLiteral struct.
-// See Unmarshal from the [encoding/json] package.
-func (evm *ParametersLiteral) UnmarshalBinary(data []byte) (err error) {
+// See `Unmarshal` from the `encoding/json` package.
+func (evm *Mod1ParametersLiteral) UnmarshalBinary(data []byte) (err error) {
 	return json.Unmarshal(data, evm)
 }
 
 // Depth returns the depth required to evaluate x mod 1.
-func (evm ParametersLiteral) Depth() (depth int) {
+func (evm Mod1ParametersLiteral) Depth() (depth int) {
 
 	if evm.Mod1Type == CosDiscrete { // this method requires a minimum degree of 2*K-1.
-		/* #nosec G115 -- Mod1Degree cannot be negative */
 		depth += int(bits.Len64(uint64(utils.Max(evm.Mod1Degree, 2*evm.K-1))))
 	} else {
-		/* #nosec G115 -- Mod1Degree cannot be negative */
 		depth += int(bits.Len64(uint64(evm.Mod1Degree)))
 	}
 
@@ -68,48 +65,60 @@ func (evm ParametersLiteral) Depth() (depth int) {
 		depth += evm.DoubleAngle
 	}
 
-	/* #nosec G115 -- Mod1InvDegree cannot be negative */
 	depth += int(bits.Len64(uint64(evm.Mod1InvDegree)))
 	return depth
 }
 
-// Parameters is a struct storing the parameters and polynomials approximating the function x mod Q[0] (the first prime of the moduli chain).
-type Parameters struct {
-	LevelQ          int                // starting level of the operation
+// Mod1Parameters is a struct storing the parameters and polynomials approximating the function x mod Q[0] (the first prime of the moduli chain).
+type Mod1Parameters struct {
+	levelStart      int                // starting level of the operation
 	LogDefaultScale int                // log2 of the default scaling factor
-	Mod1Type        Type               // type of approximation for the f: x mod 1 function
+	Mod1Type        Mod1Type           // type of approximation for the f: x mod 1 function
 	LogMessageRatio int                // Log2 of the ratio between Q0 and m, i.e. Q[0]/|m|
-	DoubleAngle     int                // Number of rescale and double angle formula (only applies for cos and is ignored if sin is used)
-	QDiff           float64            // Q / 2^round(Log2(Q))
-	Sqrt2Pi         float64            // (1/2pi)^(1.0/scFac)
-	Mod1Poly        bignum.Polynomial  // Polynomial for f: x mod 1
-	Mod1InvPoly     *bignum.Polynomial // Polynomial for f^-1: (x mod 1)^-1
-	K               float64            // interval [-K, K]
+	doubleAngle     int                // Number of rescale and double angle formula (only applies for cos and is ignored if sin is used)
+	qDiff           float64            // Q / 2^round(Log2(Q))
+	scFac           float64            // 2^doubleAngle
+	sqrt2Pi         float64            // (1/2pi)^(1.0/scFac)
+	mod1Poly        bignum.Polynomial  // Polynomial for f: x mod 1
+	mod1InvPoly     *bignum.Polynomial // Polynomial for f^-1: (x mod 1)^-1
+	k               float64            // interval [-k, k]
 }
 
-// IntervalShrinkFactor returns 2^{DoubleAngle}
-func (evp Parameters) IntervalShrinkFactor() float64 {
-	return math.Exp2(float64(evp.DoubleAngle))
-}
-
-// KShrinked returns K / IntervalShrinkFactor()
-func (evp Parameters) KShrinked() float64 {
-	return evp.K / evp.IntervalShrinkFactor()
+// LevelStart returns the starting level of the x mod 1.
+func (evp Mod1Parameters) LevelStart() int {
+	return evp.levelStart
 }
 
 // ScalingFactor returns scaling factor used during the x mod 1.
-func (evp Parameters) ScalingFactor() rlwe.Scale {
+func (evp Mod1Parameters) ScalingFactor() rlwe.Scale {
 	return rlwe.NewScale(math.Exp2(float64(evp.LogDefaultScale)))
 }
 
+// ScFac returns 1/2^r where r is the number of double angle evaluation.
+func (evp Mod1Parameters) ScFac() float64 {
+	return evp.scFac
+}
+
 // MessageRatio returns the pre-set ratio Q[0]/|m|.
-func (evp Parameters) MessageRatio() float64 {
+func (evp Mod1Parameters) MessageRatio() float64 {
 	return float64(uint(1 << evp.LogMessageRatio))
 }
 
-// NewParametersFromLiteral generates an [Parameters] struct from the [ParametersLiteral] struct.
-// The [Parameters] struct is to instantiates a [Mod1Evaluator], which homomorphically evaluates x mod 1.
-func NewParametersFromLiteral(params ckks.Parameters, evm ParametersLiteral) (Parameters, error) {
+// K return the sine approximation range.
+func (evp Mod1Parameters) K() float64 {
+	return evp.k * evp.scFac
+}
+
+// QDiff return Q[0]/ClosetPow2
+// This is the error introduced by the approximate division by Q[0].
+func (evp Mod1Parameters) QDiff() float64 {
+	return evp.qDiff
+}
+
+// NewMod1ParametersFromLiteral generates an Mod1Parameters struct from the Mod1ParametersLiteral struct.
+// The Mod1Parameters struct is to instantiates a Mod1Evaluator, which homomorphically evaluates x mod 1.
+func NewMod1ParametersFromLiteral(params Parameters, evm Mod1ParametersLiteral) (Mod1Parameters, error) {
+
 	var mod1InvPoly *bignum.Polynomial
 	var mod1Poly bignum.Polynomial
 	var sqrt2pi float64
@@ -199,7 +208,7 @@ func NewParametersFromLiteral(params ckks.Parameters, evm ParametersLiteral) (Pa
 		}
 
 	default:
-		return Parameters{}, fmt.Errorf("invalid Mod1Type")
+		return Mod1Parameters{}, fmt.Errorf("invalid Mod1Type")
 	}
 
 	sqrt2piBig := new(big.Float).SetFloat64(sqrt2pi)
@@ -210,19 +219,19 @@ func NewParametersFromLiteral(params ckks.Parameters, evm ParametersLiteral) (Pa
 		}
 	}
 
-	return Parameters{
-		LevelQ:          evm.LevelQ,
+	return Mod1Parameters{
+		levelStart:      evm.LevelStart,
 		LogDefaultScale: evm.LogScale,
 		Mod1Type:        evm.Mod1Type,
 		LogMessageRatio: evm.LogMessageRatio,
-		DoubleAngle:     doubleAngle,
-		QDiff:           qDiff,
-		Sqrt2Pi:         sqrt2pi,
-		Mod1Poly:        mod1Poly,
-		Mod1InvPoly:     mod1InvPoly,
-		K:               float64(evm.K),
+		doubleAngle:     doubleAngle,
+		qDiff:           qDiff,
+		scFac:           scFac,
+		sqrt2Pi:         sqrt2pi,
+		mod1Poly:        mod1Poly,
+		mod1InvPoly:     mod1InvPoly,
+		k:               K,
 	}, nil
-
 }
 
 func sin2pi(x *big.Float) (y *big.Float) {

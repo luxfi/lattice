@@ -5,49 +5,15 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/tuneinsight/lattigo/v6/core/rlwe"
-
-	"github.com/tuneinsight/lattigo/v6/schemes/ckks"
+	"github.com/luxdefi/lattice/v5/core/rlwe"
+	"github.com/luxdefi/lattice/v5/he/hefloat"
 )
-
-func BenchmarkConcurrentBootstrap(b *testing.B) {
-	paramSet := DefaultParametersDense[0]
-
-	params, err := ckks.NewParametersFromLiteral(paramSet.SchemeParams)
-	require.NoError(b, err)
-
-	btpParams, err := NewParametersFromLiteral(params, paramSet.BootstrappingParams)
-	require.Nil(b, err)
-
-	kgen := rlwe.NewKeyGenerator(params)
-	sk := kgen.GenSecretKeyNew()
-
-	evk, _, err := btpParams.GenEvaluationKeys(sk)
-	require.NoError(b, err)
-
-	// Benchmark parallel bootstrapping
-	b.Run(ParamsToString(params, btpParams.LogMaxDimensions().Cols, "Bootstrap/"), func(b *testing.B) {
-		var err error
-		eval, err := NewEvaluator(btpParams, evk)
-		require.NoError(b, err)
-		ct1 := ckks.NewCiphertext(params, 1, 0)
-		b.ResetTimer()
-		b.RunParallel(func(pb *testing.PB) {
-			for pb.Next() {
-				_, err = eval.Bootstrap(ct1)
-			}
-		})
-	})
-
-}
 
 func BenchmarkBootstrap(b *testing.B) {
 
-	b.Skip()
 	paramSet := DefaultParametersDense[0]
 
-	params, err := ckks.NewParametersFromLiteral(paramSet.SchemeParams)
+	params, err := hefloat.NewParametersFromLiteral(paramSet.SchemeParams)
 	require.NoError(b, err)
 
 	btpParams, err := NewParametersFromLiteral(params, paramSet.BootstrappingParams)
@@ -59,16 +25,17 @@ func BenchmarkBootstrap(b *testing.B) {
 	evk, _, err := btpParams.GenEvaluationKeys(sk)
 	require.NoError(b, err)
 
+	eval, err := NewEvaluator(btpParams, evk)
+	require.NoError(b, err)
+
 	b.Run(ParamsToString(params, btpParams.LogMaxDimensions().Cols, "Bootstrap/"), func(b *testing.B) {
 
 		var err error
-		eval, err := NewEvaluator(btpParams, evk)
-		require.NoError(b, err)
 
 		for i := 0; i < b.N; i++ {
 
 			b.StopTimer()
-			ct := ckks.NewCiphertext(params, 1, 0)
+			ct := hefloat.NewCiphertext(params, 1, 0)
 			b.StartTimer()
 
 			var t time.Time
