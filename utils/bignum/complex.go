@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/tuneinsight/lattigo/v5/utils"
+	"github.com/luxdefi/lattice/v5/utils"
 )
 
 // Complex is a type for arbitrary precision complex number

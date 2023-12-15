@@ -5,7 +5,7 @@ import (
 	"math"
 	"math/bits"
 
-	"github.com/tuneinsight/lattigo/v5/utils/sampling"
+	"github.com/luxdefi/lattice/v5/utils/sampling"
 )
 
 const ternarySamplerPrecision = uint64(56)

@@ -6,8 +6,8 @@ import (
 	"math/bits"
 	"unsafe"
 
-	"github.com/tuneinsight/lattigo/v5/utils"
-	"github.com/tuneinsight/lattigo/v5/utils/bignum"
+	"github.com/luxdefi/lattice/v5/utils"
+	"github.com/luxdefi/lattice/v5/utils/bignum"
 )
 
 const (

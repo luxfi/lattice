@@ -1,7 +1,7 @@
 package hefloat_test
 
 import (
-	"github.com/tuneinsight/lattigo/v5/he/hefloat"
+	"github.com/luxdefi/lattice/v5/he/hefloat"
 )
 
 var (

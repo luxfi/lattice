@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/tuneinsight/lattigo/v5/ring"
-	"github.com/tuneinsight/lattigo/v5/ring/ringqp"
-	"github.com/tuneinsight/lattigo/v5/utils"
-	"github.com/tuneinsight/lattigo/v5/utils/sampling"
+	"github.com/luxdefi/lattice/v5/ring"
+	"github.com/luxdefi/lattice/v5/ring/ringqp"
+	"github.com/luxdefi/lattice/v5/utils"
+	"github.com/luxdefi/lattice/v5/utils/sampling"
 )
 
 // EncryptionKey is an interface for encryption keys. Valid encryption

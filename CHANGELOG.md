@@ -338,7 +338,7 @@ All notable changes to this library are documented in this file.
 - CKKS: encoder is now about 3.5x faster (without taking the NTT into account).
 
 ## [3.0.0] - 2022-02-21
-- ALL: renamed the module to `github.com/tuneinsight/v3`.
+- ALL: renamed the module to `github.com/luxdefi/v3`.
 - RING: renamed `FastBasisExtender` to `BasisExtender`.
 - RING: `.PolyToBigint[...](*)` now take as input `gap` which defines the multiples of `X^{i*gap}` to reconstruct.
 - RLWE: removed `FastEncryptor`. Encryption without rescaling by `P` is now automatically used by `Encryptor` if no `P` is specified in the parameters.
@@ -423,7 +423,7 @@ All notable changes to this library are documented in this file.
 - RING: RNS rescaling API is now in place and can take a different poly as output.
 - RING: added `ReadFromDistLvl` and `ReadAndAddFromDistLvl` to Gaussian sampler API.
 - RING: added `IsNTT` and `IsMForm` flags in the `ring.Poly` type. For now, these flags are never checked or changed by the `ring` package.
-- RLWE: added a new `rlwe` package as common implementation base package for the Lattigo RLWE schemes.
+- RLWE: added a new `rlwe` package as common implementation base package for the Lattice RLWE schemes.
 - RLWE: extracted the `rlwe.Parameters` type as common base struct for BFV and CKKS parameters.
 - RLWE: extracted the `rlwe.KeyGenerator` type as common key-generator for BFV and CKKS.
 - RLWE: extracted the `rlwe.Ciphertext` type as common base struct for BFV and CKKS ciphertexts.
@@ -436,7 +436,7 @@ All notable changes to this library are documented in this file.
 - RLWE: added equality and inclusion check methods for the `rlwe.RotatationKeySet` type.
 - RLWE: added tests for encryption, decryption, key-generation and key-switching.
 - RLWE: moved keys related marshalling tests of `bfv` and `ckks` packages the `rlwe` package.
-- DRLWE: added a new `drlwe` package as a common implementation base for the lattigo multiparty RLWE schemes.
+- DRLWE: added a new `drlwe` package as a common implementation base for the lattice multiparty RLWE schemes.
 - DRLWE: added tests for the protocols.
 - DRLWE: moved keys-related marshalling tests of `dbfv` and `dckks` packages to the `drlwe` package.
 - BFV/CKKS: the schemes now use a common implementation for their keys.

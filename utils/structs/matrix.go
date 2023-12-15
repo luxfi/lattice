@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/tuneinsight/lattigo/v5/utils"
-	"github.com/tuneinsight/lattigo/v5/utils/buffer"
+	"github.com/luxdefi/lattice/v5/utils"
+	"github.com/luxdefi/lattice/v5/utils/buffer"
 )
 
 // Matrix is a struct wrapping a double slice of components of type T.
@@ -71,14 +71,14 @@ func (m Matrix[T]) BinarySize() (size int) {
 //
 // If T is a struct, this method requires that T implements io.WriterTo.
 //
-// Unless w implements the buffer.Writer interface (see lattigo/utils/buffer/writer.go),
+// Unless w implements the buffer.Writer interface (see lattice/utils/buffer/writer.go),
 // it will be wrapped into a bufio.Writer. Since this requires allocations, it
 // is preferable to pass a buffer.Writer directly:
 //
 //   - When writing multiple times to a io.Writer, it is preferable to first wrap the
 //     io.Writer in a pre-allocated bufio.Writer.
 //   - When writing to a pre-allocated var b []byte, it is preferable to pass
-//     buffer.NewBuffer(b) as w (see lattigo/utils/buffer/buffer.go).
+//     buffer.NewBuffer(b) as w (see lattice/utils/buffer/buffer.go).
 func (m Matrix[T]) WriteTo(w io.Writer) (n int64, err error) {
 
 	switch w := w.(type) {
@@ -110,14 +110,14 @@ func (m Matrix[T]) WriteTo(w io.Writer) (n int64, err error) {
 //
 // If T is a struct, this method requires that T implements io.ReaderFrom.
 //
-// Unless r implements the buffer.Reader interface (see lattigo/utils/buffer/reader.go),
+// Unless r implements the buffer.Reader interface (see lattice/utils/buffer/reader.go),
 // it will be wrapped into a bufio.Reader. Since this requires allocation, it
 // is preferable to pass a buffer.Reader directly:
 //
 //   - When reading multiple values from a io.Reader, it is preferable to first
 //     first wrap io.Reader in a pre-allocated bufio.Reader.
 //   - When reading from a var b []byte, it is preferable to pass a buffer.NewBuffer(b)
-//     as w (see lattigo/utils/buffer/buffer.go).
+//     as w (see lattice/utils/buffer/buffer.go).
 func (m *Matrix[T]) ReadFrom(r io.Reader) (n int64, err error) {
 
 	switch r := r.(type) {

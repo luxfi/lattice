@@ -5,8 +5,8 @@ import (
 	"math"
 	"math/big"
 
-	"github.com/tuneinsight/lattigo/v5/utils/bignum"
-	"github.com/tuneinsight/lattigo/v5/utils/sampling"
+	"github.com/luxdefi/lattice/v5/utils/bignum"
+	"github.com/luxdefi/lattice/v5/utils/sampling"
 )
 
 const (

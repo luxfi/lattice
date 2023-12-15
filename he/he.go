@@ -1,10 +1,10 @@
-// Package he implements scheme agnostic functionalities for RLWE-based Homomorphic Encryption schemes implemented in Lattigo.
+// Package he implements scheme agnostic functionalities for RLWE-based Homomorphic Encryption schemes implemented in Lattice.
 package he
 
 import (
-	"github.com/tuneinsight/lattigo/v5/core/rlwe"
-	"github.com/tuneinsight/lattigo/v5/ring"
-	"github.com/tuneinsight/lattigo/v5/ring/ringqp"
+	"github.com/luxdefi/lattice/v5/core/rlwe"
+	"github.com/luxdefi/lattice/v5/ring"
+	"github.com/luxdefi/lattice/v5/ring/ringqp"
 )
 
 // Encoder defines a set of common and scheme agnostic method provided by an Encoder struct.

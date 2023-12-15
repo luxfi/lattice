@@ -5,11 +5,11 @@ import (
 	"math/cmplx"
 	"math/rand"
 
-	"github.com/tuneinsight/lattigo/v5/core/rlwe"
-	"github.com/tuneinsight/lattigo/v5/he"
-	"github.com/tuneinsight/lattigo/v5/he/hefloat"
-	"github.com/tuneinsight/lattigo/v5/utils"
-	"github.com/tuneinsight/lattigo/v5/utils/bignum"
+	"github.com/luxdefi/lattice/v5/core/rlwe"
+	"github.com/luxdefi/lattice/v5/he"
+	"github.com/luxdefi/lattice/v5/he/hefloat"
+	"github.com/luxdefi/lattice/v5/utils"
+	"github.com/luxdefi/lattice/v5/utils/bignum"
 )
 
 func main() {
@@ -19,7 +19,7 @@ func main() {
 	//
 	// This example showcase the capabilities of encrypted fixed-point approximate arithmetic over the reals/complexes.
 	//
-	// The Lattigo library is a library designed around layers.
+	// The Lattice library is a library designed around layers.
 	// Each layer is a package that provides functionalities for the layers above it.
 	//
 	// The `he/float` package relies on the `ckks` and `rlwe` packages, which themselves relies on the `ring` package:  `ring` -> `rlwe` -> `ckks` -> `he/float`.
@@ -59,7 +59,7 @@ func main() {
 	// These are all public fields which can be manually edited by advanced users if needed.
 	//
 	// ======================================================
-	// Capabilities of the HE/FLOAT Package in the Lattigo Library
+	// Capabilities of the HE/FLOAT Package in the Lattice Library
 	// ======================================================
 	//
 	// The current capabilities of the `he/float` package are the following:
@@ -110,7 +110,7 @@ func main() {
 	// =================================
 	//
 	// We will instantiate a `hefloat.Parameters` struct.
-	// Unlike other libraries, `Lattigo` doesn't have, yet, a quick constructor.
+	// Unlike other libraries, `Lattice` doesn't have, yet, a quick constructor.
 	// Users must specify all parameters, up to each individual prime size.
 	//
 	// We will create parameters that are 128-bit secure and allow a depth 7 computation with a scaling factor of 2^{45}.
@@ -730,7 +730,7 @@ func main() {
 	// CONCURRENCY
 	// ==========
 	//
-	// Lattigo does not implement low level concurrency yet.
+	// Lattice does not implement low level concurrency yet.
 	// Currently concurrency must be done at the circuit level.
 	//
 	// By design, structs outside of the parameters are not thread safe.

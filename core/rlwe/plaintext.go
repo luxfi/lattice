@@ -3,8 +3,8 @@ package rlwe
 import (
 	"io"
 
-	"github.com/tuneinsight/lattigo/v5/ring"
-	"github.com/tuneinsight/lattigo/v5/utils/sampling"
+	"github.com/luxdefi/lattice/v5/ring"
+	"github.com/luxdefi/lattice/v5/utils/sampling"
 )
 
 // Plaintext is a common base type for RLWE plaintexts.
@@ -62,14 +62,14 @@ func NewPlaintextRandom(prng sampling.PRNG, params ParameterProvider, level int)
 // ReadFrom reads on the object from an io.Writer. It implements the
 // io.ReaderFrom interface.
 //
-// Unless r implements the buffer.Reader interface (see see lattigo/utils/buffer/reader.go),
+// Unless r implements the buffer.Reader interface (see see lattice/utils/buffer/reader.go),
 // it will be wrapped into a bufio.Reader. Since this requires allocation, it
 // is preferable to pass a buffer.Reader directly:
 //
 //   - When reading multiple values from a io.Reader, it is preferable to first
 //     first wrap io.Reader in a pre-allocated bufio.Reader.
 //   - When reading from a var b []byte, it is preferable to pass a buffer.NewBuffer(b)
-//     as w (see lattigo/utils/buffer/buffer.go).
+//     as w (see lattice/utils/buffer/buffer.go).
 func (pt *Plaintext) ReadFrom(r io.Reader) (n int64, err error) {
 	if n, err = pt.Element.ReadFrom(r); err != nil {
 		return

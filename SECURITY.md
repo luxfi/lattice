@@ -1,8 +1,8 @@
 # Report a Vulnerability
-To report a vulnerability please contact us directly using the following email: lattigo@tuneinsight.com.
+To report a vulnerability please contact us directly using the following email: lattice@luxdefi.com.
 
 # Code Review
-Lattigo 2.0.0 has been code-reviewed by ELCA in November 2020 and, within the allocated time for the code review, no critical or high-risk issues were found.
+Lattice 2.0.0 has been code-reviewed by ELCA in November 2020 and, within the allocated time for the code review, no critical or high-risk issues were found.
 
 # Security of Approximate Homomorphic Encryption
 Homomorphic encryption schemes are by definition malleable, and are therefore not secure against chosen ciphertext attacks (CCA security). They can be though secure against chosen plaintext attacks (CPA security).
@@ -12,7 +12,7 @@ Classified as an _approximate decryption_ scheme, the CKKS scheme is secure as l
 This attack demonstrates that, when using an approximate homomorphic encryption scheme, the usual CPA security may not sufficient depending on the application setting. Many applications do not require to share the result with external parties and are not affected by this attack, but the ones that do must take the appropriate steps to ensure that no key-dependent information is leaked. A homomorphic encryption scheme that provides such functionality and that can be secure when releasing decrypted plaintext to external parties is defined to be CPA<sup>D</sup> secure. The corresponding indistinguishability notion (IND-CPA<sup>D</sup>) is defined as "indistinguishability under chosen plaintext attacks with decryption oracles."
 
 # CPA<sup>D</sup> Security for Approximate Homomorphic Encryption
-Lattigo implements tools to mitigate _Li and Micciancio_'s attack. In particular, the decoding step of CKKS (and its real-number variant R-CKKS) allows the user to specify the desired fixed-point bit-precision.
+Lattice implements tools to mitigate _Li and Micciancio_'s attack. In particular, the decoding step of CKKS (and its real-number variant R-CKKS) allows the user to specify the desired fixed-point bit-precision.
 
 Let $\epsilon$ be the scheme error after the decoding step. We compute the bit precision of the output as $\log_{2}(1/\epsilon)$.
 

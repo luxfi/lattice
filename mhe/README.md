@@ -1,12 +1,12 @@
 # MHE
 The MHE package implements several Multiparty Homomorphic Encryption (MHE) primitives based on Ring-Learning-with-Errors (RLWE).
-It provides generic interfaces for the local steps of the MHE-based Secure Multiparty Computation (MHE-MPC) protocol that are common across all the RLWE distributed schemes implemented in Lattigo (e.g., collective key generation).
+It provides generic interfaces for the local steps of the MHE-based Secure Multiparty Computation (MHE-MPC) protocol that are common across all the RLWE distributed schemes implemented in Lattice (e.g., collective key generation).
 The `mhe/heinteger` and `mhe/hefloat` packages import `mhe` and provide scheme-specific functionalities (e.g., interactive bootstrapping).
 
 This package implements local operations only, hence does not assume or provide any network-layer protocol implementation.
 However, it provides serialization methods for all relevant structures that implement the standard `encoding.BinaryMarshaller` and `encoding.BinaryUnmarshaller` interfaces (see [https://pkg.go.dev/encoding](https://pkg.go.dev/encoding)) as well as the `io.WriterTo` and `io.ReaderFrom` interfaces (see [https://pkg.go.dev/encoding](https://pkg.go.dev/io)).
 
-The MHE-MPC protocol implemented in Lattigo is based on the constructions described in ["Multiparty Homomorphic Encryption from Ring-Learning-with-Errors"](https://eprint.iacr.org/2020/304.pdf) by Mouchet et al. (2021), which is an RLWE instantiation of the MPC protocol described in ["Multiparty computation with low communication, computation and interaction via threshold FHE"](https://eprint.iacr.org/2011/613.pdf) by Asharov et al. (2012).
+The MHE-MPC protocol implemented in Lattice is based on the constructions described in ["Multiparty Homomorphic Encryption from Ring-Learning-with-Errors"](https://eprint.iacr.org/2020/304.pdf) by Mouchet et al. (2021), which is an RLWE instantiation of the MPC protocol described in ["Multiparty computation with low communication, computation and interaction via threshold FHE"](https://eprint.iacr.org/2011/613.pdf) by Asharov et al. (2012).
 
 ## MHE-MPC Protocol Overview
 
@@ -19,7 +19,7 @@ The protocol is generic and covers several system- and adversary-models:
 
 **Anytrust vs Full-threshold Access-structure**. As for many MPC protocols, the assumption on the worst-case number of corrupted parties can be mapped in the cryptographic access-control mechanism (the _access structure_). The implemented MHE-MPC protocol is "anytrust" (N-out-of-N-threshold) by default, but can be relaxed to any positive threshold t-out-of-N (see Threshold Secret-Key Generation).
 
-**Passive vs Active Adversaries**. The implemented MHE-MPC protocol is secure against passive adversaries, and can in theory be extended to active security by requiring the parties to produce proofs that their shares are correctly computed for every round. Note that those proofs are not implemented in Lattigo.
+**Passive vs Active Adversaries**. The implemented MHE-MPC protocol is secure against passive adversaries, and can in theory be extended to active security by requiring the parties to produce proofs that their shares are correctly computed for every round. Note that those proofs are not implemented in Lattice.
 
 An execution of the MHE-based MPC protocol has two phases: the Setup phase and the Evaluation phase, each of which comprises a number of sub-protocols as depicted below (the details of each protocols are provided later).
 
@@ -41,7 +41,7 @@ An execution of the MHE-based MPC protocol has two phases: the Setup phase and t
 
 ## MHE-MPC Protocol Steps Description
 
-This section provides a description for each sub-protocol of the MHE-MPC protocol and provides pointers to the relevant Lattigo types and methods.
+This section provides a description for each sub-protocol of the MHE-MPC protocol and provides pointers to the relevant Lattice types and methods.
 This description is a first draft and will evolve in the future.
 For concrete code examples, see the `example/mhe` folders.
 For a more formal exposition, see ["Multiparty Homomorphic Encryption from Ring-Learning-with-Errors"](https://eprint.iacr.org/2020/304.pdf) and [An Efficient Threshold Access-Structure for RLWE-Based Multiparty Homomorphic Encryption](https://eprint.iacr.org/2022/780).
