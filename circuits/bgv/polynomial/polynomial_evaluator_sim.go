@@ -1,23 +1,22 @@
-package polynomial
+package heint
 
 import (
-	"fmt"
 	"math/big"
 	"math/bits"
 
-	"github.com/tuneinsight/lattigo/v6/circuits/common/polynomial"
-	"github.com/tuneinsight/lattigo/v6/core/rlwe"
-	"github.com/tuneinsight/lattigo/v6/schemes/bgv"
-	"github.com/tuneinsight/lattigo/v6/utils"
+	"github.com/luxdefi/lattice/v5/core/rlwe"
+	"github.com/luxdefi/lattice/v5/he"
+	"github.com/luxdefi/lattice/v5/schemes/bgv"
+	"github.com/luxdefi/lattice/v5/utils"
 )
 
 // simEvaluator is a struct used to pre-computed the scaling
 // factors of the polynomial coefficients used by the inlined
 // polynomial evaluation by running the polynomial evaluation
 // with dummy operands.
-// This struct implements the interface [polynomial.SimEvaluator].
+// This struct implements the interface he.SimEvaluator.
 type simEvaluator struct {
-	params             bgv.Parameters
+	params             Parameters
 	InvariantTensoring bool
 }
 
@@ -26,29 +25,24 @@ func (d simEvaluator) PolynomialDepth(degree int) int {
 	if d.InvariantTensoring {
 		return 0
 	}
-
-	if degree <= 0 {
-		panic(fmt.Errorf("invalid degree: degree=%d should be greater than zero", degree))
-	}
-
 	return bits.Len64(uint64(degree)) - 1
 }
 
-// Rescale rescales the target polynomial.SimOperand n times and returns it.
-func (d simEvaluator) Rescale(op0 *polynomial.SimOperand) {
+// Rescale rescales the target he.SimOperand n times and returns it.
+func (d simEvaluator) Rescale(op0 *he.SimOperand) {
 	if !d.InvariantTensoring {
 		op0.Scale = op0.Scale.Div(rlwe.NewScale(d.params.Q()[op0.Level]))
 		op0.Level--
 	}
 }
 
-// MulNew multiplies two polynomial.SimOperand, stores the result the target [polynomial.SimOperand] and returns the result.
-func (d simEvaluator) MulNew(op0, op1 *polynomial.SimOperand) (opOut *polynomial.SimOperand) {
-	opOut = new(polynomial.SimOperand)
+// MulNew multiplies two he.SimOperand, stores the result the target he.SimOperand and returns the result.
+func (d simEvaluator) MulNew(op0, op1 *he.SimOperand) (opOut *he.SimOperand) {
+	opOut = new(he.SimOperand)
 	opOut.Level = utils.Min(op0.Level, op1.Level)
 
 	if d.InvariantTensoring {
-		opOut.Scale = bgv.MulScaleInvariant(d.params, op0.Scale, op1.Scale, opOut.Level)
+		opOut.Scale = bgv.MulScaleInvariant(d.params.Parameters, op0.Scale, op1.Scale, opOut.Level)
 	} else {
 		opOut.Scale = op0.Scale.Mul(op1.Scale)
 	}

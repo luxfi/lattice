@@ -1,4 +1,4 @@
-package mpbgv
+package mheint
 
 import (
 	"encoding/json"
@@ -6,22 +6,21 @@ import (
 	"fmt"
 	"math"
 	"runtime"
-	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/tuneinsight/lattigo/v6/core/rlwe"
-	"github.com/tuneinsight/lattigo/v6/multiparty"
-	"github.com/tuneinsight/lattigo/v6/ring"
-	"github.com/tuneinsight/lattigo/v6/schemes/bgv"
-	"github.com/tuneinsight/lattigo/v6/utils/sampling"
+	"github.com/luxdefi/lattice/v5/core/rlwe"
+	"github.com/luxdefi/lattice/v5/he/heint"
+	"github.com/luxdefi/lattice/v5/mhe"
+	"github.com/luxdefi/lattice/v5/ring"
+	"github.com/luxdefi/lattice/v5/utils"
+	"github.com/luxdefi/lattice/v5/utils/sampling"
 )
 
 var flagParamString = flag.String("params", "", "specify the test cryptographic parameters as a JSON string. Overrides -short and -long.")
 
-func GetTestName(opname string, p bgv.Parameters, parties int) string {
+func GetTestName(opname string, p heint.Parameters, parties int) string {
 	return fmt.Sprintf("%s/LogN=%d/logQ=%d/logP=%d/LogSlots=%dx%d/logT=%d/Qi=%d/Pi=%d/parties=%d",
 		opname,
 		p.LogN(),
@@ -36,7 +35,7 @@ func GetTestName(opname string, p bgv.Parameters, parties int) string {
 }
 
 type testContext struct {
-	params bgv.Parameters
+	params heint.Parameters
 
 	// Number of parties
 	NParties int
@@ -49,7 +48,7 @@ type testContext struct {
 	ringQ *ring.Ring
 	ringP *ring.Ring
 
-	encoder *bgv.Encoder
+	encoder *heint.Encoder
 
 	sk0Shards []*rlwe.SecretKey
 	sk0       *rlwe.SecretKey
@@ -63,9 +62,9 @@ type testContext struct {
 	encryptorPk0 *rlwe.Encryptor
 	decryptorSk0 *rlwe.Decryptor
 	decryptorSk1 *rlwe.Decryptor
-	evaluator    *bgv.Evaluator
+	evaluator    *heint.Evaluator
 
-	crs            multiparty.CRS
+	crs            mhe.CRS
 	uniformSampler *ring.UniformSampler
 }
 
@@ -76,11 +75,11 @@ func TestInteger(t *testing.T) {
 	paramsLiterals := testParams
 
 	if *flagParamString != "" {
-		var jsonParams bgv.ParametersLiteral
+		var jsonParams heint.ParametersLiteral
 		if err = json.Unmarshal([]byte(*flagParamString), &jsonParams); err != nil {
 			t.Fatal(err)
 		}
-		paramsLiterals = []bgv.ParametersLiteral{jsonParams} // the custom test suite reads the parameters from the -params flag
+		paramsLiterals = []heint.ParametersLiteral{jsonParams} // the custom test suite reads the parameters from the -params flag
 	}
 
 	for _, p := range paramsLiterals {
@@ -89,8 +88,8 @@ func TestInteger(t *testing.T) {
 
 			p.PlaintextModulus = plaintextModulus
 
-			var params bgv.Parameters
-			if params, err = bgv.NewParametersFromLiteral(p); err != nil {
+			var params heint.Parameters
+			if params, err = heint.NewParametersFromLiteral(p); err != nil {
 				t.Fatal(err)
 			}
 
@@ -113,7 +112,7 @@ func TestInteger(t *testing.T) {
 	}
 }
 
-func gentestContext(nParties int, params bgv.Parameters) (tc *testContext, err error) {
+func gentestContext(nParties int, params heint.Parameters) (tc *testContext, err error) {
 
 	tc = new(testContext)
 
@@ -131,8 +130,8 @@ func gentestContext(nParties int, params bgv.Parameters) (tc *testContext, err e
 	tc.crs = prng
 	tc.uniformSampler = ring.NewUniformSampler(prng, params.RingQ())
 
-	tc.encoder = bgv.NewEncoder(tc.params)
-	tc.evaluator = bgv.NewEvaluator(tc.params, nil)
+	tc.encoder = heint.NewEncoder(tc.params)
+	tc.evaluator = heint.NewEvaluator(tc.params, nil)
 
 	kgen := rlwe.NewKeyGenerator(tc.params)
 
@@ -169,8 +168,8 @@ func testEncToShares(tc *testContext, t *testing.T) {
 		e2s         EncToShareProtocol
 		s2e         ShareToEncProtocol
 		sk          *rlwe.SecretKey
-		publicShare multiparty.KeySwitchShare
-		secretShare multiparty.AdditiveShare
+		publicShare mhe.KeySwitchShare
+		secretShare mhe.AdditiveShare
 	}
 
 	params := tc.params
@@ -184,8 +183,8 @@ func testEncToShares(tc *testContext, t *testing.T) {
 			P[i].s2e, err = NewShareToEncProtocol(params, params.Xe())
 			require.NoError(t, err)
 		} else {
-			P[i].e2s = P[0].e2s
-			P[i].s2e = P[0].s2e
+			P[i].e2s = P[0].e2s.ShallowCopy()
+			P[i].s2e = P[0].s2e.ShallowCopy()
 		}
 
 		P[i].sk = tc.sk0Shards[i]
@@ -216,7 +215,7 @@ func testEncToShares(tc *testContext, t *testing.T) {
 
 		tc.encoder.DecodeRingT(ptRt, ciphertext.Scale, values)
 
-		assert.True(t, slices.Equal(coeffs, values))
+		assert.True(t, utils.EqualSlice(coeffs, values))
 	})
 
 	crp := P[0].e2s.SampleCRP(params.MaxLevel(), tc.crs)
@@ -230,7 +229,7 @@ func testEncToShares(tc *testContext, t *testing.T) {
 			}
 		}
 
-		ctRec := bgv.NewCiphertext(tc.params, 1, tc.params.MaxLevel())
+		ctRec := heint.NewCiphertext(tc.params, 1, tc.params.MaxLevel())
 		*ctRec.MetaData = *ciphertext.MetaData
 		P[0].s2e.GetEncryption(P[0].publicShare, crp, ctRec)
 
@@ -253,7 +252,7 @@ func testRefresh(tc *testContext, t *testing.T) {
 		type Party struct {
 			RefreshProtocol
 			s     *rlwe.SecretKey
-			share multiparty.RefreshShare
+			share mhe.RefreshShare
 		}
 
 		RefreshParties := make([]*Party, tc.NParties)
@@ -264,7 +263,7 @@ func testRefresh(tc *testContext, t *testing.T) {
 				p.RefreshProtocol, err = NewRefreshProtocol(tc.params, tc.params.Xe())
 				require.NoError(t, err)
 			} else {
-				p.RefreshProtocol = RefreshParties[0].RefreshProtocol
+				p.RefreshProtocol = RefreshParties[0].RefreshProtocol.ShallowCopy()
 			}
 
 			p.s = sk0Shards[i]
@@ -280,7 +279,7 @@ func testRefresh(tc *testContext, t *testing.T) {
 		ciphertext.Resize(ciphertext.Degree(), minLevel)
 
 		for i, p := range RefreshParties {
-			p.GenShare(p.s, ciphertext, crp, &p.share)
+			p.GenShare(p.s, ciphertext, ciphertext.Scale, crp, &p.share)
 			if i > 0 {
 				P0.AggregateShares(p.share, P0.share, &P0.share)
 			}
@@ -293,7 +292,7 @@ func testRefresh(tc *testContext, t *testing.T) {
 		require.True(t, ciphertext.Level() == maxLevel)
 		have := make([]uint64, tc.params.MaxSlots())
 		encoder.Decode(decryptorSk0.DecryptNew(ciphertext), have)
-		require.True(t, slices.Equal(coeffs, have))
+		require.True(t, utils.EqualSlice(coeffs, have))
 	})
 }
 
@@ -313,7 +312,7 @@ func testRefreshAndPermutation(tc *testContext, t *testing.T) {
 		type Party struct {
 			MaskedTransformProtocol
 			s     *rlwe.SecretKey
-			share multiparty.RefreshShare
+			share mhe.RefreshShare
 		}
 
 		RefreshParties := make([]*Party, tc.NParties)
@@ -363,7 +362,7 @@ func testRefreshAndPermutation(tc *testContext, t *testing.T) {
 		}
 
 		for i, p := range RefreshParties {
-			p.GenShare(p.s, p.s, ciphertext, crp, maskedTransform, &p.share)
+			p.GenShare(p.s, p.s, ciphertext, ciphertext.Scale, crp, maskedTransform, &p.share)
 			if i > 0 {
 				P0.AggregateShares(P0.share, p.share, &P0.share)
 			}
@@ -381,7 +380,7 @@ func testRefreshAndPermutation(tc *testContext, t *testing.T) {
 
 		//Decrypts and compares
 		require.True(t, ciphertext.Level() == maxLevel)
-		require.True(t, slices.Equal(coeffsPermute, coeffsHave))
+		require.True(t, utils.EqualSlice(coeffsPermute, coeffsHave))
 	})
 }
 
@@ -393,9 +392,9 @@ func testRefreshAndTransformSwitchParams(tc *testContext, t *testing.T) {
 
 	t.Run(GetTestName("RefreshAndTransformSwitchparams", tc.params, tc.NParties), func(t *testing.T) {
 
-		var paramsOut bgv.Parameters
+		var paramsOut heint.Parameters
 		var err error
-		paramsOut, err = bgv.NewParametersFromLiteral(bgv.ParametersLiteral{
+		paramsOut, err = heint.NewParametersFromLiteral(heint.ParametersLiteral{
 			LogN:             paramsIn.LogN(),
 			LogQ:             []int{54, 49, 49, 49},
 			LogP:             []int{52, 52},
@@ -411,7 +410,7 @@ func testRefreshAndTransformSwitchParams(tc *testContext, t *testing.T) {
 			MaskedTransformProtocol
 			sIn   *rlwe.SecretKey
 			sOut  *rlwe.SecretKey
-			share multiparty.RefreshShare
+			share mhe.RefreshShare
 		}
 
 		RefreshParties := make([]*Party, tc.NParties)
@@ -465,7 +464,7 @@ func testRefreshAndTransformSwitchParams(tc *testContext, t *testing.T) {
 		}
 
 		for i, p := range RefreshParties {
-			p.GenShare(p.sIn, p.sOut, ciphertext, crp, transform, &p.share)
+			p.GenShare(p.sIn, p.sOut, ciphertext, ciphertext.Scale, crp, transform, &p.share)
 			if i > 0 {
 				P0.AggregateShares(P0.share, p.share, &P0.share)
 			}
@@ -477,11 +476,11 @@ func testRefreshAndTransformSwitchParams(tc *testContext, t *testing.T) {
 
 		coeffsHave := make([]uint64, tc.params.MaxSlots())
 		dec := rlwe.NewDecryptor(paramsOut.Parameters, skIdealOut)
-		bgv.NewEncoder(paramsOut).Decode(dec.DecryptNew(ciphertext), coeffsHave)
+		heint.NewEncoder(paramsOut).Decode(dec.DecryptNew(ciphertext), coeffsHave)
 
 		//Decrypts and compares
 		require.True(t, ciphertext.Level() == maxLevel)
-		require.True(t, slices.Equal(coeffs, coeffsHave))
+		require.True(t, utils.EqualSlice(coeffs, coeffsHave))
 	})
 }
 
@@ -496,7 +495,7 @@ func newTestVectors(tc *testContext, encryptor *rlwe.Encryptor, t *testing.T) (c
 		coeffsPol.Coeffs[0][i] = uint64(1)
 	}
 
-	plaintext = bgv.NewPlaintext(tc.params, tc.params.MaxLevel())
+	plaintext = heint.NewPlaintext(tc.params, tc.params.MaxLevel())
 	plaintext.Scale = tc.params.NewScale(2)
 	require.NoError(t, tc.encoder.Encode(coeffsPol.Coeffs[0], plaintext))
 	ciphertext, err = encryptor.EncryptNew(plaintext)
@@ -509,5 +508,5 @@ func newTestVectors(tc *testContext, encryptor *rlwe.Encryptor, t *testing.T) (c
 func verifyTestVectors(tc *testContext, decryptor *rlwe.Decryptor, coeffs []uint64, ciphertext *rlwe.Ciphertext, t *testing.T) {
 	have := make([]uint64, tc.params.MaxSlots())
 	tc.encoder.Decode(decryptor.DecryptNew(ciphertext), have)
-	require.True(t, slices.Equal(coeffs, have))
+	require.True(t, utils.EqualSlice(coeffs, have))
 }

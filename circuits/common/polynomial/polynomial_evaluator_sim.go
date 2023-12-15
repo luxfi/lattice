@@ -1,6 +1,8 @@
-package polynomial
+package he
 
-import "github.com/tuneinsight/lattigo/v6/core/rlwe"
+import (
+	"github.com/luxdefi/lattice/v5/core/rlwe"
+)
 
 // SimOperand is a dummy operand that
 // only stores its level and scale.

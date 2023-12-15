@@ -4,20 +4,17 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"math/bits"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/tuneinsight/lattigo/v6/ring"
-	"github.com/tuneinsight/lattigo/v6/ring/ringqp"
-	"github.com/tuneinsight/lattigo/v6/utils/buffer"
-	"github.com/tuneinsight/lattigo/v6/utils/sampling"
-	"github.com/tuneinsight/lattigo/v6/utils/structs"
+	"github.com/luxdefi/lattice/v5/ring"
+	"github.com/luxdefi/lattice/v5/ring/ringqp"
+	"github.com/luxdefi/lattice/v5/utils/buffer"
+	"github.com/luxdefi/lattice/v5/utils/sampling"
+	"github.com/luxdefi/lattice/v5/utils/structs"
 )
 
-// ElementInterface is a common interface for [Ciphertext] and [Plaintext] types.
+// ElementInterface is a common interface for Ciphertext and Plaintext types.
 type ElementInterface[T ring.Poly | ringqp.Poly] interface {
-	N() int
-	LogN() int
 	El() *Element[T]
 	Degree() int
 	Level() int
@@ -74,10 +71,10 @@ func NewElementExtended(params ParameterProvider, degree, levelQ, levelP int) *E
 	}
 }
 
-// NewElementAtLevelFromPoly constructs a new [Element] at a specific level
+// NewElementAtLevelFromPoly constructs a new Element at a specific level
 // where the message is set to the passed poly. No checks are performed on poly and
-// the returned [Element] will share its backing array of coefficients.
-// Returned [Element]'s [MetaData] is nil.
+// the returned Element will share its backing array of coefficients.
+// Returned Element's MetaData is nil.
 func NewElementAtLevelFromPoly(level int, poly []ring.Poly) (*Element[ring.Poly], error) {
 	Value := make([]ring.Poly, len(poly))
 	for i := range Value {
@@ -92,36 +89,17 @@ func NewElementAtLevelFromPoly(level int, poly []ring.Poly) (*Element[ring.Poly]
 	return &Element[ring.Poly]{Value: Value}, nil
 }
 
-// N returns the ring degree used by the target element.
-func (op Element[T]) N() int {
-	switch el := any(op.Value[0]).(type) {
-	case ring.Poly:
-		return el.N()
-	case ringqp.Poly:
-		return el.Q.N()
-	default:
-		// Sanity check
-		panic("invalid Element[type]")
-	}
-}
-
-// LogN returns the log2 of the ring degree used by the target element.
-func (op Element[T]) LogN() int {
-	/* #nosec G115 -- N is ensured to be greater than 0 */
-	return bits.Len64(uint64(op.N() - 1))
-}
-
 // Equal performs a deep equal.
 func (op Element[T]) Equal(other *Element[T]) bool {
 	return cmp.Equal(op.MetaData, other.MetaData) && cmp.Equal(op.Value, other.Value)
 }
 
-// Degree returns the degree of the target element.
+// Degree returns the degree of the target Element.
 func (op Element[T]) Degree() int {
 	return len(op.Value) - 1
 }
 
-// Level returns the level of the target element.
+// Level returns the level of the target Element.
 func (op Element[T]) Level() int {
 	return op.LevelQ()
 }
@@ -234,7 +212,7 @@ func GetSmallestLargest[T ring.Poly | ringqp.Poly](el0, el1 *Element[T]) (smalle
 	return el0, el1, true
 }
 
-// PopulateElementRandom creates a new [Element] with random coefficients.
+// PopulateElementRandom creates a new rlwe.Element with random coefficients.
 func PopulateElementRandom(prng sampling.PRNG, params ParameterProvider, ct *Element[ring.Poly]) {
 	sampler := ring.NewUniformSampler(prng, params.GetRLWEParameters().RingQ()).AtLevel(ct.Level())
 	for i := range ct.Value {
@@ -321,17 +299,17 @@ func (op Element[T]) BinarySize() (size int) {
 	return size + op.Value.BinarySize()
 }
 
-// WriteTo writes the object on an [io.Writer]. It implements the [io.WriterTo]
+// WriteTo writes the object on an io.Writer. It implements the io.WriterTo
 // interface, and will write exactly object.BinarySize() bytes on w.
 //
-// Unless w implements the [buffer.Writer] interface (see lattigo/utils/buffer/writer.go),
-// it will be wrapped into a [bufio.Writer]. Since this requires allocations, it
-// is preferable to pass a [buffer.Writer] directly:
+// Unless w implements the buffer.Writer interface (see lattice/utils/buffer/writer.go),
+// it will be wrapped into a bufio.Writer. Since this requires allocations, it
+// is preferable to pass a buffer.Writer directly:
 //
-//   - When writing multiple times to a [io.Writer], it is preferable to first wrap the
-//     [io.Writer] in a pre-allocated [bufio.Writer].
+//   - When writing multiple times to a io.Writer, it is preferable to first wrap the
+//     io.Writer in a pre-allocated bufio.Writer.
 //   - When writing to a pre-allocated var b []byte, it is preferable to pass
-//     buffer.NewBuffer(b) as w (see lattigo/utils/buffer/buffer.go).
+//     buffer.NewBuffer(b) as w (see lattice/utils/buffer/buffer.go).
 func (op Element[T]) WriteTo(w io.Writer) (n int64, err error) {
 
 	switch w := w.(type) {
@@ -370,17 +348,17 @@ func (op Element[T]) WriteTo(w io.Writer) (n int64, err error) {
 	}
 }
 
-// ReadFrom reads on the object from an [io.Writer]. It implements the
+// ReadFrom reads on the object from an io.Writer. It implements the
 // io.ReaderFrom interface.
 //
-// Unless r implements the [buffer.Reader] interface (see see lattigo/utils/buffer/reader.go),
-// it will be wrapped into a [bufio.Reader]. Since this requires allocation, it
+// Unless r implements the buffer.Reader interface (see see lattice/utils/buffer/reader.go),
+// it will be wrapped into a bufio.Reader. Since this requires allocation, it
 // is preferable to pass a buffer.Reader directly:
 //
-//   - When reading multiple values from a [io.Reader], it is preferable to first
-//     first wrap [io.Reader] in a pre-allocated [bufio.Reader].
+//   - When reading multiple values from a io.Reader, it is preferable to first
+//     first wrap io.Reader in a pre-allocated bufio.Reader.
 //   - When reading from a var b []byte, it is preferable to pass a buffer.NewBuffer(b)
-//     as w (see lattigo/utils/buffer/buffer.go).
+//     as w (see lattice/utils/buffer/buffer.go).
 func (op *Element[T]) ReadFrom(r io.Reader) (n int64, err error) {
 
 	switch r := r.(type) {
@@ -430,7 +408,7 @@ func (op Element[T]) MarshalBinary() (data []byte, err error) {
 }
 
 // UnmarshalBinary decodes a slice of bytes generated by
-// [Element.MarshalBinary] or [Element.WriteTo] on the object.
+// MarshalBinary or WriteTo on the object.
 func (op *Element[T]) UnmarshalBinary(p []byte) (err error) {
 	_, err = op.ReadFrom(buffer.NewBuffer(p))
 	return

@@ -1,9 +1,9 @@
-package multiparty
+package mhe
 
 import (
 	"math/big"
 
-	"github.com/tuneinsight/lattigo/v6/ring"
+	"github.com/luxdefi/lattice/v5/ring"
 )
 
 // AdditiveShare is a type for storing additively shared values in Z_Q[X] (RNS domain).
@@ -23,7 +23,7 @@ func NewAdditiveShare(r *ring.Ring) AdditiveShare {
 	return AdditiveShare{Value: r.NewPoly()}
 }
 
-// NewAdditiveShareBigint instantiates a new additive share struct composed of n [big.Int] elements.
+// NewAdditiveShareBigint instantiates a new additive share struct composed of n big.Int elements.
 func NewAdditiveShareBigint(n int) AdditiveShareBigint {
 	v := make([]*big.Int, n)
 	for i := range v {

@@ -1,4 +1,4 @@
-package mod1
+package hefloat_test
 
 import (
 	"math"
@@ -7,12 +7,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/tuneinsight/lattigo/v6/circuits/ckks/polynomial"
-	"github.com/tuneinsight/lattigo/v6/core/rlwe"
-	"github.com/tuneinsight/lattigo/v6/ring"
-	"github.com/tuneinsight/lattigo/v6/schemes/ckks"
-	"github.com/tuneinsight/lattigo/v6/utils/sampling"
+	"github.com/luxdefi/lattice/v5/core/rlwe"
+	"github.com/luxdefi/lattice/v5/he/hefloat"
+	"github.com/luxdefi/lattice/v5/ring"
+	"github.com/luxdefi/lattice/v5/utils/sampling"
 )
 
 func TestMod1(t *testing.T) {
@@ -22,7 +20,7 @@ func TestMod1(t *testing.T) {
 		t.Skip("skipping homomorphic mod tests for GOARCH=wasm")
 	}
 
-	ParametersLiteral := ckks.ParametersLiteral{
+	ParametersLiteral := hefloat.ParametersLiteral{
 		LogN:            10,
 		LogQ:            []int{55, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 53},
 		LogP:            []int{61, 61, 61, 61, 61},
@@ -30,14 +28,14 @@ func TestMod1(t *testing.T) {
 		LogDefaultScale: 45,
 	}
 
-	testMod1Marshalling(t)
+	testMod1Marhsalling(t)
 
-	var params ckks.Parameters
-	if params, err = ckks.NewParametersFromLiteral(ParametersLiteral); err != nil {
+	var params hefloat.Parameters
+	if params, err = hefloat.NewParametersFromLiteral(ParametersLiteral); err != nil {
 		t.Fatal(err)
 	}
 
-	for _, testSet := range []func(params ckks.Parameters, t *testing.T){
+	for _, testSet := range []func(params hefloat.Parameters, t *testing.T){
 		testMod1,
 	} {
 		testSet(params, t)
@@ -45,12 +43,12 @@ func TestMod1(t *testing.T) {
 	}
 }
 
-func testMod1Marshalling(t *testing.T) {
+func testMod1Marhsalling(t *testing.T) {
 	t.Run("Marshalling", func(t *testing.T) {
 
-		evm := ParametersLiteral{
-			LevelQ:          12,
-			Mod1Type:        SinContinuous,
+		evm := hefloat.Mod1ParametersLiteral{
+			LevelStart:      12,
+			Mod1Type:        hefloat.SinContinuous,
 			LogMessageRatio: 8,
 			K:               14,
 			Mod1Degree:      127,
@@ -61,7 +59,7 @@ func testMod1Marshalling(t *testing.T) {
 		data, err := evm.MarshalBinary()
 		assert.Nil(t, err)
 
-		evmNew := new(ParametersLiteral)
+		evmNew := new(hefloat.Mod1ParametersLiteral)
 		if err := evmNew.UnmarshalBinary(data); err != nil {
 			assert.Nil(t, err)
 		}
@@ -69,20 +67,20 @@ func testMod1Marshalling(t *testing.T) {
 	})
 }
 
-func testMod1(params ckks.Parameters, t *testing.T) {
+func testMod1(params hefloat.Parameters, t *testing.T) {
 
 	kgen := rlwe.NewKeyGenerator(params)
 	sk := kgen.GenSecretKeyNew()
-	ecd := ckks.NewEncoder(params)
+	ecd := hefloat.NewEncoder(params)
 	enc := rlwe.NewEncryptor(params, sk)
 	dec := rlwe.NewDecryptor(params, sk)
-	eval := ckks.NewEvaluator(params, rlwe.NewMemEvaluationKeySet(kgen.GenRelinearizationKeyNew(sk)))
+	eval := hefloat.NewEvaluator(params, rlwe.NewMemEvaluationKeySet(kgen.GenRelinearizationKeyNew(sk)))
 
 	t.Run("SineContinuousWithArcSine", func(t *testing.T) {
 
-		evm := ParametersLiteral{
-			LevelQ:          12,
-			Mod1Type:        SinContinuous,
+		evm := hefloat.Mod1ParametersLiteral{
+			LevelStart:      12,
+			Mod1Type:        hefloat.SinContinuous,
 			LogMessageRatio: 8,
 			K:               14,
 			Mod1Degree:      127,
@@ -90,16 +88,16 @@ func testMod1(params ckks.Parameters, t *testing.T) {
 			LogScale:        60,
 		}
 
-		values, ciphertext := evaluateMod1(evm, params, ecd, enc, dec, eval, t)
+		values, ciphertext := evaluateMod1(evm, params, ecd, enc, eval, t)
 
-		ckks.VerifyTestVectors(params, ecd, dec, values, ciphertext, params.LogDefaultScale(), 0, true, t)
+		hefloat.VerifyTestVectors(params, ecd, dec, values, ciphertext, params.LogDefaultScale(), 0, *printPrecisionStats, t)
 	})
 
 	t.Run("CosDiscrete", func(t *testing.T) {
 
-		evm := ParametersLiteral{
-			LevelQ:          12,
-			Mod1Type:        CosDiscrete,
+		evm := hefloat.Mod1ParametersLiteral{
+			LevelStart:      12,
+			Mod1Type:        hefloat.CosDiscrete,
 			LogMessageRatio: 8,
 			K:               12,
 			Mod1Degree:      30,
@@ -107,16 +105,16 @@ func testMod1(params ckks.Parameters, t *testing.T) {
 			LogScale:        60,
 		}
 
-		values, ciphertext := evaluateMod1(evm, params, ecd, enc, dec, eval, t)
+		values, ciphertext := evaluateMod1(evm, params, ecd, enc, eval, t)
 
-		ckks.VerifyTestVectors(params, ecd, dec, values, ciphertext, params.LogDefaultScale(), 0, true, t)
+		hefloat.VerifyTestVectors(params, ecd, dec, values, ciphertext, params.LogDefaultScale(), 0, *printPrecisionStats, t)
 	})
 
 	t.Run("CosContinuous", func(t *testing.T) {
 
-		evm := ParametersLiteral{
-			LevelQ:          12,
-			Mod1Type:        CosContinuous,
+		evm := hefloat.Mod1ParametersLiteral{
+			LevelStart:      12,
+			Mod1Type:        hefloat.CosContinuous,
 			LogMessageRatio: 4,
 			K:               325,
 			Mod1Degree:      177,
@@ -124,15 +122,15 @@ func testMod1(params ckks.Parameters, t *testing.T) {
 			LogScale:        60,
 		}
 
-		values, ciphertext := evaluateMod1(evm, params, ecd, enc, dec, eval, t)
+		values, ciphertext := evaluateMod1(evm, params, ecd, enc, eval, t)
 
-		ckks.VerifyTestVectors(params, ecd, dec, values, ciphertext, params.LogDefaultScale(), 0, true, t)
+		hefloat.VerifyTestVectors(params, ecd, dec, values, ciphertext, params.LogDefaultScale(), 0, *printPrecisionStats, t)
 	})
 }
 
-func evaluateMod1(evm ParametersLiteral, params ckks.Parameters, ecd *ckks.Encoder, enc *rlwe.Encryptor, dec *rlwe.Decryptor, eval *ckks.Evaluator, t *testing.T) ([]float64, *rlwe.Ciphertext) {
+func evaluateMod1(evm hefloat.Mod1ParametersLiteral, params hefloat.Parameters, ecd *hefloat.Encoder, enc *rlwe.Encryptor, eval *hefloat.Evaluator, t *testing.T) ([]float64, *rlwe.Ciphertext) {
 
-	mod1Parameters, err := NewParametersFromLiteral(params, evm)
+	mod1Parameters, err := hefloat.NewMod1ParametersFromLiteral(params, evm)
 	require.NoError(t, err)
 
 	values, _, ciphertext := newTestVectorsMod1(params, enc, ecd, mod1Parameters, t)
@@ -148,11 +146,11 @@ func evaluateMod1(evm ParametersLiteral, params ckks.Parameters, ecd *ckks.Encod
 	eval.ScaleUp(ciphertext, rlwe.NewScale(math.Round(scale.Float64())), ciphertext)
 
 	// Normalization
-	require.NoError(t, eval.Mul(ciphertext, 1/(mod1Parameters.K*mod1Parameters.QDiff), ciphertext))
+	require.NoError(t, eval.Mul(ciphertext, 1/(float64(mod1Parameters.K())*mod1Parameters.QDiff()), ciphertext))
 	require.NoError(t, eval.Rescale(ciphertext, ciphertext))
 
 	// EvalMod
-	ciphertext, err = NewEvaluator(eval, polynomial.NewEvaluator(params, eval), mod1Parameters).EvaluateNew(ciphertext)
+	ciphertext, err = hefloat.NewMod1Evaluator(eval, hefloat.NewPolynomialEvaluator(params, eval), mod1Parameters).EvaluateNew(ciphertext)
 	require.NoError(t, err)
 
 	// PlaintextCircuit
@@ -160,7 +158,7 @@ func evaluateMod1(evm ParametersLiteral, params ckks.Parameters, ecd *ckks.Encod
 		x := values[i]
 
 		x /= mod1Parameters.MessageRatio()
-		x /= mod1Parameters.QDiff
+		x /= mod1Parameters.QDiff()
 		x = math.Sin(6.28318530717958 * x)
 
 		if evm.Mod1InvDegree > 0 {
@@ -168,7 +166,7 @@ func evaluateMod1(evm ParametersLiteral, params ckks.Parameters, ecd *ckks.Encod
 		}
 
 		x *= mod1Parameters.MessageRatio()
-		x *= mod1Parameters.QDiff
+		x *= mod1Parameters.QDiff()
 		x /= 6.28318530717958
 
 		values[i] = x
@@ -177,20 +175,22 @@ func evaluateMod1(evm ParametersLiteral, params ckks.Parameters, ecd *ckks.Encod
 	return values, ciphertext
 }
 
-func newTestVectorsMod1(params ckks.Parameters, encryptor *rlwe.Encryptor, encoder *ckks.Encoder, evm Parameters, t *testing.T) (values []float64, plaintext *rlwe.Plaintext, ciphertext *rlwe.Ciphertext) {
+func newTestVectorsMod1(params hefloat.Parameters, encryptor *rlwe.Encryptor, encoder *hefloat.Encoder, evm hefloat.Mod1Parameters, t *testing.T) (values []float64, plaintext *rlwe.Plaintext, ciphertext *rlwe.Ciphertext) {
 
-	values = make([]float64, params.MaxSlots())
+	logSlots := params.LogMaxDimensions().Cols
 
-	K := evm.K - 1
-	Q := evm.QDiff * evm.MessageRatio()
+	values = make([]float64, 1<<logSlots)
 
-	for i := range values {
+	K := float64(evm.K() - 1)
+	Q := float64(params.Q()[0]) / math.Exp2(math.Round(math.Log2(float64(params.Q()[0])))) * evm.MessageRatio()
+
+	for i := uint64(0); i < 1<<logSlots; i++ {
 		values[i] = math.Round(sampling.RandFloat64(-K, K))*Q + sampling.RandFloat64(-1, 1)
 	}
 
 	values[0] = K*Q + 0.5
 
-	plaintext = ckks.NewPlaintext(params, params.MaxLevel())
+	plaintext = hefloat.NewPlaintext(params, params.MaxLevel())
 
 	encoder.Encode(values, plaintext)
 

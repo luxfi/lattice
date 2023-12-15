@@ -1,20 +1,22 @@
-package multiparty
+package mhe
 
 import (
 	"fmt"
 	"io"
 
-	"github.com/tuneinsight/lattigo/v6/ring"
+	"github.com/luxdefi/lattice/v5/ring"
 
-	"github.com/tuneinsight/lattigo/v6/core/rlwe"
-	"github.com/tuneinsight/lattigo/v6/utils"
-	"github.com/tuneinsight/lattigo/v6/utils/sampling"
+	"github.com/luxdefi/lattice/v5/core/rlwe"
+	"github.com/luxdefi/lattice/v5/utils"
+	"github.com/luxdefi/lattice/v5/utils/sampling"
 )
 
 // PublicKeySwitchProtocol is the structure storing the parameters for the collective public key-switching.
 type PublicKeySwitchProtocol struct {
 	params rlwe.Parameters
 	noise  ring.DistributionParameters
+
+	buf ring.Poly
 
 	*rlwe.Encryptor
 	noiseSampler ring.Sampler
@@ -31,6 +33,8 @@ func NewPublicKeySwitchProtocol(params rlwe.ParameterProvider, noiseFlooding rin
 	pcks = PublicKeySwitchProtocol{}
 	pcks.params = *params.GetRLWEParameters()
 	pcks.noise = noiseFlooding
+
+	pcks.buf = pcks.params.RingQ().NewPoly()
 
 	prng, err := sampling.NewPRNG()
 
@@ -88,19 +92,18 @@ func (pcks PublicKeySwitchProtocol) GenShare(sk *rlwe.SecretKey, pk *rlwe.Public
 		panic(err)
 	}
 
-	buffQ := pcks.params.RingQ().NewPoly()
 	// Add ct[1] * s and noise
 	if ct.IsNTT {
 		ringQ.MulCoeffsMontgomeryThenAdd(ct.Value[1], sk.Value.Q, shareOut.Value[0])
-		pcks.noiseSampler.Read(buffQ)
-		ringQ.NTT(buffQ, buffQ)
-		ringQ.Add(shareOut.Value[0], buffQ, shareOut.Value[0])
+		pcks.noiseSampler.Read(pcks.buf)
+		ringQ.NTT(pcks.buf, pcks.buf)
+		ringQ.Add(shareOut.Value[0], pcks.buf, shareOut.Value[0])
 	} else {
-		ringQ.NTTLazy(ct.Value[1], buffQ)
-		ringQ.MulCoeffsMontgomeryLazy(buffQ, sk.Value.Q, buffQ)
-		ringQ.INTT(buffQ, buffQ)
-		pcks.noiseSampler.ReadAndAdd(buffQ)
-		ringQ.Add(shareOut.Value[0], buffQ, shareOut.Value[0])
+		ringQ.NTTLazy(ct.Value[1], pcks.buf)
+		ringQ.MulCoeffsMontgomeryLazy(pcks.buf, sk.Value.Q, pcks.buf)
+		ringQ.INTT(pcks.buf, pcks.buf)
+		pcks.noiseSampler.ReadAndAdd(pcks.buf)
+		ringQ.Add(shareOut.Value[0], pcks.buf, shareOut.Value[0])
 	}
 }
 
@@ -133,37 +136,66 @@ func (pcks PublicKeySwitchProtocol) KeySwitch(ctIn *rlwe.Ciphertext, combined Pu
 	opOut.Value[1].CopyLvl(level, combined.Value[1])
 }
 
+// ShallowCopy creates a shallow copy of PublicKeySwitchProtocol in which all the read-only data-structures are
+// shared with the receiver and the temporary bufers are reallocated. The receiver and the returned
+// PublicKeySwitchProtocol can be used concurrently.
+func (pcks PublicKeySwitchProtocol) ShallowCopy() PublicKeySwitchProtocol {
+	prng, err := sampling.NewPRNG()
+
+	// Sanity check, this error should not happen.
+	if err != nil {
+		panic(err)
+	}
+
+	params := pcks.params
+
+	Xe, err := ring.NewSampler(prng, params.RingQ(), pcks.noise, false)
+
+	// Sanity check, this error should not happen.
+	if err != nil {
+		panic(err)
+	}
+
+	return PublicKeySwitchProtocol{
+		noiseSampler: Xe,
+		noise:        pcks.noise,
+		Encryptor:    pcks.Encryptor.ShallowCopy(),
+		params:       params,
+		buf:          params.RingQ().NewPoly(),
+	}
+}
+
 // BinarySize returns the serialized size of the object in bytes.
 func (share PublicKeySwitchShare) BinarySize() int {
 	return share.Element.BinarySize()
 }
 
-// WriteTo writes the object on an [io.Writer]. It implements the [io.WriterTo]
+// WriteTo writes the object on an io.Writer. It implements the io.WriterTo
 // interface, and will write exactly object.BinarySize() bytes on w.
 //
-// Unless w implements the [buffer.Writer] interface (see lattigo/utils/buffer/writer.go),
-// it will be wrapped into a [bufio.Writer]. Since this requires allocations, it
-// is preferable to pass a [buffer.Writer] directly:
+// Unless w implements the buffer.Writer interface (see lattice/utils/buffer/writer.go),
+// it will be wrapped into a bufio.Writer. Since this requires allocations, it
+// is preferable to pass a buffer.Writer directly:
 //
-//   - When writing multiple times to a [io.Writer], it is preferable to first wrap the
-//     [io.Writer] in a pre-allocated [bufio.Writer].
+//   - When writing multiple times to a io.Writer, it is preferable to first wrap the
+//     io.Writer in a pre-allocated bufio.Writer.
 //   - When writing to a pre-allocated var b []byte, it is preferable to pass
-//     buffer.NewBuffer(b) as w (see lattigo/utils/buffer/buffer.go).
+//     buffer.NewBuffer(b) as w (see lattice/utils/buffer/buffer.go).
 func (share PublicKeySwitchShare) WriteTo(w io.Writer) (n int64, err error) {
 	return share.Element.WriteTo(w)
 }
 
-// ReadFrom reads on the object from an [io.Writer]. It implements the
-// [io.ReaderFrom] interface.
+// ReadFrom reads on the object from an io.Writer. It implements the
+// io.ReaderFrom interface.
 //
-// Unless r implements the [buffer.Reader] interface (see see lattigo/utils/buffer/reader.go),
-// it will be wrapped into a [bufio.Reader]. Since this requires allocation, it
-// is preferable to pass a [buffer.Reader] directly:
+// Unless r implements the buffer.Reader interface (see see lattice/utils/buffer/reader.go),
+// it will be wrapped into a bufio.Reader. Since this requires allocation, it
+// is preferable to pass a buffer.Reader directly:
 //
-//   - When reading multiple values from a [io.Reader], it is preferable to first
-//     first wrap [io.Reader] in a pre-allocated [bufio.Reader].
+//   - When reading multiple values from a io.Reader, it is preferable to first
+//     first wrap io.Reader in a pre-allocated bufio.Reader.
 //   - When reading from a var b []byte, it is preferable to pass a buffer.NewBuffer(b)
-//     as w (see lattigo/utils/buffer/buffer.go).
+//     as w (see lattice/utils/buffer/buffer.go).
 func (share *PublicKeySwitchShare) ReadFrom(r io.Reader) (n int64, err error) {
 	return share.Element.ReadFrom(r)
 }
@@ -174,7 +206,7 @@ func (share PublicKeySwitchShare) MarshalBinary() (p []byte, err error) {
 }
 
 // UnmarshalBinary decodes a slice of bytes generated by
-// [PublicKeySwitchShare.MarshalBinary] or [PublicKeySwitchShare.WriteTo] on the object.
+// MarshalBinary or WriteTo on the object.
 func (share *PublicKeySwitchShare) UnmarshalBinary(p []byte) (err error) {
 	return share.Element.UnmarshalBinary(p)
 }

@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/tuneinsight/lattigo/v6/core/rgsw/blindrot"
-	"github.com/tuneinsight/lattigo/v6/core/rlwe"
-	"github.com/tuneinsight/lattigo/v6/ring"
-	"github.com/tuneinsight/lattigo/v6/utils"
+	"github.com/luxdefi/lattice/v5/core/rlwe"
+	"github.com/luxdefi/lattice/v5/he/hebin"
+	"github.com/luxdefi/lattice/v5/ring"
+	"github.com/luxdefi/lattice/v5/utils"
 )
 
 // Function to evaluate
@@ -59,7 +59,7 @@ func main() {
 	slots := 32
 
 	// Test poly
-	testPoly := blindrot.InitTestPolynomial(sign, rlwe.NewScale(scaleBR), paramsBR.RingQ(), -1, 1)
+	testPoly := hebin.InitTestPolynomial(sign, rlwe.NewScale(scaleBR), paramsBR.RingQ(), -1, 1)
 
 	// Index map of which test poly to evaluate on which slot
 	testPolyMap := make(map[int]*ring.Poly)
@@ -98,13 +98,13 @@ func main() {
 	}
 
 	// Evaluator for the Blind Rotations
-	eval := blindrot.NewEvaluator(paramsBR, paramsLWE)
+	eval := hebin.NewEvaluator(paramsBR, paramsLWE)
 
 	// Secret of the RGSW ciphertexts encrypting the bits of skLWE
 	skBR := rlwe.NewKeyGenerator(paramsBR).GenSecretKeyNew()
 
 	// Collection of RGSW ciphertexts encrypting the bits of skLWE under skBR
-	blindeRotateKey := blindrot.GenEvaluationKeyNew(paramsBR, skBR, paramsLWE, skLWE, evkParams)
+	blindeRotateKey := hebin.GenEvaluationKeyNew(paramsBR, skBR, paramsLWE, skLWE, evkParams)
 
 	// Evaluation of BlindRotate(ctLWE) = testPoly(X) * X^{dec{ctLWE}}
 	// Returns one RLWE sample per slot in ctLWE

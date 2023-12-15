@@ -1,26 +1,25 @@
-package mpckks
+package mhefloat
 
 import (
 	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/tuneinsight/lattigo/v6/core/rlwe"
-	"github.com/tuneinsight/lattigo/v6/multiparty"
-	"github.com/tuneinsight/lattigo/v6/ring"
-	"github.com/tuneinsight/lattigo/v6/schemes/ckks"
-	"github.com/tuneinsight/lattigo/v6/utils/bignum"
+	"github.com/luxdefi/lattice/v5/core/rlwe"
+	"github.com/luxdefi/lattice/v5/he/hefloat"
+	"github.com/luxdefi/lattice/v5/mhe"
+	"github.com/luxdefi/lattice/v5/ring"
+	"github.com/luxdefi/lattice/v5/utils/bignum"
 )
 
-func BenchmarkMultiPartyCKKS(b *testing.B) {
+func BenchmarkMHEFloat(b *testing.B) {
 
 	var err error
 
-	var testParams []ckks.ParametersLiteral
+	var testParams []hefloat.ParametersLiteral
 	switch {
 	case *flagParamString != "": // the custom test suite reads the parameters from the -params flag
-		testParams = append(testParams, ckks.ParametersLiteral{})
+		testParams = append(testParams, hefloat.ParametersLiteral{})
 		if err = json.Unmarshal([]byte(*flagParamString), &testParams[0]); err != nil {
 			b.Fatal(err)
 		}
@@ -34,8 +33,8 @@ func BenchmarkMultiPartyCKKS(b *testing.B) {
 
 			paramsLiteral.RingType = ringType
 
-			var params ckks.Parameters
-			if params, err = ckks.NewParametersFromLiteral(paramsLiteral); err != nil {
+			var params hefloat.Parameters
+			if params, err = hefloat.NewParametersFromLiteral(paramsLiteral); err != nil {
 				b.Fatal(err)
 			}
 			N := 3
@@ -63,7 +62,7 @@ func benchRefresh(tc *testContext, b *testing.B) {
 		type Party struct {
 			RefreshProtocol
 			s     *rlwe.SecretKey
-			share multiparty.RefreshShare
+			share mhe.RefreshShare
 		}
 
 		p := new(Party)
@@ -73,7 +72,7 @@ func benchRefresh(tc *testContext, b *testing.B) {
 		p.s = sk0Shards[0]
 		p.share = p.AllocateShare(minLevel, params.MaxLevel())
 
-		ciphertext := ckks.NewCiphertext(params, 1, minLevel)
+		ciphertext := hefloat.NewCiphertext(params, 1, minLevel)
 
 		crp := p.SampleCRP(params.MaxLevel(), tc.crs)
 
@@ -92,7 +91,7 @@ func benchRefresh(tc *testContext, b *testing.B) {
 		})
 
 		b.Run(GetTestName("Refresh/Finalize", tc.NParties, params), func(b *testing.B) {
-			opOut := ckks.NewCiphertext(params, 1, params.MaxLevel())
+			opOut := hefloat.NewCiphertext(params, 1, params.MaxLevel())
 			for i := 0; i < b.N; i++ {
 				p.Finalize(ciphertext, crp, p.share, opOut)
 			}
@@ -116,10 +115,10 @@ func benchMaskedTransform(tc *testContext, b *testing.B) {
 		type Party struct {
 			MaskedLinearTransformationProtocol
 			s     *rlwe.SecretKey
-			share multiparty.RefreshShare
+			share mhe.RefreshShare
 		}
 
-		ciphertext := ckks.NewCiphertext(params, 1, minLevel)
+		ciphertext := hefloat.NewCiphertext(params, 1, minLevel)
 
 		p := new(Party)
 		p.MaskedLinearTransformationProtocol, _ = NewMaskedLinearTransformationProtocol(params, params, logBound, params.Xe())
@@ -154,7 +153,7 @@ func benchMaskedTransform(tc *testContext, b *testing.B) {
 		})
 
 		b.Run(GetTestName("Refresh&Transform/Transform", tc.NParties, params), func(b *testing.B) {
-			opOut := ckks.NewCiphertext(params, 1, params.MaxLevel())
+			opOut := hefloat.NewCiphertext(params, 1, params.MaxLevel())
 			for i := 0; i < b.N; i++ {
 				p.Transform(ciphertext, transform, crp, p.share, opOut)
 			}
