@@ -3,9 +3,9 @@ package rlwe
 import (
 	"fmt"
 
-	"github.com/tuneinsight/lattigo/v5/ring"
-	"github.com/tuneinsight/lattigo/v5/ring/ringqp"
-	"github.com/tuneinsight/lattigo/v5/utils"
+	"github.com/luxdefi/lattice/v5/ring"
+	"github.com/luxdefi/lattice/v5/ring/ringqp"
+	"github.com/luxdefi/lattice/v5/utils"
 )
 
 // Evaluator is a struct that holds the necessary elements to execute general homomorphic

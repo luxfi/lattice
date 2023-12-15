@@ -6,11 +6,11 @@ import (
 	"math"
 	"math/big"
 
-	"github.com/tuneinsight/lattigo/v5/core/rlwe"
-	"github.com/tuneinsight/lattigo/v5/he/hefloat"
-	"github.com/tuneinsight/lattigo/v5/ring"
-	"github.com/tuneinsight/lattigo/v5/utils/bignum"
-	"github.com/tuneinsight/lattigo/v5/utils/sampling"
+	"github.com/luxdefi/lattice/v5/core/rlwe"
+	"github.com/luxdefi/lattice/v5/he/hefloat"
+	"github.com/luxdefi/lattice/v5/ring"
+	"github.com/luxdefi/lattice/v5/utils/bignum"
+	"github.com/luxdefi/lattice/v5/utils/sampling"
 )
 
 func main() {

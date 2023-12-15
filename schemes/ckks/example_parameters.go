@@ -1,8 +1,8 @@
 package ckks
 
 import (
-	"github.com/tuneinsight/lattigo/v5/core/rlwe"
-	"github.com/tuneinsight/lattigo/v5/ring"
+	"github.com/luxdefi/lattice/v5/core/rlwe"
+	"github.com/luxdefi/lattice/v5/ring"
 )
 
 var (
@@ -84,11 +84,11 @@ var (
 
 		// Xs is the secret distribution. The default value is a ternary secret with density 2/3 (i.e. each coefficient as an equal chance
 		// of being -1, 0 or 1). Other distributions are supported, such as ternary secret with fixed Hamming weight or an error distribution.
-		// See lattigo/ring/sampler.go for the available distributions and their parameters.
+		// See lattice/ring/sampler.go for the available distributions and their parameters.
 		Xs: rlwe.DefaultXs,
 
 		// Xe is the error distribution. The default value is a discrete Gaussian with standard deviation 3.2 and bounded by 19.
-		// Other distributions are supported, see lattigo/ring/sampler.go for the available distributions and their parameters.
+		// Other distributions are supported, see lattice/ring/sampler.go for the available distributions and their parameters.
 		Xe: rlwe.DefaultXe,
 	}
 )

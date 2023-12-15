@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/tuneinsight/lattigo/v5/utils/factorization"
+	"github.com/luxdefi/lattice/v5/utils/factorization"
 )
 
 const (

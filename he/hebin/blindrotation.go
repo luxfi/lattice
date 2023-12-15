@@ -2,8 +2,8 @@
 package hebin
 
 import (
-	"github.com/tuneinsight/lattigo/v5/core/rlwe"
-	"github.com/tuneinsight/lattigo/v5/ring"
+	"github.com/luxdefi/lattice/v5/core/rlwe"
+	"github.com/luxdefi/lattice/v5/ring"
 )
 
 // InitTestPolynomial takes a function g, and creates a test polynomial polynomial for the function in the interval [a, b].

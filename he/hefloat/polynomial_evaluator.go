@@ -3,9 +3,9 @@ package hefloat
 import (
 	"fmt"
 
-	"github.com/tuneinsight/lattigo/v5/core/rlwe"
-	"github.com/tuneinsight/lattigo/v5/he"
-	"github.com/tuneinsight/lattigo/v5/utils/bignum"
+	"github.com/luxdefi/lattice/v5/core/rlwe"
+	"github.com/luxdefi/lattice/v5/he"
+	"github.com/luxdefi/lattice/v5/utils/bignum"
 )
 
 // PolynomialEvaluator is a wrapper of the he.PolynomialEvaluator.

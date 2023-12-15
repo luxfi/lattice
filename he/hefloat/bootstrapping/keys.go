@@ -1,8 +1,8 @@
 package bootstrapping
 
 import (
-	"github.com/tuneinsight/lattigo/v5/core/rlwe"
-	"github.com/tuneinsight/lattigo/v5/ring"
+	"github.com/luxdefi/lattice/v5/core/rlwe"
+	"github.com/luxdefi/lattice/v5/ring"
 )
 
 // EvaluationKeys is a struct storing the different

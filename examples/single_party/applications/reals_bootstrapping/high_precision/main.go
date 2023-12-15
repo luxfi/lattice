@@ -14,7 +14,7 @@
 // The method is described in details by Bae et al. in META-BTS: Bootstrapping Precision Beyond the Limit (https://eprint.iacr.org/2022/1167).
 //
 // This example assumes that the user is already familiar with the bootstrapping and its different steps.
-// See the basic example `lattigo/examples/he/hefloat/bootstrapping/basic` for an introduction into the
+// See the basic example `lattice/examples/he/hefloat/bootstrapping/basic` for an introduction into the
 // bootstrapping.
 // Use the flag -short to run the examples fast but with insecure parameters.
 package main
@@ -24,13 +24,13 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/tuneinsight/lattigo/v5/core/rlwe"
-	"github.com/tuneinsight/lattigo/v5/he/hefloat"
-	"github.com/tuneinsight/lattigo/v5/he/hefloat/bootstrapping"
-	"github.com/tuneinsight/lattigo/v5/ring"
-	"github.com/tuneinsight/lattigo/v5/utils"
-	"github.com/tuneinsight/lattigo/v5/utils/bignum"
-	"github.com/tuneinsight/lattigo/v5/utils/sampling"
+	"github.com/luxdefi/lattice/v5/core/rlwe"
+	"github.com/luxdefi/lattice/v5/he/hefloat"
+	"github.com/luxdefi/lattice/v5/he/hefloat/bootstrapping"
+	"github.com/luxdefi/lattice/v5/ring"
+	"github.com/luxdefi/lattice/v5/utils"
+	"github.com/luxdefi/lattice/v5/utils/bignum"
+	"github.com/luxdefi/lattice/v5/utils/sampling"
 )
 
 var flagShort = flag.Bool("short", false, "run the example with a smaller and insecure ring degree.")

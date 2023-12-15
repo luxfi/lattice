@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/tuneinsight/lattigo/v5/core/rlwe"
-	"github.com/tuneinsight/lattigo/v5/ring"
-	"github.com/tuneinsight/lattigo/v5/ring/ringqp"
-	"github.com/tuneinsight/lattigo/v5/utils"
+	"github.com/luxdefi/lattice/v5/core/rlwe"
+	"github.com/luxdefi/lattice/v5/ring"
+	"github.com/luxdefi/lattice/v5/ring/ringqp"
+	"github.com/luxdefi/lattice/v5/utils"
 )
 
 type Integer interface {

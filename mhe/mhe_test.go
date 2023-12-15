@@ -9,11 +9,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/tuneinsight/lattigo/v5/core/rlwe"
-	"github.com/tuneinsight/lattigo/v5/ring"
-	"github.com/tuneinsight/lattigo/v5/utils"
-	"github.com/tuneinsight/lattigo/v5/utils/buffer"
-	"github.com/tuneinsight/lattigo/v5/utils/sampling"
+	"github.com/luxdefi/lattice/v5/core/rlwe"
+	"github.com/luxdefi/lattice/v5/ring"
+	"github.com/luxdefi/lattice/v5/utils"
+	"github.com/luxdefi/lattice/v5/utils/buffer"
+	"github.com/luxdefi/lattice/v5/utils/sampling"
 )
 
 var nbParties = int(5)

@@ -1,12 +1,10 @@
-# Lattigo: lattice-based multiparty homomorphic encryption library in Go
+# lattice
 
-<p align="center">
-	<img src="logo.png" />
-</p>
+## Lattice-based multiparty homomorphic encryption library in Go
 
-![Go tests](https://github.com/tuneinsight/lattigo/actions/workflows/ci.yml/badge.svg)
+![Go tests](https://github.com/luxdefi/lattice/actions/workflows/ci.yml/badge.svg)
 
-Lattigo is a Go module that implements full-RNS Ring-Learning-With-Errors-based homomorphic-encryption
+Lattice is a Go module that implements full-RNS Ring-Learning-With-Errors-based homomorphic-encryption
 primitives and Multiparty-Homomorphic-Encryption-based secure protocols. The library features:
 
 - Optimized arithmetic for power-of-two cyclotomic rings.
@@ -16,14 +14,14 @@ primitives and Multiparty-Homomorphic-Encryption-based secure protocols. The lib
 - A pure Go implementation, enabling cross-platform builds, including WASM compilation for
 browser clients, with comparable performance to state-of-the-art C++ libraries.
 
-Lattigo is meant to support HE in distributed systems and microservices architectures, for which Go
+Lattice is meant to support HE in distributed systems and microservices architectures, for which Go
 is a common choice thanks to its natural concurrency model and portability.
 
 ## Library overview
 
 The library exposes the following packages:
 
-- `lattigo/he`: The main package of the library which provides scheme-agnostic interfaces
+- `lattice/he`: The main package of the library which provides scheme-agnostic interfaces
   and Homomorphic Encryption for different plaintext domains.
 
   - `hebin`: Homomorphic Encryption for binary arithmetic. It comprises blind rotations (a.k.a Lookup Tables) over RLWE ciphertexts.
@@ -37,30 +35,30 @@ The library exposes the following packages:
 
   - `heint`: Homomorphic Encryption for modular arithmetic over the integers.
 
-- `lattigo/mhe`: Package for multiparty (a.k.a. distributed or threshold) key-generation and 
+- `lattice/mhe`: Package for multiparty (a.k.a. distributed or threshold) key-generation and
   interactive ciphertext bootstrapping with secret-shared secret keys.
 
-  - `mhefloat`: Homomorphic decryption and re-encryption from and to Linear-Secret-Sharing-Shares, 
+  - `mhefloat`: Homomorphic decryption and re-encryption from and to Linear-Secret-Sharing-Shares,
     as well as interactive ciphertext bootstrapping for the package `he/hefloat`.
 
-  - `mheint`: Homomorphic decryption and re-encryption from and to Linear-Secret-Sharing-Shares, 
+  - `mheint`: Homomorphic decryption and re-encryption from and to Linear-Secret-Sharing-Shares,
     as well as interactive ciphertext bootstrapping for the package `he/heint`.
 
-- `lattigo/schemes`: A package implementing RLWE-based homomorphic encryption schemes.
+- `lattice/schemes`: A package implementing RLWE-based homomorphic encryption schemes.
 
   - `bfv`: A Full-RNS variant of the Brakerski-Fan-Vercauteren scale-invariant homomorphic
-    encryption scheme. This scheme is instantiated via a wrapper of the `bgv` scheme. 
+    encryption scheme. This scheme is instantiated via a wrapper of the `bgv` scheme.
     It provides modular arithmetic over the integers.
 
-  - `bgv`: A Full-RNS generalization of the Brakerski-Fan-Vercauteren scale-invariant (BFV) and 
-    Brakerski-Gentry-Vaikuntanathan (BGV) homomorphic encryption schemes. 
+  - `bgv`: A Full-RNS generalization of the Brakerski-Fan-Vercauteren scale-invariant (BFV) and
+    Brakerski-Gentry-Vaikuntanathan (BGV) homomorphic encryption schemes.
     It provides modular arithmetic over the integers.
-  	
+
   - `ckks`: A Full-RNS Homomorphic Encryption for Arithmetic for Approximate Numbers (HEAAN,
     a.k.a. CKKS) scheme. It provides fixed-point approximate arithmetic over the complex numbers (in its classic
     variant) and over the real numbers (in its conjugate-invariant variant).
 
-- `lattigo/core`: A package implementing the core cryptographic functionalities of the library.
+- `lattice/core`: A package implementing the core cryptographic functionalities of the library.
 
   - `rlwe`: Common base for generic RLWE-based homomorphic encryption.
   It provides all homomorphic functionalities and defines all structs that are not scheme-specific.
@@ -69,15 +67,15 @@ The library exposes the following packages:
 
   - `rgsw`: A Full-RNS variant of Ring-GSW ciphertexts and the external product.
 
-- `lattigo/ring`: Modular arithmetic operations for polynomials in the RNS basis, including: RNS
+- `lattice/ring`: Modular arithmetic operations for polynomials in the RNS basis, including: RNS
   basis extension; RNS rescaling; number theoretic transform (NTT); uniform, Gaussian and ternary
   sampling.
 
-- `lattigo/examples`: Executable Go programs that demonstrate the use of the Lattigo library. Each
-                      subpackage includes test files that further demonstrate the use of Lattigo
+- `lattice/examples`: Executable Go programs that demonstrate the use of the Lattice library. Each
+                      subpackage includes test files that further demonstrate the use of Lattice
                       primitives.
 
-- `lattigo/utils`: Generic utility methods. This package also contains the following sub-pacakges:
+- `lattice/utils`: Generic utility methods. This package also contains the following sub-pacakges:
   - `bignum`: Arbitrary precision linear algebra and polynomial approximation.
   - `buffer`: Efficient methods to write/read on `io.Writer` and `io.Reader`.
   - `factorization`: Various factorization algorithms for medium-sized integers.
@@ -109,24 +107,24 @@ MHE --> MHEInt
 
 ## Versions and Roadmap
 
-The Lattigo library was originally exclusively developed by the EPFL Laboratory for Data Security
+The Lattice library was originally exclusively developed by the EPFL Laboratory for Data Security
 until its version 2.4.0.
 
-Starting with the release of version 3.0.0, Lattigo is maintained and supported by [Tune Insight
-SA](https://tuneinsight.com).
+Starting with the release of version 3.0.0, Lattice is maintained and supported by [Tune Insight
+SA](https://luxdefi.com).
 
 Also starting with from version 3.0.0, the module name has changed to
-`github.com/tuneinsight/lattigo/v[X]`, and the official repository has been moved to
-https://github.com/tuneinsight/lattigo. This has the following implications for modules that depend
-on Lattigo:
-- Modules that require `github.com/ldsec/lattigo/v2` will still build correctly.
-- To upgrade to a version X.y.z >= 3.0.0, depending modules must require `github.com/tuneinsight/lattigo/v[X]/`,
-  for example by changing the imports to `github.com/tuneinsight/lattigo/v[X]/[package]` and by
+`github.com/luxdefi/lattice/v[X]`, and the official repository has been moved to
+https://github.com/luxdefi/lattice. This has the following implications for modules that depend
+on Lattice:
+- Modules that require `github.com/ldsec/lattice/v2` will still build correctly.
+- To upgrade to a version X.y.z >= 3.0.0, depending modules must require `github.com/luxdefi/lattice/v[X]/`,
+  for example by changing the imports to `github.com/luxdefi/lattice/v[X]/[package]` and by
   running `go mod tidy`.
 
-The current version of Lattigo, (v4.x.x) is fast-evolving and in constant development. Consequently,
+The current version of Lattice, (v4.x.x) is fast-evolving and in constant development. Consequently,
 there will still be backward-incompatible changes within this major version, in addition to many bug
-fixes and new features. Hence, we encourage all Lattigo users to update to the latest Lattigo version.
+fixes and new features. Hence, we encourage all Lattice users to update to the latest Lattice version.
 
 
 See CHANGELOG.md for the current and past versions.
@@ -147,26 +145,26 @@ External pull requests only proposing small or trivial changes will be converted
 
 ## License
 
-Lattigo is licensed under the Apache 2.0 License. See [LICENSE](https://github.com/tuneinsight/lattigo/blob/master/LICENSE).
+Lattice is licensed under the Apache 2.0 License. See [LICENSE](https://github.com/luxdefi/lattice/blob/master/LICENSE).
 
 ## Contact
 
 Before contacting us directly, please make sure that your request cannot be handled through an issue.
 
-If you want to contribute to Lattigo, have a feature proposal or request, to report a security issue or simply want to contact us directly, please do so using the following email: [lattigo@tuneinsight.com](mailto:lattigo@tuneinsight.com).
+If you want to contribute to Lattice, have a feature proposal or request, to report a security issue or simply want to contact us directly, please do so using the following email: [lattice@luxdefi.com](mailto:lattice@lux.network).
 
 ## Citing
 
-Please use the following BibTex entry for citing Lattigo:
+Please use the following BibTex entry for citing Lattice:
 
-    @misc{lattigo,
-	    title = {Lattigo v5},
-	    howpublished = {Online: \url{https://github.com/tuneinsight/lattigo}},
+    @misc{lattice,
+	    title = {Lattice v5},
+	    howpublished = {Online: \url{https://github.com/luxdefi/lattice}},
 	    month = Nov,
 	    year = 2023,
 	    note = {EPFL-LDS, Tune Insight SA}
     }
-    
 
-The Lattigo logo is a lattice-based version of the original Golang mascot by [Renee
+
+The Lattice logo is a lattice-based version of the original Golang mascot by [Renee
 French](http://reneefrench.blogspot.com/).

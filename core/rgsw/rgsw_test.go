@@ -4,10 +4,10 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/tuneinsight/lattigo/v5/core/rlwe"
-	"github.com/tuneinsight/lattigo/v5/ring/ringqp"
-	"github.com/tuneinsight/lattigo/v5/utils/bignum"
-	"github.com/tuneinsight/lattigo/v5/utils/buffer"
+	"github.com/luxdefi/lattice/v5/core/rlwe"
+	"github.com/luxdefi/lattice/v5/ring/ringqp"
+	"github.com/luxdefi/lattice/v5/utils/bignum"
+	"github.com/luxdefi/lattice/v5/utils/buffer"
 
 	"github.com/stretchr/testify/require"
 )

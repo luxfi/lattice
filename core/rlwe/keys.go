@@ -6,9 +6,9 @@ import (
 	"io"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/tuneinsight/lattigo/v5/ring/ringqp"
-	"github.com/tuneinsight/lattigo/v5/utils/buffer"
-	"github.com/tuneinsight/lattigo/v5/utils/structs"
+	"github.com/luxdefi/lattice/v5/ring/ringqp"
+	"github.com/luxdefi/lattice/v5/utils/buffer"
+	"github.com/luxdefi/lattice/v5/utils/structs"
 )
 
 // SecretKey is a type for generic RLWE secret keys.
@@ -50,14 +50,14 @@ func (sk SecretKey) BinarySize() (dataLen int) {
 // WriteTo writes the object on an io.Writer. It implements the io.WriterTo
 // interface, and will write exactly object.BinarySize() bytes on w.
 //
-// Unless w implements the buffer.Writer interface (see lattigo/utils/buffer/writer.go),
+// Unless w implements the buffer.Writer interface (see lattice/utils/buffer/writer.go),
 // it will be wrapped into a bufio.Writer. Since this requires allocations, it
 // is preferable to pass a buffer.Writer directly:
 //
 //   - When writing multiple times to a io.Writer, it is preferable to first wrap the
 //     io.Writer in a pre-allocated bufio.Writer.
 //   - When writing to a pre-allocated var b []byte, it is preferable to pass
-//     buffer.NewBuffer(b) as w (see lattigo/utils/buffer/buffer.go).
+//     buffer.NewBuffer(b) as w (see lattice/utils/buffer/buffer.go).
 func (sk SecretKey) WriteTo(w io.Writer) (n int64, err error) {
 	return sk.Value.WriteTo(w)
 }
@@ -65,14 +65,14 @@ func (sk SecretKey) WriteTo(w io.Writer) (n int64, err error) {
 // ReadFrom reads on the object from an io.Writer. It implements the
 // io.ReaderFrom interface.
 //
-// Unless r implements the buffer.Reader interface (see see lattigo/utils/buffer/reader.go),
+// Unless r implements the buffer.Reader interface (see see lattice/utils/buffer/reader.go),
 // it will be wrapped into a bufio.Reader. Since this requires allocation, it
 // is preferable to pass a buffer.Reader directly:
 //
 //   - When reading multiple values from a io.Reader, it is preferable to first
 //     first wrap io.Reader in a pre-allocated bufio.Reader.
 //   - When reading from a var b []byte, it is preferable to pass a buffer.NewBuffer(b)
-//     as w (see lattigo/utils/buffer/buffer.go).
+//     as w (see lattice/utils/buffer/buffer.go).
 func (sk *SecretKey) ReadFrom(r io.Reader) (n int64, err error) {
 	return sk.Value.ReadFrom(r)
 }
@@ -155,14 +155,14 @@ func (p VectorQP) BinarySize() int {
 // WriteTo writes the object on an io.Writer. It implements the io.WriterTo
 // interface, and will write exactly object.BinarySize() bytes on w.
 //
-// Unless w implements the buffer.Writer interface (see lattigo/utils/buffer/writer.go),
+// Unless w implements the buffer.Writer interface (see lattice/utils/buffer/writer.go),
 // it will be wrapped into a bufio.Writer. Since this requires allocations, it
 // is preferable to pass a buffer.Writer directly:
 //
 //   - When writing multiple times to a io.Writer, it is preferable to first wrap the
 //     io.Writer in a pre-allocated bufio.Writer.
 //   - When writing to a pre-allocated var b []byte, it is preferable to pass
-//     buffer.NewBuffer(b) as w (see lattigo/utils/buffer/buffer.go).
+//     buffer.NewBuffer(b) as w (see lattice/utils/buffer/buffer.go).
 func (p VectorQP) WriteTo(w io.Writer) (n int64, err error) {
 	v := structs.Vector[ringqp.Poly](p[:])
 	return v.WriteTo(w)
@@ -171,14 +171,14 @@ func (p VectorQP) WriteTo(w io.Writer) (n int64, err error) {
 // ReadFrom reads on the object from an io.Writer. It implements the
 // io.ReaderFrom interface.
 //
-// Unless r implements the buffer.Reader interface (see see lattigo/utils/buffer/reader.go),
+// Unless r implements the buffer.Reader interface (see see lattice/utils/buffer/reader.go),
 // it will be wrapped into a bufio.Reader. Since this requires allocation, it
 // is preferable to pass a buffer.Reader directly:
 //
 //   - When reading multiple values from a io.Reader, it is preferable to first
 //     first wrap io.Reader in a pre-allocated bufio.Reader.
 //   - When reading from a var b []byte, it is preferable to pass a buffer.NewBuffer(b)
-//     as w (see lattigo/utils/buffer/buffer.go).
+//     as w (see lattice/utils/buffer/buffer.go).
 func (p *VectorQP) ReadFrom(r io.Reader) (n int64, err error) {
 	v := structs.Vector[ringqp.Poly](*p)
 	n, err = v.ReadFrom(r)
@@ -237,14 +237,14 @@ func (p PublicKey) BinarySize() int {
 // WriteTo writes the object on an io.Writer. It implements the io.WriterTo
 // interface, and will write exactly object.BinarySize() bytes on w.
 //
-// Unless w implements the buffer.Writer interface (see lattigo/utils/buffer/writer.go),
+// Unless w implements the buffer.Writer interface (see lattice/utils/buffer/writer.go),
 // it will be wrapped into a bufio.Writer. Since this requires allocations, it
 // is preferable to pass a buffer.Writer directly:
 //
 //   - When writing multiple times to a io.Writer, it is preferable to first wrap the
 //     io.Writer in a pre-allocated bufio.Writer.
 //   - When writing to a pre-allocated var b []byte, it is preferable to pass
-//     buffer.NewBuffer(b) as w (see lattigo/utils/buffer/buffer.go).
+//     buffer.NewBuffer(b) as w (see lattice/utils/buffer/buffer.go).
 func (p PublicKey) WriteTo(w io.Writer) (n int64, err error) {
 	return p.Value.WriteTo(w)
 }
@@ -252,14 +252,14 @@ func (p PublicKey) WriteTo(w io.Writer) (n int64, err error) {
 // ReadFrom reads on the object from an io.Writer. It implements the
 // io.ReaderFrom interface.
 //
-// Unless r implements the buffer.Reader interface (see see lattigo/utils/buffer/reader.go),
+// Unless r implements the buffer.Reader interface (see see lattice/utils/buffer/reader.go),
 // it will be wrapped into a bufio.Reader. Since this requires allocation, it
 // is preferable to pass a buffer.Reader directly:
 //
 //   - When reading multiple values from a io.Reader, it is preferable to first
 //     first wrap io.Reader in a pre-allocated bufio.Reader.
 //   - When reading from a var b []byte, it is preferable to pass a buffer.NewBuffer(b)
-//     as w (see lattigo/utils/buffer/buffer.go).
+//     as w (see lattice/utils/buffer/buffer.go).
 func (p *PublicKey) ReadFrom(r io.Reader) (n int64, err error) {
 	return p.Value.ReadFrom(r)
 }
@@ -378,7 +378,7 @@ func (rlk RelinearizationKey) Equal(other *RelinearizationKey) bool {
 // ciphertext is encrypted from s to pi(s). Thus, the ciphertext must be re-encrypted
 // from pi(s) to s to ensure correctness, which is done with the corresponding GaloisKey.
 //
-// Lattigo implements automorphisms differently than the usual way (which is to first
+// Lattice implements automorphisms differently than the usual way (which is to first
 // apply the automorphism and then the evaluation key). Instead the order of operations
 // is reversed, the GaloisKey for pi^{-1} is evaluated on the ciphertext, outputting a
 // ciphertext encrypted under pi^{-1}(s), and then the automorphism pi is applied. This
@@ -426,14 +426,14 @@ func (gk GaloisKey) BinarySize() (size int) {
 // WriteTo writes the object on an io.Writer. It implements the io.WriterTo
 // interface, and will write exactly object.BinarySize() bytes on w.
 //
-// Unless w implements the buffer.Writer interface (see lattigo/utils/buffer/writer.go),
+// Unless w implements the buffer.Writer interface (see lattice/utils/buffer/writer.go),
 // it will be wrapped into a bufio.Writer. Since this requires allocations, it
 // is preferable to pass a buffer.Writer directly:
 //
 //   - When writing multiple times to a io.Writer, it is preferable to first wrap the
 //     io.Writer in a pre-allocated bufio.Writer.
 //   - When writing to a pre-allocated var b []byte, it is preferable to pass
-//     buffer.NewBuffer(b) as w (see lattigo/utils/buffer/buffer.go).
+//     buffer.NewBuffer(b) as w (see lattice/utils/buffer/buffer.go).
 func (gk GaloisKey) WriteTo(w io.Writer) (n int64, err error) {
 	switch w := w.(type) {
 	case buffer.Writer:
@@ -468,14 +468,14 @@ func (gk GaloisKey) WriteTo(w io.Writer) (n int64, err error) {
 // ReadFrom reads on the object from an io.Writer. It implements the
 // io.ReaderFrom interface.
 //
-// Unless r implements the buffer.Reader interface (see see lattigo/utils/buffer/reader.go),
+// Unless r implements the buffer.Reader interface (see see lattice/utils/buffer/reader.go),
 // it will be wrapped into a bufio.Reader. Since this requires allocation, it
 // is preferable to pass a buffer.Reader directly:
 //
 //   - When reading multiple values from a io.Reader, it is preferable to first
 //     first wrap io.Reader in a pre-allocated bufio.Reader.
 //   - When reading from a var b []byte, it is preferable to pass a buffer.NewBuffer(b)
-//     as w (see lattigo/utils/buffer/buffer.go).
+//     as w (see lattice/utils/buffer/buffer.go).
 func (gk *GaloisKey) ReadFrom(r io.Reader) (n int64, err error) {
 	switch r := r.(type) {
 	case buffer.Reader:
@@ -608,14 +608,14 @@ func (evk MemEvaluationKeySet) BinarySize() (size int) {
 // WriteTo writes the object on an io.Writer. It implements the io.WriterTo
 // interface, and will write exactly object.BinarySize() bytes on w.
 //
-// Unless w implements the buffer.Writer interface (see lattigo/utils/buffer/writer.go),
+// Unless w implements the buffer.Writer interface (see lattice/utils/buffer/writer.go),
 // it will be wrapped into a bufio.Writer. Since this requires allocations, it
 // is preferable to pass a buffer.Writer directly:
 //
 //   - When writing multiple times to a io.Writer, it is preferable to first wrap the
 //     io.Writer in a pre-allocated bufio.Writer.
 //   - When writing to a pre-allocated var b []byte, it is preferable to pass
-//     buffer.NewBuffer(b) as w (see lattigo/utils/buffer/buffer.go).
+//     buffer.NewBuffer(b) as w (see lattice/utils/buffer/buffer.go).
 func (evk MemEvaluationKeySet) WriteTo(w io.Writer) (n int64, err error) {
 	switch w := w.(type) {
 	case buffer.Writer:
@@ -672,14 +672,14 @@ func (evk MemEvaluationKeySet) WriteTo(w io.Writer) (n int64, err error) {
 // ReadFrom reads on the object from an io.Writer. It implements the
 // io.ReaderFrom interface.
 //
-// Unless r implements the buffer.Reader interface (see see lattigo/utils/buffer/reader.go),
+// Unless r implements the buffer.Reader interface (see see lattice/utils/buffer/reader.go),
 // it will be wrapped into a bufio.Reader. Since this requires allocation, it
 // is preferable to pass a buffer.Reader directly:
 //
 //   - When reading multiple values from a io.Reader, it is preferable to first
 //     first wrap io.Reader in a pre-allocated bufio.Reader.
 //   - When reading from a var b []byte, it is preferable to pass a buffer.NewBuffer(b)
-//     as w (see lattigo/utils/buffer/buffer.go).
+//     as w (see lattice/utils/buffer/buffer.go).
 func (evk *MemEvaluationKeySet) ReadFrom(r io.Reader) (n int64, err error) {
 	switch r := r.(type) {
 	case buffer.Reader:
