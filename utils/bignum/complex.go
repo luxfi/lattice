@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/tuneinsight/lattigo/v6/utils"
+	"github.com/luxdefi/lattice/v5/utils"
 )
 
 // Complex is a type for arbitrary precision complex number
@@ -55,12 +55,12 @@ func ToComplex(value interface{}, prec uint) (cmplx *Complex) {
 }
 
 // IsInt returns true if both the real and imaginary parts are integers.
-func (c Complex) IsInt() bool {
+func (c *Complex) IsInt() bool {
 	return c[0].IsInt() && c[1].IsInt()
 }
 
-func (c Complex) IsReal() bool {
-	return c[1] == nil || c[1].Cmp(new(big.Float)) == 0
+func (c *Complex) IsReal() bool {
+	return c[1].Cmp(new(big.Float)) == 0
 }
 
 func (c *Complex) SetComplex128(x complex128) *Complex {

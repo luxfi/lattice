@@ -1,21 +1,20 @@
-// Package minimax implements a homomorphic minimax circuit for the CKKS scheme.
-package minimax
+package hefloat
 
 import (
 	"fmt"
 	"math"
 	"math/big"
 
-	"github.com/tuneinsight/lattigo/v6/utils"
-	"github.com/tuneinsight/lattigo/v6/utils/bignum"
+	"github.com/luxdefi/lattice/v5/utils"
+	"github.com/luxdefi/lattice/v5/utils/bignum"
 )
 
-// Polynomial is a struct storing P(x) = pk(x) o pk-1(x) o ... o p1(x) o p0(x).
-type Polynomial []bignum.Polynomial
+// MinimaxCompositePolynomial is a struct storing P(x) = pk(x) o pk-1(x) o ... o p1(x) o p0(x).
+type MinimaxCompositePolynomial []bignum.Polynomial
 
-// NewPolynomial creates a new Polynomial from a list of coefficients.
+// NewMinimaxCompositePolynomial creates a new MinimaxCompositePolynomial from a list of coefficients.
 // Coefficients are expected to be given in the Chebyshev basis.
-func NewPolynomial(coeffsStr [][]string) Polynomial {
+func NewMinimaxCompositePolynomial(coeffsStr [][]string) MinimaxCompositePolynomial {
 	polys := make([]bignum.Polynomial, len(coeffsStr))
 
 	for i := range coeffsStr {
@@ -34,17 +33,17 @@ func NewPolynomial(coeffsStr [][]string) Polynomial {
 		polys[i] = poly
 	}
 
-	return Polynomial(polys)
+	return MinimaxCompositePolynomial(polys)
 }
 
-func (mcp Polynomial) MaxDepth() (depth int) {
+func (mcp MinimaxCompositePolynomial) MaxDepth() (depth int) {
 	for i := range mcp {
 		depth = utils.Max(depth, mcp[i].Depth())
 	}
 	return
 }
 
-func (mcp Polynomial) Evaluate(x interface{}) (y *bignum.Complex) {
+func (mcp MinimaxCompositePolynomial) Evaluate(x interface{}) (y *bignum.Complex) {
 	y = mcp[0].Evaluate(x)
 
 	for _, p := range mcp[1:] {
@@ -79,7 +78,7 @@ var CoeffsSignX4Cheby = []string{"0", "1.1962890625", "0", "-0.2392578125", "0",
 //
 // The sign function is defined as: -1 if -1 <= x < 0, 0 if x = 0, 1 if 0 < x <= 1.
 //
-// See [GenMinimaxCompositePolynomial] for information about how to instantiate and
+// See GenMinimaxCompositePolynomial for information about how to instantiate and
 // parameterize each input value of the algorithm.
 func GenMinimaxCompositePolynomialForSign(prec uint, logalpha, logerr int, deg []int) {
 
@@ -212,10 +211,19 @@ func GenMinimaxCompositePolynomial(prec uint, logalpha, logerr int, deg []int, f
 		fmt.Println()
 	}
 
-	// Since this is the last polynomial, we can skip the interval scaling.
+	maxInterval := bignum.NewFloat(1, prec)
+	maxInterval.Add(maxInterval, r.MaxErr)
+
+	minInterval := bignum.NewFloat(1, prec)
+	minInterval.Sub(minInterval, r.MinErr)
+
+	maxInterval.Add(maxInterval, e)
+	minInterval.Sub(minInterval, e)
+
 	coeffs[len(deg)-1] = make([]*big.Float, deg[len(deg)-1]+1)
 	for j := range coeffs[len(deg)-1] {
 		coeffs[len(deg)-1][j] = new(big.Float).Set(r.Coeffs[j])
+		coeffs[len(deg)-1][j].Quo(coeffs[len(deg)-1][j], maxInterval) // Interval normalization
 	}
 
 	f64, _ := r.MaxErr.Float64()

@@ -47,7 +47,7 @@ plaintext/ciphertext polynomials; it should always be a power of two. This param
 on both security and performance (security increases with N and performance decreases with N). It
 should be chosen carefully to suit the intended use of the scheme.
 
-![equation](https://latex.codecogs.com/gif.latex?Q): the ciphertext modulus. In Lattigo, it is
+![equation](https://latex.codecogs.com/gif.latex?Q): the ciphertext modulus. In Lattice, it is
 chosen to be the product of a chain of small coprime moduli
 ![equation](https://latex.codecogs.com/gif.latex?q_i) that verify
 ![equation](https://latex.codecogs.com/gif.latex?q_i%20%5Cequiv%201%20%5Cmod%202N) in order to
@@ -79,7 +79,7 @@ There are 3 application-dependent parameters:
   plaintext, and (b) the maximum total modulus bit size (the product of all the moduli) for a given
   security parameter.
 - **Modulichain**: it determines how many consecutive scalar and non-scalar multiplications (the
-  depth of the arithmetic circuit) can be evaluated before requiring decryption. Since Lattigo
+  depth of the arithmetic circuit) can be evaluated before requiring decryption. Since Lattice
   features an RNS implementation, this parameter requires careful fine-tuning depending on the
   application; i.e., the rescaling procedure can only rescale by one of the RNS modulus at a time,
   whose size has to be chosen when creating the CKKS context. Additionally, the individual size of
@@ -96,7 +96,7 @@ circuit, each set having pros and cons.
 
 Let us define the evaluation of an arbitrary smooth function f(x) on an array of ~4000 complex
 elements contained in a square of side 2 centered at the complex origin (with values ranging between
--1-1i and 1+1i). We first need to find a good polynomial approximation for the given range. Lattigo
+-1-1i and 1+1i). We first need to find a good polynomial approximation for the given range. Lattice
 provides an automatic Chebyshev approximation for any given polynomial degree, which can be used for
 this purpose (it is also possible to define a different polynomial approximation of lower degree
 with an acceptable error).
@@ -154,14 +154,14 @@ Each set of security parameters is defined by the tuple
 As mentioned, setting parameters for CKKS involves not only choosing this tuple, but also defining
 the actual moduli chain depending on the application at hand, which is why the provided default
 parameter sets have to be fine-tuned, preserving the values of the aforementioned tuples, in order
-to maintain the required security level of 128 bits. That is, Lattigo provides a set of default
+to maintain the required security level of 128 bits. That is, Lattice provides a set of default
 parameters for CKKS, including example moduli chains, ensuring 128 bit security. The user might want
 to choose different values in the moduli chain optimized for a specific application. As long as the
 total modulus is equal or below the above values for a given logN, the scheme will still provide a
 security of at least 128 bits against the current best known attacks.
 
 Finally, it is worth noting that these security parameters are computed for fully entropic ternary
-keys (with probability distribution {1/3,1/3,1/3} for values {-1,0,1}). Lattigo uses this
+keys (with probability distribution {1/3,1/3,1/3} for values {-1,0,1}). Lattice uses this
 fully-entropic key configuration by default. It is possible, though, to generate keys with lower
 entropy, by modifying their distribution to {(1-p)/2, p, (1-p)/2}, for any p between 0 and 1, which
 for p>>1/3 can result in low Hamming weight keys (*sparse* keys). *We recall that it has been shown

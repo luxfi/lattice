@@ -3,12 +3,13 @@ package rlwe
 import (
 	"fmt"
 
-	"github.com/tuneinsight/lattigo/v6/ring/ringqp"
-	"github.com/tuneinsight/lattigo/v6/utils"
+	"github.com/luxdefi/lattice/v5/ring"
+	"github.com/luxdefi/lattice/v5/ring/ringqp"
+	"github.com/luxdefi/lattice/v5/utils"
 )
 
 // Automorphism computes phi(ct), where phi is the map X -> X^galEl. The method requires
-// that the corresponding RotationKey has been added to the [Evaluator]. The method will
+// that the corresponding RotationKey has been added to the Evaluator. The method will
 // return an error if either ctIn or opOut degree is not equal to 1.
 func (eval Evaluator) Automorphism(ctIn *Ciphertext, galEl uint64, opOut *Ciphertext) (err error) {
 
@@ -34,8 +35,7 @@ func (eval Evaluator) Automorphism(ctIn *Ciphertext, galEl uint64, opOut *Cipher
 
 	ringQ := eval.params.RingQ().AtLevel(level)
 
-	ctTmp := eval.pool.GetBuffCt(1, ringQ.Level())
-	defer eval.pool.RecycleBuffCt(ctTmp)
+	ctTmp := &Ciphertext{Element: Element[ring.Poly]{Value: []ring.Poly{eval.BuffQP[0].Q, eval.BuffQP[1].Q}}}
 	ctTmp.MetaData = ctIn.MetaData
 
 	eval.GadgetProduct(level, ctIn.Value[1], &evk.GadgetCiphertext, ctTmp)
@@ -55,9 +55,9 @@ func (eval Evaluator) Automorphism(ctIn *Ciphertext, galEl uint64, opOut *Cipher
 	return
 }
 
-// AutomorphismHoisted is similar to [Evaluator.Automorphism], except that it takes as input ctIn and c1DecompQP, where c1DecompQP is the RNS
-// decomposition of its element of degree 1. This decomposition can be obtained with [Evaluator.DecomposeNTT].
-// The method requires that the corresponding RotationKey has been added to the [Evaluator].
+// AutomorphismHoisted is similar to Automorphism, except that it takes as input ctIn and c1DecompQP, where c1DecompQP is the RNS
+// decomposition of its element of degree 1. This decomposition can be obtained with DecomposeNTT.
+// The method requires that the corresponding RotationKey has been added to the Evaluator.
 // The method will return an error if either ctIn or opOut degree is not equal to 1.
 func (eval Evaluator) AutomorphismHoisted(level int, ctIn *Ciphertext, c1DecompQP []ringqp.Poly, galEl uint64, opOut *Ciphertext) (err error) {
 
@@ -81,8 +81,8 @@ func (eval Evaluator) AutomorphismHoisted(level int, ctIn *Ciphertext, c1DecompQ
 
 	ringQ := eval.params.RingQ().AtLevel(level)
 
-	ctTmp := eval.pool.GetBuffCt(1, ringQ.Level())
-	defer eval.pool.RecycleBuffCt(ctTmp)
+	ctTmp := &Ciphertext{}
+	ctTmp.Value = []ring.Poly{eval.BuffQP[0].Q, eval.BuffQP[1].Q} // GadgetProductHoisted uses the same buffers for its ciphertext QP
 	ctTmp.MetaData = ctIn.MetaData
 
 	eval.GadgetProductHoisted(level, c1DecompQP, &evk.EvaluationKey.GadgetCiphertext, ctTmp)
@@ -101,8 +101,8 @@ func (eval Evaluator) AutomorphismHoisted(level int, ctIn *Ciphertext, c1DecompQ
 	return
 }
 
-// AutomorphismHoistedLazy is similar to [Evaluator.AutomorphismHoisted], except that it returns a ciphertext modulo QP and scaled by P.
-// The method requires that the corresponding RotationKey has been added to the [Evaluator].
+// AutomorphismHoistedLazy is similar to AutomorphismHoisted, except that it returns a ciphertext modulo QP and scaled by P.
+// The method requires that the corresponding RotationKey has been added to the Evaluator.
 // Result NTT domain is returned according to the NTT flag of ctQP.
 func (eval Evaluator) AutomorphismHoistedLazy(levelQ int, ctIn *Ciphertext, c1DecompQP []ringqp.Poly, galEl uint64, ctQP *Element[ringqp.Poly]) (err error) {
 
@@ -113,24 +113,13 @@ func (eval Evaluator) AutomorphismHoistedLazy(levelQ int, ctIn *Ciphertext, c1De
 
 	levelP := evk.LevelP()
 
-	if ctQP.LevelP() < levelP {
-		return fmt.Errorf("ctQP.LevelP()=%d < GaloisKey[%d].LevelP()=%d", ctQP.LevelP(), galEl, levelP)
-	}
-
-	ringQP := eval.params.RingQP().AtLevel(levelQ, levelP)
-	poolQP := eval.pool.AtLevel(levelQ, levelP)
-	buffQP1 := poolQP.GetBuffPolyQP()
-	defer poolQP.RecycleBuffPolyQP(buffQP1)
-	buffQP2 := poolQP.GetBuffPolyQP()
-	defer poolQP.RecycleBuffPolyQP(buffQP2)
-
 	ctTmp := &Element[ringqp.Poly]{}
-	ctTmp.Value = []ringqp.Poly{*buffQP1, *buffQP2}
+	ctTmp.Value = []ringqp.Poly{eval.BuffQP[0], eval.BuffQP[1]}
 	ctTmp.MetaData = ctIn.MetaData
 
-	if err = eval.GadgetProductHoistedLazy(levelQ, c1DecompQP, &evk.GadgetCiphertext, ctTmp); err != nil {
-		panic(fmt.Errorf("eval.GadgetProductHoistedLazy: %w", err))
-	}
+	eval.GadgetProductHoistedLazy(levelQ, c1DecompQP, &evk.GadgetCiphertext, ctTmp)
+
+	ringQP := eval.params.RingQP().AtLevel(levelQ, levelP)
 
 	ringQ := ringQP.RingQ
 	ringP := ringQP.RingP

@@ -4,33 +4,14 @@ import (
 	"bufio"
 	"io"
 
-	"github.com/tuneinsight/lattigo/v6/utils"
-	"github.com/tuneinsight/lattigo/v6/utils/buffer"
-	"github.com/tuneinsight/lattigo/v6/utils/structs"
+	"github.com/luxdefi/lattice/v5/utils"
+	"github.com/luxdefi/lattice/v5/utils/buffer"
+	"github.com/luxdefi/lattice/v5/utils/structs"
 )
 
 // Poly is the structure that contains the coefficients of a polynomial.
 type Poly struct {
 	Coeffs structs.Matrix[uint64]
-}
-
-// NewPolyFromUintPool returns a new [Poly], built from backing []uint64 arrays obtained from a pool.
-// After use, the [Poly] should be recycled using the [RecyclePolyInUintPool] method.
-func NewPolyFromUintPool(pool structs.BufferPool[*[]uint64], level int) (pol *Poly) {
-	coeffs := make([][]uint64, level+1)
-	for i := range coeffs {
-		coeffs[i] = *pool.Get()
-	}
-	return &Poly{Coeffs: coeffs}
-}
-
-// RecyclePolyInUintPool takes a reference to a [Poly] and recycles its backing []uint64 arrays
-// (i.e. they are returned to a pool). The input [Poly] must not be used after calling this method.
-func RecyclePolyInUintPool(pool structs.BufferPool[*[]uint64], pol *Poly) {
-	for i := range pol.Coeffs {
-		pool.Put(&pol.Coeffs[i])
-	}
-	pol = nil
 }
 
 // NewPoly creates a new polynomial with N coefficients set to zero and Level+1 moduli.
@@ -121,14 +102,14 @@ func (pol Poly) BinarySize() (size int) {
 // WriteTo writes the object on an io.Writer. It implements the io.WriterTo
 // interface, and will write exactly object.BinarySize() bytes on w.
 //
-// Unless w implements the buffer.Writer interface (see lattigo/utils/buffer/writer.go),
+// Unless w implements the buffer.Writer interface (see lattice/utils/buffer/writer.go),
 // it will be wrapped into a bufio.Writer. Since this requires allocations, it
 // is preferable to pass a buffer.Writer directly:
 //
 //   - When writing multiple times to a io.Writer, it is preferable to first wrap the
 //     io.Writer in a pre-allocated bufio.Writer.
 //   - When writing to a pre-allocated var b []byte, it is preferable to pass
-//     buffer.NewBuffer(b) as w (see lattigo/utils/buffer/buffer.go).
+//     buffer.NewBuffer(b) as w (see lattice/utils/buffer/buffer.go).
 func (pol Poly) WriteTo(w io.Writer) (n int64, err error) {
 	switch w := w.(type) {
 	case buffer.Writer:
@@ -144,14 +125,14 @@ func (pol Poly) WriteTo(w io.Writer) (n int64, err error) {
 // ReadFrom reads on the object from an io.Writer. It implements the
 // io.ReaderFrom interface.
 //
-// Unless r implements the buffer.Reader interface (see see lattigo/utils/buffer/reader.go),
+// Unless r implements the buffer.Reader interface (see see lattice/utils/buffer/reader.go),
 // it will be wrapped into a bufio.Reader. Since this requires allocation, it
 // is preferable to pass a buffer.Reader directly:
 //
 //   - When reading multiple values from a io.Reader, it is preferable to first
 //     first wrap io.Reader in a pre-allocated bufio.Reader.
 //   - When reading from a var b []byte, it is preferable to pass a buffer.NewBuffer(b)
-//     as w (see lattigo/utils/buffer/buffer.go).
+//     as w (see lattice/utils/buffer/buffer.go).
 func (pol *Poly) ReadFrom(r io.Reader) (n int64, err error) {
 	switch r := r.(type) {
 	case buffer.Reader:

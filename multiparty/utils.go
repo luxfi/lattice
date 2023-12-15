@@ -1,9 +1,9 @@
-package multiparty
+package mhe
 
 import (
 	"math"
 
-	"github.com/tuneinsight/lattigo/v6/core/rlwe"
+	"github.com/luxdefi/lattice/v5/core/rlwe"
 )
 
 // NoiseRelinearizationKey returns the standard deviation of the noise of each individual elements in the collective RelinearizationKey.

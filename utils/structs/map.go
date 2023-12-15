@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/tuneinsight/lattigo/v6/utils"
-	"github.com/tuneinsight/lattigo/v6/utils/buffer"
+	"github.com/luxdefi/lattice/v5/utils"
+	"github.com/luxdefi/lattice/v5/utils/buffer"
 	"golang.org/x/exp/constraints"
 )
 
@@ -33,14 +33,14 @@ func (m Map[K, T]) CopyNew() *Map[K, T] {
 // WriteTo writes the object on an io.Writer. It implements the io.WriterTo
 // interface, and will write exactly object.BinarySize() bytes on w.
 //
-// Unless w implements the buffer.Writer interface (see lattigo/utils/buffer/writer.go),
+// Unless w implements the buffer.Writer interface (see lattice/utils/buffer/writer.go),
 // it will be wrapped into a bufio.Writer. Since this requires allocations, it
 // is preferable to pass a buffer.Writer directly:
 //
 //   - When writing multiple times to a io.Writer, it is preferable to first wrap the
 //     io.Writer in a pre-allocated bufio.Writer.
 //   - When writing to a pre-allocated var b []byte, it is preferable to pass
-//     buffer.NewBuffer(b) as w (see lattigo/utils/buffer/buffer.go).
+//     buffer.NewBuffer(b) as w (see lattice/utils/buffer/buffer.go).
 func (m *Map[K, T]) WriteTo(w io.Writer) (n int64, err error) {
 
 	if w, isWritable := any(new(T)).(io.WriterTo); !isWritable {
@@ -52,7 +52,6 @@ func (m *Map[K, T]) WriteTo(w io.Writer) (n int64, err error) {
 
 		var inc int64
 
-		/* #nosec G115 -- marshalling support size of type uint32 only */
 		if inc, err = buffer.WriteUint32(w, uint32(len(*m))); err != nil {
 			return n + inc, err
 		}
@@ -83,14 +82,14 @@ func (m *Map[K, T]) WriteTo(w io.Writer) (n int64, err error) {
 // ReadFrom reads on the object from an io.Writer. It implements the
 // io.ReaderFrom interface.
 //
-// Unless r implements the buffer.Reader interface (see lattigo/utils/buffer/reader.go),
+// Unless r implements the buffer.Reader interface (see lattice/utils/buffer/reader.go),
 // it will be wrapped into a bufio.Reader. Since this requires allocation, it
 // is preferable to pass a buffer.Reader directly:
 //
 //   - When reading multiple values from a io.Reader, it is preferable to first
 //     first wrap io.Reader in a pre-allocated bufio.Reader.
 //   - When reading from a var b []byte, it is preferable to pass a buffer.NewBuffer(b)
-//     as w (see lattigo/utils/buffer/buffer.go).
+//     as w (see lattice/utils/buffer/buffer.go).
 func (m *Map[K, T]) ReadFrom(r io.Reader) (n int64, err error) {
 
 	if r, isReadable := any(new(T)).(io.ReaderFrom); !isReadable {
@@ -111,7 +110,6 @@ func (m *Map[K, T]) ReadFrom(r io.Reader) (n int64, err error) {
 			*m = make(Map[K, T], size)
 		}
 
-		/* #nosec G115 -- library requires 64-bit system -> int = int64 */
 		for i := 0; i < int(size); i++ {
 
 			var key uint64
