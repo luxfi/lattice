@@ -3,8 +3,8 @@ package sampling_test
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	"github.com/luxfi/lattice/v6/utils/sampling"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_PRNG(t *testing.T) {

@@ -11,8 +11,8 @@ import (
 	"github.com/luxfi/lattice/v6/utils/sampling"
 	"github.com/luxfi/lattice/v6/utils/structs"
 
-	"github.com/stretchr/testify/require"
 	"github.com/luxfi/lattice/v6/utils/bignum"
+	"github.com/stretchr/testify/require"
 )
 
 var T = uint64(0x3ee0001)
