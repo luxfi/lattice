@@ -1,7 +1,7 @@
 package ringqp
 
 import (
-	"github.com/luxfi/lattice/v6/ring"
+	"github.com/luxfi/lattice/v5/ring"
 )
 
 // Add adds p1 to p2 coefficient-wise and writes the result on p3.

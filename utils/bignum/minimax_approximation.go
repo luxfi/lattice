@@ -611,7 +611,6 @@ func findLocalMaximum(fErr func(x *big.Float) (y *big.Float), start, end *big.Fl
 	quarter := new(big.Float).Sub(windowEnd, windowStart)
 	quarter.Quo(quarter, NewFloat(4, prec))
 
-	/* #nosec G115 -- prec is a bit-size */
 	for i := 0; i < int(prec); i++ {
 
 		// Obtains the sign of the err Function in the interval (normalized and zeroed)
@@ -674,7 +673,6 @@ func findLocalMinimum(fErr func(x *big.Float) (y *big.Float), start, end *big.Fl
 	quarter := new(big.Float).Sub(windowEnd, windowStart)
 	quarter.Quo(quarter, NewFloat(4, prec))
 
-	/* #nosec G115 -- prec is a bit-size */
 	for i := 0; i < int(prec); i++ {
 
 		// Obtains the sign of the err Function in the interval (normalized and zeroed)

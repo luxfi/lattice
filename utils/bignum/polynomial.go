@@ -30,9 +30,7 @@ type Polynomial struct {
 func (p Polynomial) Clone() Polynomial {
 	Coeffs := make([]*Complex, len(p.Coeffs))
 	for i := range Coeffs {
-		if p.Coeffs[i] != nil {
-			Coeffs[i] = p.Coeffs[i].Clone()
-		}
+		Coeffs[i] = p.Coeffs[i].Clone()
 	}
 
 	return Polynomial{
