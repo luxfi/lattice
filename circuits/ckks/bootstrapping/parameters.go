@@ -6,25 +6,26 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	"github.com/luxfi/lattice/v5/he/hefloat"
-	"github.com/luxfi/lattice/v5/ring"
-	"github.com/luxfi/lattice/v5/schemes/ckks"
-	"github.com/luxfi/lattice/v5/utils"
+	"github.com/luxfi/lattice/v6/circuits/ckks/dft"
+	"github.com/luxfi/lattice/v6/circuits/ckks/mod1"
+	"github.com/luxfi/lattice/v6/ring"
+	"github.com/luxfi/lattice/v6/schemes/ckks"
+	"github.com/luxfi/lattice/v6/utils"
 )
 
 // Parameters is a struct storing the parameters
 // of the bootstrapping circuit.
 type Parameters struct {
 	// ResidualParameters: Parameters outside of the bootstrapping circuit
-	ResidualParameters hefloat.Parameters
+	ResidualParameters ckks.Parameters
 	// BootstrappingParameters: Parameters during the bootstrapping circuit
-	BootstrappingParameters hefloat.Parameters
+	BootstrappingParameters ckks.Parameters
 	// SlotsToCoeffsParameters Parameters of the homomorphic decoding linear transformation
-	SlotsToCoeffsParameters hefloat.DFTMatrixLiteral
+	SlotsToCoeffsParameters dft.MatrixLiteral
 	// Mod1ParametersLiteral: Parameters of the homomorphic modular reduction
-	Mod1ParametersLiteral hefloat.Mod1ParametersLiteral
+	Mod1ParametersLiteral mod1.ParametersLiteral
 	// CoeffsToSlotsParameters: Parameters of the homomorphic encoding linear transformation
-	CoeffsToSlotsParameters hefloat.DFTMatrixLiteral
+	CoeffsToSlotsParameters dft.MatrixLiteral
 	// IterationsParameters: Parameters of the bootstrapping iterations (META-BTS)
 	IterationsParameters *IterationsParameters
 	// EphemeralSecretWeight: Hamming weight of the ephemeral secret. If 0, no ephemeral secret is used during the bootstrapping.
@@ -33,21 +34,21 @@ type Parameters struct {
 	CircuitOrder CircuitOrder
 }
 
-// NewParametersFromLiteral instantiates a Parameters from the residual hefloat.Parameters and
-// a bootstrapping.ParametersLiteral struct.
+// NewParametersFromLiteral instantiates a [Parameters] from the residual [ckks.Parameters] and
+// a [ParametersLiteral] struct.
 //
-// The residualParameters corresponds to the hefloat.Parameters that are left after the bootstrapping circuit is evaluated.
+// The residualParameters corresponds to the [ckks.Parameters] that are left after the bootstrapping circuit is evaluated.
 // These are entirely independent of the bootstrapping parameters with one exception: the ciphertext primes Qi must be
 // congruent to 1 mod 2N of the bootstrapping parameters (note that the auxiliary primes Pi do not need to be).
 // This is required because the primes Qi of the residual parameters and the bootstrapping parameters are the same between
 // the two sets of parameters.
 //
-// The user can ensure that this condition is met by setting the appropriate LogNThRoot in the hefloat.ParametersLiteral before
+// The user can ensure that this condition is met by setting the appropriate LogNThRoot in the [ckks.ParametersLiteral] before
 // instantiating them.
 //
-// The method NewParametersFromLiteral will automatically allocate the hefloat.Parameters of the bootstrapping circuit based on
-// the provided residualParameters and the information given in the bootstrapping.ParametersLiteral.
-func NewParametersFromLiteral(residualParameters hefloat.Parameters, btpLit ParametersLiteral) (Parameters, error) {
+// The method NewParametersFromLiteral will automatically allocate the [ckks.Parameters] of the bootstrapping circuit based on
+// the provided residualParameters and the information given in the [ParametersLiteral].
+func NewParametersFromLiteral(residualParameters ckks.Parameters, btpLit ParametersLiteral) (Parameters, error) {
 
 	var err error
 
@@ -66,6 +67,7 @@ func NewParametersFromLiteral(residualParameters hefloat.Parameters, btpLit Para
 		}
 
 		// Takes the greatest NthRoot between the residualParameters NthRoot and the bootstrapping NthRoot
+		/* #nosec G115 -- N cannot be negative */
 		NthRoot = utils.Max(uint64(residualParameters.N()<<2), uint64(2<<LogN))
 
 	default:
@@ -76,6 +78,7 @@ func NewParametersFromLiteral(residualParameters hefloat.Parameters, btpLit Para
 		}
 
 		// Takes the greatest NthRoot between the residualParameters NthRoot and the bootstrapping NthRoot
+		/* #nosec G115 -- N cannot be negative */
 		NthRoot = utils.Max(uint64(residualParameters.N()<<1), uint64(2<<LogN))
 	}
 
@@ -123,11 +126,11 @@ func NewParametersFromLiteral(residualParameters hefloat.Parameters, btpLit Para
 	}
 
 	// SlotsToCoeffs parameters (homomorphic decoding)
-	S2CParams := hefloat.DFTMatrixLiteral{
-		Type:         hefloat.HomomorphicDecode,
+	S2CParams := dft.MatrixLiteral{
+		Type:         dft.HomomorphicDecode,
 		LogSlots:     LogSlots,
-		Format:       hefloat.RepackImagAsReal,
-		LevelStart:   residualParameters.MaxLevel() + len(SlotsToCoeffsFactorizationDepthAndLogScales) + hasReservedIterationPrime,
+		Format:       dft.RepackImagAsReal,
+		LevelQ:       residualParameters.MaxLevel() + len(SlotsToCoeffsFactorizationDepthAndLogScales) + hasReservedIterationPrime,
 		LogBSGSRatio: 1,
 		Levels:       SlotsToCoeffsLevels,
 	}
@@ -172,7 +175,7 @@ func NewParametersFromLiteral(residualParameters hefloat.Parameters, btpLit Para
 	}
 
 	// Parameters of the homomorphic modular reduction x mod 1
-	Mod1ParametersLiteral := hefloat.Mod1ParametersLiteral{
+	Mod1ParametersLiteral := mod1.ParametersLiteral{
 		LogScale:        EvalMod1LogScale,
 		Mod1Type:        Mod1Type,
 		Mod1Degree:      Mod1Degree,
@@ -190,7 +193,7 @@ func NewParametersFromLiteral(residualParameters hefloat.Parameters, btpLit Para
 	}
 
 	// Coeffs To Slots params
-	Mod1ParametersLiteral.LevelStart = S2CParams.LevelStart + Mod1ParametersLiteral.Depth()
+	Mod1ParametersLiteral.LevelQ = S2CParams.LevelQ + Mod1ParametersLiteral.Depth()
 
 	CoeffsToSlotsLevels := make([]int, len(CoeffsToSlotsFactorizationDepthAndLogScales))
 	for i := range CoeffsToSlotsLevels {
@@ -198,11 +201,11 @@ func NewParametersFromLiteral(residualParameters hefloat.Parameters, btpLit Para
 	}
 
 	// Parameters of the CoeffsToSlots (homomorphic encoding)
-	C2SParams := hefloat.DFTMatrixLiteral{
-		Type:         hefloat.HomomorphicEncode,
-		Format:       hefloat.RepackImagAsReal,
+	C2SParams := dft.MatrixLiteral{
+		Type:         dft.HomomorphicEncode,
+		Format:       dft.RepackImagAsReal,
 		LogSlots:     LogSlots,
-		LevelStart:   Mod1ParametersLiteral.LevelStart + len(CoeffsToSlotsFactorizationDepthAndLogScales),
+		LevelQ:       Mod1ParametersLiteral.LevelQ + len(CoeffsToSlotsFactorizationDepthAndLogScales),
 		LogBSGSRatio: 1,
 		Levels:       CoeffsToSlotsLevels,
 	}
@@ -258,10 +261,13 @@ func NewParametersFromLiteral(residualParameters hefloat.Parameters, btpLit Para
 
 	// Retrieve the number of primes #Pi of the bootstrapping circuit
 	// and adds them to the list of bit-size
-	LogP := btpLit.GetLogP(C2SParams.LevelStart + 1)
+	LogP := btpLit.GetLogP(C2SParams.LevelQ + 1)
 	for _, logpi := range LogP {
 		primesBitLenNew[logpi]++
 	}
+
+	S2CParams.LevelP = len(LogP) - 1
+	C2SParams.LevelP = len(LogP) - 1
 
 	// Map to store [bit-size][]primes
 	primesNew := map[int][]uint64{}
@@ -270,6 +276,7 @@ func NewParametersFromLiteral(residualParameters hefloat.Parameters, btpLit Para
 	for logqi, k := range primesBitLenNew {
 
 		// Creates a new prime generator
+		/* #nosec G115 -- logqi cannot be negative */
 		g := ring.NewNTTFriendlyPrimesGenerator(uint64(logqi), NthRoot)
 
 		// Populates the list with primes that aren't yet in primesHave
@@ -322,8 +329,8 @@ func NewParametersFromLiteral(residualParameters hefloat.Parameters, btpLit Para
 		LogDefaultScale = residualParameters.LogQi()[0] - LogMessageRatio
 	}
 
-	// Instantiates the hefloat.Parameters of the bootstrapping circuit.
-	params, err := hefloat.NewParametersFromLiteral(hefloat.ParametersLiteral{
+	// Instantiates the ckks.Parameters of the bootstrapping circuit.
+	params, err := ckks.NewParametersFromLiteral(ckks.ParametersLiteral{
 		LogN:            LogN,
 		Q:               Q,
 		P:               P,
@@ -389,26 +396,27 @@ func (p Parameters) Depth() (depth int) {
 }
 
 // MarshalBinary returns a JSON representation of the Parameters struct.
-// See `Marshal` from the `encoding/json` package.
+// See Marshal from the [encoding/json] package.
 func (p Parameters) MarshalBinary() (data []byte, err error) {
 	return json.Marshal(p)
 }
 
 // UnmarshalBinary reads a JSON representation on the target Parameters struct.
-// See `Unmarshal` from the `encoding/json` package.
+// See Unmarshal from the [encoding/json] package.
 func (p *Parameters) UnmarshalBinary(data []byte) (err error) {
 	return json.Unmarshal(data, p)
 }
 
 func (p Parameters) MarshalJSON() (data []byte, err error) {
 	return json.Marshal(struct {
-		ResidualParameters      hefloat.Parameters
-		BootstrappingParameters hefloat.Parameters
-		SlotsToCoeffsParameters hefloat.DFTMatrixLiteral
-		Mod1ParametersLiteral   hefloat.Mod1ParametersLiteral
-		CoeffsToSlotsParameters hefloat.DFTMatrixLiteral
+		ResidualParameters      ckks.Parameters
+		BootstrappingParameters ckks.Parameters
+		SlotsToCoeffsParameters dft.MatrixLiteral
+		Mod1ParametersLiteral   mod1.ParametersLiteral
+		CoeffsToSlotsParameters dft.MatrixLiteral
 		IterationsParameters    *IterationsParameters
 		EphemeralSecretWeight   int
+		CircuitOrder            int
 	}{
 		ResidualParameters:      p.ResidualParameters,
 		BootstrappingParameters: p.BootstrappingParameters,
@@ -417,18 +425,20 @@ func (p Parameters) MarshalJSON() (data []byte, err error) {
 		CoeffsToSlotsParameters: p.CoeffsToSlotsParameters,
 		IterationsParameters:    p.IterationsParameters,
 		EphemeralSecretWeight:   p.EphemeralSecretWeight,
+		CircuitOrder:            int(p.CircuitOrder),
 	})
 }
 
 func (p *Parameters) UnmarshalJSON(data []byte) (err error) {
 	var params struct {
-		ResidualParameters      hefloat.Parameters
-		BootstrappingParameters hefloat.Parameters
-		SlotsToCoeffsParameters hefloat.DFTMatrixLiteral
-		Mod1ParametersLiteral   hefloat.Mod1ParametersLiteral
-		CoeffsToSlotsParameters hefloat.DFTMatrixLiteral
+		ResidualParameters      ckks.Parameters
+		BootstrappingParameters ckks.Parameters
+		SlotsToCoeffsParameters dft.MatrixLiteral
+		Mod1ParametersLiteral   mod1.ParametersLiteral
+		CoeffsToSlotsParameters dft.MatrixLiteral
 		IterationsParameters    *IterationsParameters
 		EphemeralSecretWeight   int
+		CircuitOrder            int
 	}
 
 	if err = json.Unmarshal(data, &params); err != nil {
@@ -442,12 +452,13 @@ func (p *Parameters) UnmarshalJSON(data []byte) (err error) {
 	p.CoeffsToSlotsParameters = params.CoeffsToSlotsParameters
 	p.IterationsParameters = params.IterationsParameters
 	p.EphemeralSecretWeight = params.EphemeralSecretWeight
+	p.CircuitOrder = CircuitOrder(params.CircuitOrder)
 
 	return
 }
 
 // GaloisElements returns the list of Galois elements required to evaluate the bootstrapping.
-func (p Parameters) GaloisElements(params hefloat.Parameters) (galEls []uint64) {
+func (p Parameters) GaloisElements(params ckks.Parameters) (galEls []uint64) {
 
 	logN := params.LogN()
 

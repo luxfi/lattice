@@ -1,52 +1,25 @@
-package mhe
+package multiparty
 
 import (
 	"fmt"
 	"io"
+	"slices"
 
-	"github.com/luxfi/lattice/v5/core/rlwe"
-	"github.com/luxfi/lattice/v5/ring"
-	"github.com/luxfi/lattice/v5/ring/ringqp"
-	"github.com/luxfi/lattice/v5/utils"
-	"github.com/luxfi/lattice/v5/utils/sampling"
-	"github.com/luxfi/lattice/v5/utils/structs"
+	"github.com/luxfi/lattice/v6/core/rlwe"
+	"github.com/luxfi/lattice/v6/ring"
+	"github.com/luxfi/lattice/v6/ring/ringqp"
+	"github.com/luxfi/lattice/v6/utils"
+	"github.com/luxfi/lattice/v6/utils/sampling"
+	"github.com/luxfi/lattice/v6/utils/structs"
 )
 
 // EvaluationKeyGenProtocol is the structure storing the parameters for the collective EvaluationKey generation.
 type EvaluationKeyGenProtocol struct {
 	params           rlwe.Parameters
-	buff             [2]ringqp.Poly
 	gaussianSamplerQ ring.Sampler
 }
 
-// ShallowCopy creates a shallow copy of EvaluationKeyGenProtocol in which all the read-only data-structures are
-// shared with the receiver and the temporary buffers are reallocated. The receiver and the returned
-// EvaluationKeyGenProtocol can be used concurrently.
-func (evkg EvaluationKeyGenProtocol) ShallowCopy() EvaluationKeyGenProtocol {
-	prng, err := sampling.NewPRNG()
-
-	// Sanity check, this error should not happen.
-	if err != nil {
-		panic(err)
-	}
-
-	params := evkg.params
-
-	Xe, err := ring.NewSampler(prng, evkg.params.RingQ(), evkg.params.Xe(), false)
-
-	// Sanity check, this error should not happen.
-	if err != nil {
-		panic(err)
-	}
-
-	return EvaluationKeyGenProtocol{
-		params:           evkg.params,
-		buff:             [2]ringqp.Poly{params.RingQP().NewPoly(), params.RingQP().NewPoly()},
-		gaussianSamplerQ: Xe,
-	}
-}
-
-// NewEvaluationKeyGenProtocol creates a EvaluationKeyGenProtocol instance.
+// NewEvaluationKeyGenProtocol creates a [EvaluationKeyGenProtocol] instance.
 func NewEvaluationKeyGenProtocol(params rlwe.ParameterProvider) (evkg EvaluationKeyGenProtocol) {
 
 	prng, err := sampling.NewPRNG()
@@ -68,13 +41,12 @@ func NewEvaluationKeyGenProtocol(params rlwe.ParameterProvider) (evkg Evaluation
 	return EvaluationKeyGenProtocol{
 		params:           pRLWE,
 		gaussianSamplerQ: Xe,
-		buff:             [2]ringqp.Poly{pRLWE.RingQP().NewPoly(), pRLWE.RingQP().NewPoly()},
 	}
 }
 
 // AllocateShare allocates a party's share in the EvaluationKey Generation.
 func (evkg EvaluationKeyGenProtocol) AllocateShare(evkParams ...rlwe.EvaluationKeyParameters) EvaluationKeyGenShare {
-	levelQ, levelP, BaseTwoDecomposition := rlwe.ResolveEvaluationKeyParameters(evkg.params, evkParams)
+	levelQ, levelP, BaseTwoDecomposition, _ := rlwe.ResolveEvaluationKeyParameters(evkg.params, evkParams)
 	return evkg.allocateShare(levelQ, levelP, BaseTwoDecomposition)
 }
 
@@ -85,7 +57,7 @@ func (evkg EvaluationKeyGenProtocol) allocateShare(levelQ, levelP, BaseTwoDecomp
 // SampleCRP samples a common random polynomial to be used in the EvaluationKey Generation from the provided
 // common reference string.
 func (evkg EvaluationKeyGenProtocol) SampleCRP(crs CRS, evkParams ...rlwe.EvaluationKeyParameters) EvaluationKeyGenCRP {
-	levelQ, levelP, BaseTwoDecomposition := rlwe.ResolveEvaluationKeyParameters(evkg.params, evkParams)
+	levelQ, levelP, BaseTwoDecomposition, _ := rlwe.ResolveEvaluationKeyParameters(evkg.params, evkParams)
 	return evkg.sampleCRP(crs, levelQ, levelP, BaseTwoDecomposition)
 }
 
@@ -128,7 +100,7 @@ func (evkg EvaluationKeyGenProtocol) GenShare(skIn, skOut *rlwe.SecretKey, crp E
 		return fmt.Errorf("cannot GenShare: crp.BaseRNSDecompositionVectorSize() != shareOut.BaseRNSDecompositionVectorSize()")
 	}
 
-	if !utils.EqualSlice(shareOut.BaseTwoDecompositionVectorSize(), crp.BaseTwoDecompositionVectorSize()) {
+	if !slices.Equal(shareOut.BaseTwoDecompositionVectorSize(), crp.BaseTwoDecompositionVectorSize()) {
 		return fmt.Errorf("cannot GenShare: crp.BaseTwoDecompositionVectorSize() != shareOut.BaseTwoDecompositionVectorSize()")
 	}
 
@@ -137,12 +109,14 @@ func (evkg EvaluationKeyGenProtocol) GenShare(skIn, skOut *rlwe.SecretKey, crp E
 
 	var hasModulusP bool
 
+	buffQ := ringQ.NewPoly()
+
 	if levelP > -1 {
 		hasModulusP = true
-		ringQ.MulScalarBigint(skIn.Value.Q, ringQP.RingP.ModulusAtLevel[levelP], evkg.buff[0].Q)
+		ringQ.MulScalarBigint(skIn.Value.Q, ringQP.RingP.ModulusAtLevel[levelP], buffQ)
 	} else {
 		levelP = 0
-		evkg.buff[0].Q.CopyLvl(levelQ, skIn.Value.Q)
+		buffQ.CopyLvl(levelQ, skIn.Value.Q)
 	}
 
 	m := shareOut.Value
@@ -157,7 +131,7 @@ func (evkg EvaluationKeyGenProtocol) GenShare(skIn, skOut *rlwe.SecretKey, crp E
 
 	var index int
 
-	for j := 0; j < utils.MaxSlice(BaseTwoDecompositionVectorSize); j++ {
+	for j := 0; j < slices.Max(BaseTwoDecompositionVectorSize); j++ {
 
 		for i := 0; i < BaseRNSDecompositionVectorSize; i++ {
 
@@ -189,7 +163,7 @@ func (evkg EvaluationKeyGenProtocol) GenShare(skIn, skOut *rlwe.SecretKey, crp E
 					}
 
 					qi := ringQ.SubRings[index].Modulus
-					tmp0 := evkg.buff[0].Q.Coeffs[index]
+					tmp0 := buffQ.Coeffs[index]
 					tmp1 := mij.Q.Coeffs[index]
 
 					for w := 0; w < N; w++ {
@@ -202,7 +176,7 @@ func (evkg EvaluationKeyGenProtocol) GenShare(skIn, skOut *rlwe.SecretKey, crp E
 			}
 		}
 
-		ringQ.MulScalar(evkg.buff[0].Q, 1<<shareOut.BaseTwoDecomposition, evkg.buff[0].Q)
+		ringQ.MulScalar(buffQ, 1<<shareOut.BaseTwoDecomposition, buffQ)
 	}
 
 	return
@@ -305,30 +279,30 @@ func (share EvaluationKeyGenShare) BinarySize() int {
 	return share.GadgetCiphertext.BinarySize()
 }
 
-// WriteTo writes the object on an io.Writer. It implements the io.WriterTo
+// WriteTo writes the object on an [io.Writer]. It implements the [io.WriterTo]
 // interface, and will write exactly object.BinarySize() bytes on w.
 //
-// Unless w implements the buffer.Writer interface (see lattice/utils/buffer/writer.go),
-// it will be wrapped into a bufio.Writer. Since this requires allocations, it
-// is preferable to pass a buffer.Writer directly:
+// Unless w implements the [buffer.Writer] interface (see lattice/utils/buffer/writer.go),
+// it will be wrapped into a [bufio.Writer]. Since this requires allocations, it
+// is preferable to pass a [buffer.Writer] directly:
 //
 //   - When writing multiple times to a io.Writer, it is preferable to first wrap the
-//     io.Writer in a pre-allocated bufio.Writer.
+//     io.Writer in a pre-allocated [bufio.Writer].
 //   - When writing to a pre-allocated var b []byte, it is preferable to pass
 //     buffer.NewBuffer(b) as w (see lattice/utils/buffer/buffer.go).
 func (share EvaluationKeyGenShare) WriteTo(w io.Writer) (n int64, err error) {
 	return share.GadgetCiphertext.WriteTo(w)
 }
 
-// ReadFrom reads on the object from an io.Writer. It implements the
-// io.ReaderFrom interface.
+// ReadFrom reads on the object from an [io.Writer]. It implements the
+// [io.ReaderFrom] interface.
 //
-// Unless r implements the buffer.Reader interface (see see lattice/utils/buffer/reader.go),
-// it will be wrapped into a bufio.Reader. Since this requires allocation, it
-// is preferable to pass a buffer.Reader directly:
+// Unless r implements the [buffer.Reader] interface (see see lattice/utils/buffer/reader.go),
+// it will be wrapped into a [bufio.Reader]. Since this requires allocation, it
+// is preferable to pass a [buffer.Reader] directly:
 //
 //   - When reading multiple values from a io.Reader, it is preferable to first
-//     first wrap io.Reader in a pre-allocated bufio.Reader.
+//     first wrap [io.Reader] in a pre-allocated bufio.Reader.
 //   - When reading from a var b []byte, it is preferable to pass a buffer.NewBuffer(b)
 //     as w (see lattice/utils/buffer/buffer.go).
 func (share *EvaluationKeyGenShare) ReadFrom(r io.Reader) (n int64, err error) {
@@ -341,7 +315,7 @@ func (share EvaluationKeyGenShare) MarshalBinary() (p []byte, err error) {
 }
 
 // UnmarshalBinary decodes a slice of bytes generated by
-// MarshalBinary or WriteTo on the object.
+// [EvaluationKeyGenShare.MarshalBinary] or [EvaluationKeyGenShare.WriteTo] on the object.
 func (share *EvaluationKeyGenShare) UnmarshalBinary(p []byte) (err error) {
 	return share.GadgetCiphertext.UnmarshalBinary(p)
 }

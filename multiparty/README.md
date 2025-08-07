@@ -1,4 +1,4 @@
-# Multiparty Schemes in Lattigo
+# Multiparty Schemes in Lattice
 
 The `multiparty` package implements several Multiparty Homomorphic Encryption (MHE)
 primitives based on Ring-Learning-with-Errors (RLWE). It provides the implementation of
@@ -28,7 +28,7 @@ any network-layer protocol implementation. However:
   [https://pkg.go.dev/encoding](https://pkg.go.dev/encoding)) as well as the `io.WriterTo`
   and `io.ReaderFrom` interfaces (see [https://pkg.go.dev/io](https://pkg.go.dev/io)).
 - The last section of this README provides a detailed overview of the MHE-MPC protocol,
-  its different instantiations, and maps the protocol steps to the relevant Lattigo types
+  its different instantiations, and maps the protocol steps to the relevant Lattice types
   and methods.
 - The `examples/multiparty` folder contains example applications for simple MPC tasks.
   These examples are running all the parties in the same process, but demonstrate the use
@@ -98,7 +98,7 @@ corrupt more than $t-1$ out of the $N$ parties, the $t\text{-out-of-}N$-threshol
 employed to provide better liveness guarantees. More specifically, this scheme ensures
 that secret-key operations can be performed by any group of at least $t$ parties.
 
-Lattigo provides an implementation of the RLWE-based $t\text{-out-of-}N$-threshold scheme
+Lattice provides an implementation of the RLWE-based $t\text{-out-of-}N$-threshold scheme
 described in Mouchet et al.'s paper [An Efficient Threshold Access-Structure for
 RLWE-Based Multiparty Homomorphic Encryption](https://eprint.iacr.org/2022/780). Similarly
 to many threshold schemes, it relies on Shamir Secret Sharing to distribute the secret-key
@@ -207,7 +207,7 @@ t-out-of-N (see Threshold Secret-Key Generation).
 **Passive vs Active Adversaries**. The implemented MHE-MPC protocol is secure against
 passive adversaries, and can in theory be extended to active security by requiring the
 parties to produce proofs that their shares are correctly computed for every round. Note
-that those proofs are not implemented in Lattigo.
+that those proofs are not implemented in Lattice.
 
 An execution of the MHE-based MPC protocol has two phases: the Setup phase and the
 Evaluation phase, each of which comprises a number of sub-protocols as depicted below (the
@@ -232,7 +232,7 @@ details of each protocols are provided later).
 ## MHE-MPC Protocol Steps Description
 
 This section provides a description for each sub-protocol of the MHE-MPC protocol and
-provides pointers to the relevant Lattigo types and methods. This description is a first
+provides pointers to the relevant Lattice types and methods. This description is a first
 draft and will evolve in the future. For concrete code examples, see the
 `example/multiparty` folders. For a more formal exposition, see ["Multiparty Homomorphic
 Encryption from Ring-Learning-with-Errors"](https://eprint.iacr.org/2020/304.pdf) and [An

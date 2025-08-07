@@ -1,17 +1,17 @@
-package mhe
+package multiparty
 
 import (
 	"encoding/json"
 	"fmt"
 	"testing"
 
-	"github.com/luxfi/lattice/v5/core/rlwe"
-	"github.com/luxfi/lattice/v5/ring"
-	"github.com/luxfi/lattice/v5/utils"
-	"github.com/luxfi/lattice/v5/utils/sampling"
+	"github.com/luxfi/lattice/v6/core/rlwe"
+	"github.com/luxfi/lattice/v6/ring"
+	"github.com/luxfi/lattice/v6/utils"
+	"github.com/luxfi/lattice/v6/utils/sampling"
 )
 
-func BenchmarkMHE(b *testing.B) {
+func BenchmarkMultiParty(b *testing.B) {
 
 	thresholdInc := 5
 

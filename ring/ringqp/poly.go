@@ -4,9 +4,8 @@ import (
 	"bufio"
 	"io"
 
-	"github.com/luxfi/lattice/v5/ring"
-	"github.com/luxfi/lattice/v5/utils"
-	"github.com/luxfi/lattice/v5/utils/buffer"
+	"github.com/luxfi/lattice/v6/ring"
+	"github.com/luxfi/lattice/v6/utils/buffer"
 )
 
 // Poly represents a polynomial in the ring of polynomial modulo Q*P.
@@ -55,7 +54,8 @@ func (p Poly) Equal(other *Poly) (v bool) {
 // Copy copies the coefficients of other on the target polynomial.
 // This method simply calls the Copy method for each of its sub-polynomials.
 func (p *Poly) Copy(other Poly) {
-	p.CopyLvl(utils.Min(p.LevelQ(), other.LevelQ()), utils.Min(p.LevelP(), other.LevelP()), other)
+	p.Q.Copy(other.Q)
+	p.P.Copy(other.P)
 }
 
 // CopyLvl copies the values of other on the target polynomial.

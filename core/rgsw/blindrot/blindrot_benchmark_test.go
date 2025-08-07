@@ -1,13 +1,12 @@
-package hebin
+package blindrot
 
 import (
 	"testing"
 
-	"github.com/luxfi/lattice/v5/core/rlwe"
-	"github.com/luxfi/lattice/v5/utils"
-	"github.com/luxfi/lattice/v5/utils/sampling"
-
 	"github.com/stretchr/testify/require"
+	"github.com/luxfi/lattice/v6/core/rlwe"
+	"github.com/luxfi/lattice/v6/utils"
+	"github.com/luxfi/lattice/v6/utils/sampling"
 )
 
 func BenchmarkHEBin(b *testing.B) {

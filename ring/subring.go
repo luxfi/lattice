@@ -5,8 +5,8 @@ import (
 	"math/big"
 	"math/bits"
 
-	"github.com/luxfi/lattice/v5/utils"
-	"github.com/luxfi/lattice/v5/utils/factorization"
+	"github.com/luxfi/lattice/v6/utils"
+	"github.com/luxfi/lattice/v6/utils/factorization"
 )
 
 // SubRing is a struct storing precomputation
@@ -28,8 +28,8 @@ type SubRing struct {
 	Mask uint64
 
 	// Fast reduction constants
-	BRedConstant []uint64 // Barrett Reduction
-	MRedConstant uint64   // Montgomery Reduction
+	BRedConstant [2]uint64 // Barrett Reduction
+	MRedConstant uint64    // Montgomery Reduction
 
 	*NTTTable // NTT related constants
 }
@@ -50,20 +50,25 @@ func NewSubRingWithCustomNTT(N int, Modulus uint64, ntt func(*SubRing, int) Numb
 		return nil, fmt.Errorf("invalid ring degree: must be a power of 2 greater than %d", MinimumRingDegreeForLoopUnrolledOperations)
 	}
 
+	if NthRoot <= 0 {
+		panic(fmt.Errorf("invalid NthRoot: NthRoot=%d should be greater than 0", NthRoot))
+	}
+
 	s = &SubRing{}
 
 	s.N = N
 
 	s.Modulus = Modulus
+	/* #nosec G115 -- Modulus is ensured to be greater than 0 */
 	s.Mask = (1 << uint64(bits.Len64(Modulus-1))) - 1
 
 	// Computes the fast modular reduction constants for the Ring
-	s.BRedConstant = BRedConstant(Modulus)
+	s.BRedConstant = GenBRedConstant(Modulus)
 
 	// If qi is not a power of 2, we can compute the MRed (otherwise, it
 	// would return an error as there is no valid Montgomery form mod a power of 2)
 	if (Modulus&(Modulus-1)) != 0 && Modulus != 0 {
-		s.MRedConstant = MRedConstant(Modulus)
+		s.MRedConstant = GenMRedConstant(Modulus)
 	}
 
 	s.NTTTable = new(NTTTable)
@@ -246,8 +251,11 @@ func (s *SubRing) parametersLiteral() subRingParametersLiteral {
 	Factors := make([]uint64, len(s.Factors))
 	copy(Factors, s.Factors)
 	return subRingParametersLiteral{
-		Type:          uint8(s.Type()),
-		LogN:          uint8(bits.Len64(uint64(s.N - 1))),
+		/* #nosec G115 -- s.Type has is 0 or 1 */
+		Type: uint8(s.Type()),
+		/* #nosec G115 -- N cannot be negative if SubRing is valid */
+		LogN: uint8(bits.Len64(uint64(s.N - 1))),
+		/* #nosec G115 -- NthRoot cannot be negative if SubRing is valid */
 		NthRoot:       uint8(int(s.NthRoot) / s.N),
 		Modulus:       s.Modulus,
 		Factors:       Factors,
@@ -263,6 +271,8 @@ func newSubRingFromParametersLiteral(p subRingParametersLiteral) (s *SubRing, er
 	s.N = 1 << int(p.LogN)
 
 	s.NTTTable = new(NTTTable)
+
+	/* #nosec G115 -- deserialization from valid subring -> N and NthRoot cannot be negative */
 	s.NthRoot = uint64(s.N) * uint64(p.NthRoot)
 
 	s.Modulus = p.Modulus
@@ -272,15 +282,16 @@ func newSubRingFromParametersLiteral(p subRingParametersLiteral) (s *SubRing, er
 
 	s.PrimitiveRoot = p.PrimitiveRoot
 
+	/* #nosec G115 -- Modulus cannot be negative */
 	s.Mask = (1 << uint64(bits.Len64(s.Modulus-1))) - 1
 
 	// Computes the fast modular reduction parameters for the Ring
-	s.BRedConstant = BRedConstant(s.Modulus)
+	s.BRedConstant = GenBRedConstant(s.Modulus)
 
 	// If qi is not a power of 2, we can compute the MRed (otherwise, it
 	// would return an error as there is no valid Montgomery form mod a power of 2)
 	if (s.Modulus&(s.Modulus-1)) != 0 && s.Modulus != 0 {
-		s.MRedConstant = MRedConstant(s.Modulus)
+		s.MRedConstant = GenMRedConstant(s.Modulus)
 	}
 
 	switch Type(p.Type) {
@@ -288,7 +299,9 @@ func newSubRingFromParametersLiteral(p subRingParametersLiteral) (s *SubRing, er
 
 		s.ntt = NewNumberTheoreticTransformerStandard(s, s.N)
 
+		/* #nosec G115 -- library requires 64-bit system -> int = int64 */
 		if int(s.NthRoot) < s.N<<1 {
+			/* #nosec G115 -- library requires 64-bit system -> int = int64 */
 			return nil, fmt.Errorf("invalid ring type: NthRoot must be at least 2N but is %dN", int(s.NthRoot)/s.N)
 		}
 
@@ -296,7 +309,9 @@ func newSubRingFromParametersLiteral(p subRingParametersLiteral) (s *SubRing, er
 
 		s.ntt = NewNumberTheoreticTransformerConjugateInvariant(s, s.N)
 
+		/* #nosec G115 -- library requires 64-bit system -> int = int64 */
 		if int(s.NthRoot) < s.N<<2 {
+			/* #nosec G115 -- library requires 64-bit system -> int = int64 */
 			return nil, fmt.Errorf("invalid ring type: NthRoot must be at least 4N but is %dN", int(s.NthRoot)/s.N)
 		}
 

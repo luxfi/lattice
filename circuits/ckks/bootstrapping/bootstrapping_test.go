@@ -6,17 +6,18 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/luxfi/lattice/v5/core/rlwe"
-	"github.com/luxfi/lattice/v5/he/hefloat"
-	"github.com/luxfi/lattice/v5/ring"
-	"github.com/luxfi/lattice/v5/utils"
-	"github.com/luxfi/lattice/v5/utils/sampling"
+
+	"github.com/luxfi/lattice/v6/core/rlwe"
+	"github.com/luxfi/lattice/v6/ring"
+	"github.com/luxfi/lattice/v6/schemes/ckks"
+	"github.com/luxfi/lattice/v6/utils"
+	"github.com/luxfi/lattice/v6/utils/sampling"
 )
 
 var flagLongTest = flag.Bool("long", false, "run the long test suite (all parameters + secure bootstrapping). Overrides -short and requires -timeout=0.")
 var printPrecisionStats = flag.Bool("print-precision", false, "print precision stats")
 
-var testPrec45 = hefloat.ParametersLiteral{
+var testPrec45 = ckks.ParametersLiteral{
 	LogN:            10,
 	LogQ:            []int{60, 40},
 	LogP:            []int{61},
@@ -34,7 +35,7 @@ func TestBootstrapping(t *testing.T) {
 			schemeParamsLit.LogN = 16
 		}
 
-		params, err := hefloat.NewParametersFromLiteral(schemeParamsLit)
+		params, err := ckks.NewParametersFromLiteral(schemeParamsLit)
 		require.Nil(t, err)
 
 		btpParamsLit.LogN = utils.Pointy(params.LogN())
@@ -62,7 +63,7 @@ func TestBootstrapping(t *testing.T) {
 		evaluator, err := NewEvaluator(btpParams, btpKeys)
 		require.NoError(t, err)
 
-		ecd := hefloat.NewEncoder(params)
+		ecd := ckks.NewEncoder(params)
 		enc := rlwe.NewEncryptor(params, sk)
 		dec := rlwe.NewDecryptor(params, sk)
 
@@ -80,7 +81,7 @@ func TestBootstrapping(t *testing.T) {
 
 		t.Run("Bootstrapping", func(t *testing.T) {
 
-			plaintext := hefloat.NewPlaintext(params, 0)
+			plaintext := ckks.NewPlaintext(params, 0)
 			ecd.Encode(values, plaintext)
 
 			ctQ0, err := enc.EncryptNew(plaintext)
@@ -113,7 +114,7 @@ func TestBootstrapping(t *testing.T) {
 		schemeParamsLit.LogNthRoot = schemeParamsLit.LogN + 1
 		schemeParamsLit.LogN--
 
-		params, err := hefloat.NewParametersFromLiteral(schemeParamsLit)
+		params, err := ckks.NewParametersFromLiteral(schemeParamsLit)
 		require.Nil(t, err)
 
 		btpParamsLit.LogN = utils.Pointy(params.LogN() + 1)
@@ -142,7 +143,7 @@ func TestBootstrapping(t *testing.T) {
 		evaluator, err := NewEvaluator(btpParams, btpKeys)
 		require.Nil(t, err)
 
-		ecd := hefloat.NewEncoder(params)
+		ecd := ckks.NewEncoder(params)
 		enc := rlwe.NewEncryptor(params, sk)
 		dec := rlwe.NewDecryptor(params, sk)
 
@@ -160,7 +161,7 @@ func TestBootstrapping(t *testing.T) {
 
 		t.Run("N1ToN2->Bootstrapping->N2ToN1", func(t *testing.T) {
 
-			plaintext := hefloat.NewPlaintext(params, 0)
+			plaintext := ckks.NewPlaintext(params, 0)
 			ecd.Encode(values, plaintext)
 
 			ctQ0, err := enc.EncryptNew(plaintext)
@@ -185,6 +186,91 @@ func TestBootstrapping(t *testing.T) {
 		})
 	})
 
+	t.Run("BootstrappingPackedWithoutRingDegreeSwitch", func(t *testing.T) {
+
+		schemeParamsLit := testPrec45
+		btpParamsLit := ParametersLiteral{}
+
+		if *flagLongTest {
+			schemeParamsLit.LogN = 16
+		}
+
+		btpParamsLit.LogN = utils.Pointy(schemeParamsLit.LogN)
+
+		params, err := ckks.NewParametersFromLiteral(schemeParamsLit)
+		require.Nil(t, err)
+
+		// Insecure params for fast testing only
+		if !*flagLongTest {
+			// Corrects the message ratio to take into account the smaller number of slots and keep the same precision
+			btpParamsLit.LogMessageRatio = utils.Pointy(DefaultLogMessageRatio + (16 - params.LogN()))
+		}
+
+		sk := rlwe.NewKeyGenerator(params).GenSecretKeyNew()
+
+		ecd := ckks.NewEncoder(params)
+		enc := rlwe.NewEncryptor(params, sk)
+		dec := rlwe.NewDecryptor(params, sk)
+
+		for _, sparsity := range []int{0, 1, 2} {
+			btpParamsLit.LogSlots = utils.Pointy(*btpParamsLit.LogN - 1 - sparsity)
+			btpParams, err := NewParametersFromLiteral(params, btpParamsLit)
+			require.Nil(t, err)
+
+			t.Logf("Params: LogN=%d/LogSlots=%d/LogQP=%f", btpParams.ResidualParameters.LogN(), btpParams.ResidualParameters.LogMaxSlots(), btpParams.ResidualParameters.LogQP())
+			t.Logf("BTPParams: LogN=%d/LogSlots=%d/LogQP=%f", btpParams.BootstrappingParameters.LogN(), btpParams.BootstrappingParameters.LogMaxSlots(), btpParams.BootstrappingParameters.LogQP())
+
+			t.Log("Generating Bootstrapping Keys for LogSlots")
+			btpKeys, _, err := btpParams.GenEvaluationKeys(sk)
+			require.Nil(t, err)
+
+			evaluator, err := NewEvaluator(btpParams, btpKeys)
+			require.Nil(t, err)
+
+			for _, slotOffset := range []int{0, 1, 2, 3} {
+				logMaxSlots := params.LogMaxSlots() - slotOffset
+				logMaxSlots = utils.Min(logMaxSlots, btpParams.LogMaxSlots())
+				values := make([]complex128, 1<<logMaxSlots)
+				for i := range values {
+					values[i] = sampling.RandComplex128(-1, 1)
+				}
+
+				values[0] = complex(0.9238795325112867, 0.3826834323650898)
+				values[1] = complex(0.9238795325112867, 0.3826834323650898)
+				if len(values) > 2 {
+					values[2] = complex(0.9238795325112867, 0.3826834323650898)
+					values[3] = complex(0.9238795325112867, 0.3826834323650898)
+				}
+
+				pt := ckks.NewPlaintext(params, 0)
+				pt.LogDimensions = ring.Dimensions{Rows: 0, Cols: logMaxSlots}
+
+				cts := make([]rlwe.Ciphertext, 11)
+				for i := range cts {
+
+					require.NoError(t, ecd.Encode(utils.RotateSlice(values, i), pt))
+
+					ct, err := enc.EncryptNew(pt)
+					require.NoError(t, err)
+
+					cts[i] = *ct
+				}
+
+				if cts, err = evaluator.BootstrapMany(cts); err != nil {
+					t.Fatal(err)
+				}
+
+				for i := range cts {
+					// Checks that the output ciphertext is at the max level of paramsN1
+					require.True(t, cts[i].Level() == params.MaxLevel())
+					require.True(t, cts[i].Scale.Equal(params.DefaultScale()))
+
+					verifyTestVectorsBootstrapping(params, ecd, dec, utils.RotateSlice(values, i), &cts[i], t)
+				}
+			}
+		}
+	})
+
 	t.Run("BootstrappingPackedWithRingDegreeSwitch", func(t *testing.T) {
 
 		schemeParamsLit := testPrec45
@@ -198,72 +284,77 @@ func TestBootstrapping(t *testing.T) {
 		schemeParamsLit.LogNthRoot = schemeParamsLit.LogN + 1
 		schemeParamsLit.LogN -= 3
 
-		params, err := hefloat.NewParametersFromLiteral(schemeParamsLit)
-		require.Nil(t, err)
-
-		btpParams, err := NewParametersFromLiteral(params, btpParamsLit)
+		params, err := ckks.NewParametersFromLiteral(schemeParamsLit)
 		require.Nil(t, err)
 
 		// Insecure params for fast testing only
 		if !*flagLongTest {
-			btpParams.SlotsToCoeffsParameters.LogSlots = btpParams.BootstrappingParameters.LogN() - 1
-			btpParams.CoeffsToSlotsParameters.LogSlots = btpParams.BootstrappingParameters.LogN() - 1
-
 			// Corrects the message ratio to take into account the smaller number of slots and keep the same precision
-			btpParams.Mod1ParametersLiteral.LogMessageRatio += 16 - params.LogN()
+			btpParamsLit.LogMessageRatio = utils.Pointy(DefaultLogMessageRatio + (16 - params.LogN()))
 		}
-
-		t.Logf("Params: LogN=%d/LogSlots=%d/LogQP=%f", btpParams.ResidualParameters.LogN(), btpParams.ResidualParameters.LogMaxSlots(), btpParams.ResidualParameters.LogQP())
-		t.Logf("BTPParams: LogN=%d/LogSlots=%d/LogQP=%f", btpParams.BootstrappingParameters.LogN(), btpParams.BootstrappingParameters.LogMaxSlots(), btpParams.BootstrappingParameters.LogQP())
 
 		sk := rlwe.NewKeyGenerator(params).GenSecretKeyNew()
 
-		t.Log("Generating Bootstrapping Keys")
-		btpKeys, _, err := btpParams.GenEvaluationKeys(sk)
-		require.Nil(t, err)
-
-		evaluator, err := NewEvaluator(btpParams, btpKeys)
-		require.Nil(t, err)
-
-		ecd := hefloat.NewEncoder(params)
+		ecd := ckks.NewEncoder(params)
 		enc := rlwe.NewEncryptor(params, sk)
 		dec := rlwe.NewDecryptor(params, sk)
 
-		values := make([]complex128, params.MaxSlots())
-		for i := range values {
-			values[i] = sampling.RandComplex128(-1, 1)
-		}
+		for _, sparsity := range []int{0, 1, 2} {
+			btpParamsLit.LogSlots = utils.Pointy(*btpParamsLit.LogN - 1 - sparsity)
+			btpParams, err := NewParametersFromLiteral(params, btpParamsLit)
+			require.Nil(t, err)
 
-		values[0] = complex(0.9238795325112867, 0.3826834323650898)
-		values[1] = complex(0.9238795325112867, 0.3826834323650898)
-		if len(values) > 2 {
-			values[2] = complex(0.9238795325112867, 0.3826834323650898)
-			values[3] = complex(0.9238795325112867, 0.3826834323650898)
-		}
+			t.Logf("Params: LogN=%d/LogSlots=%d/LogQP=%f", btpParams.ResidualParameters.LogN(), btpParams.ResidualParameters.LogMaxSlots(), btpParams.ResidualParameters.LogQP())
+			t.Logf("BTPParams: LogN=%d/LogSlots=%d/LogQP=%f", btpParams.BootstrappingParameters.LogN(), btpParams.BootstrappingParameters.LogMaxSlots(), btpParams.BootstrappingParameters.LogQP())
 
-		pt := hefloat.NewPlaintext(params, 0)
+			t.Log("Generating Bootstrapping Keys for LogSlots")
+			btpKeys, _, err := btpParams.GenEvaluationKeys(sk)
+			require.Nil(t, err)
 
-		cts := make([]rlwe.Ciphertext, 7)
-		for i := range cts {
+			evaluator, err := NewEvaluator(btpParams, btpKeys)
+			require.Nil(t, err)
 
-			require.NoError(t, ecd.Encode(utils.RotateSlice(values, i), pt))
+			for _, slotOffset := range []int{0, 1, 2, 3} {
+				logMaxSlots := params.LogMaxSlots() - slotOffset
+				logMaxSlots = utils.Min(logMaxSlots, btpParams.LogMaxSlots())
+				values := make([]complex128, 1<<logMaxSlots)
+				for i := range values {
+					values[i] = sampling.RandComplex128(-1, 1)
+				}
 
-			ct, err := enc.EncryptNew(pt)
-			require.NoError(t, err)
+				values[0] = complex(0.9238795325112867, 0.3826834323650898)
+				values[1] = complex(0.9238795325112867, 0.3826834323650898)
+				if len(values) > 2 {
+					values[2] = complex(0.9238795325112867, 0.3826834323650898)
+					values[3] = complex(0.9238795325112867, 0.3826834323650898)
+				}
 
-			cts[i] = *ct
-		}
+				pt := ckks.NewPlaintext(params, 0)
+				pt.LogDimensions = ring.Dimensions{Rows: 0, Cols: logMaxSlots}
 
-		if cts, err = evaluator.BootstrapMany(cts); err != nil {
-			t.Fatal(err)
-		}
+				cts := make([]rlwe.Ciphertext, 11)
+				for i := range cts {
 
-		for i := range cts {
-			// Checks that the output ciphertext is at the max level of paramsN1
-			require.True(t, cts[i].Level() == params.MaxLevel())
-			require.True(t, cts[i].Scale.Equal(params.DefaultScale()))
+					require.NoError(t, ecd.Encode(utils.RotateSlice(values, i), pt))
 
-			verifyTestVectorsBootstrapping(params, ecd, dec, utils.RotateSlice(values, i), &cts[i], t)
+					ct, err := enc.EncryptNew(pt)
+					require.NoError(t, err)
+
+					cts[i] = *ct
+				}
+
+				if cts, err = evaluator.BootstrapMany(cts); err != nil {
+					t.Fatal(err)
+				}
+
+				for i := range cts {
+					// Checks that the output ciphertext is at the max level of paramsN1
+					require.True(t, cts[i].Level() == params.MaxLevel())
+					require.True(t, cts[i].Scale.Equal(params.DefaultScale()))
+
+					verifyTestVectorsBootstrapping(params, ecd, dec, utils.RotateSlice(values, i), &cts[i], t)
+				}
+			}
 		}
 	})
 
@@ -281,7 +372,7 @@ func TestBootstrapping(t *testing.T) {
 		schemeParamsLit.LogNthRoot = schemeParamsLit.LogN + 1
 		schemeParamsLit.LogN--
 
-		params, err := hefloat.NewParametersFromLiteral(schemeParamsLit)
+		params, err := ckks.NewParametersFromLiteral(schemeParamsLit)
 		require.Nil(t, err)
 
 		btpParams, err := NewParametersFromLiteral(params, btpParamsLit)
@@ -305,7 +396,7 @@ func TestBootstrapping(t *testing.T) {
 		evaluator, err := NewEvaluator(btpParams, btpKeys)
 		require.Nil(t, err)
 
-		ecd := hefloat.NewEncoder(params)
+		ecd := ckks.NewEncoder(params)
 		enc := rlwe.NewEncryptor(params, sk)
 		dec := rlwe.NewDecryptor(params, sk)
 
@@ -323,7 +414,7 @@ func TestBootstrapping(t *testing.T) {
 
 		t.Run("ConjugateInvariant->Standard->Bootstrapping->Standard->ConjugateInvariant", func(t *testing.T) {
 
-			plaintext := hefloat.NewPlaintext(params, 0)
+			plaintext := ckks.NewPlaintext(params, 0)
 			require.NoError(t, ecd.Encode(values, plaintext))
 
 			ctLeftQ0, err := enc.EncryptNew(plaintext)
@@ -353,14 +444,14 @@ func TestBootstrapping(t *testing.T) {
 	})
 }
 
-func verifyTestVectorsBootstrapping(params hefloat.Parameters, encoder *hefloat.Encoder, decryptor *rlwe.Decryptor, valuesWant, element interface{}, t *testing.T) {
-	precStats := hefloat.GetPrecisionStats(params, encoder, decryptor, valuesWant, element, 0, false)
+func verifyTestVectorsBootstrapping(params ckks.Parameters, encoder *ckks.Encoder, decryptor *rlwe.Decryptor, valuesWant, element interface{}, t *testing.T) {
+	precStats := ckks.GetPrecisionStats(params, encoder, decryptor, valuesWant, element, 0, false)
 	if *printPrecisionStats {
 		t.Log(precStats.String())
 	}
 
-	rf64, _ := precStats.MeanPrecision.Real.Float64()
-	if64, _ := precStats.MeanPrecision.Imag.Float64()
+	rf64 := precStats.AVGLog2Prec.Real
+	if64 := precStats.AVGLog2Prec.Imag
 
 	minPrec := math.Log2(params.DefaultScale().Float64()) - float64(params.LogN()+2)
 	if minPrec < 0 {

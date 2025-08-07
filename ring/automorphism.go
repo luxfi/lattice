@@ -5,7 +5,7 @@ import (
 	"math/bits"
 	"unsafe"
 
-	"github.com/luxfi/lattice/v5/utils"
+	"github.com/luxfi/lattice/v6/utils"
 )
 
 // AutomorphismNTTIndex computes the look-up table for the automorphism X^{i} -> X^{i*k mod NthRoot}.
@@ -114,6 +114,7 @@ func (r Ring) Automorphism(polIn Poly, gen uint64, polOut Poly) {
 
 	var mask, index, indexRaw, logN, tmp uint64
 
+	/* #nosec G115 -- N cannot be negative */
 	N := uint64(r.N())
 
 	level := r.level
@@ -122,6 +123,7 @@ func (r Ring) Automorphism(polIn Poly, gen uint64, polOut Poly) {
 
 		mask = 2*N - 1
 
+		/* #nosec G115 -- bitsize cannot be negative */
 		logN = uint64(bits.Len64(mask))
 
 		// TODO: find a more efficient way to do
@@ -155,6 +157,7 @@ func (r Ring) Automorphism(polIn Poly, gen uint64, polOut Poly) {
 
 		mask = N - 1
 
+		/* #nosec G115 -- bitsize cannot be negative */
 		logN = uint64(bits.Len64(mask))
 
 		for i := uint64(0); i < N; i++ {

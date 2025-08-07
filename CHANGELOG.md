@@ -36,7 +36,7 @@ All notable changes to this library are documented in this file.
 - Deletion of the `he` package and its abstraction layers for the BGV and CKKS, refocus of the library onto the scheme level, i.e., the `schemes` package.
 - Extraction of the homomorphic circuits from the `he` into a new `circuits` package.
   - Simplification of the API for several circuits:
-	- Removal of the circuit-specific evaluator interfaces, e.g., `EvaluatorForLinearTransformation`. These interfaces are replaced with a scheme-agnostic evaluator in `schemes/schemes.go` due to the refocus of the Lattigo towards the individual cryptosystems.
+	- Removal of the circuit-specific evaluator interfaces, e.g., `EvaluatorForLinearTransformation`. These interfaces are replaced with a scheme-agnostic evaluator in `schemes/schemes.go` due to the refocus of the Lattice towards the individual cryptosystems.
 	- The individual homomorphic circuits are organized by schemes, in other words in the packages `circuits/bgv`, `circuits/ckks` and `circuits/common` where the latter bundles scheme-generic functionalities of circuits common to all deriving schemes.
 - Absorb the `bfv` package into the `bgv` package.
 - Rename `mhe` into `multiparty`.
@@ -61,7 +61,7 @@ All notable changes to this library are documented in this file.
 - Add `gosec` exception directive to weak randomness in unit tests.
 - Fix various linter warnings.
 - Various docstring formatting fixes and the addition of `godoc` links through the `[]` operator.
-- Updated `README.md` with new package hierarchy figures `lattigo-hierachy.svg` and new issue policy.
+- Updated `README.md` with new package hierarchy figures `lattice-hierachy.svg` and new issue policy.
 
 ## [5.0.0] - 15.11.2023
 - Deprecated Go versions `1.14`, `1.15`, `1.16`, and `1.17`. The minimum version is now `1.18`, due to the required use of generics.
@@ -399,7 +399,7 @@ All notable changes to this library are documented in this file.
 - CKKS: encoder is now about 3.5x faster (without taking the NTT into account).
 
 ## [3.0.0] - 2022-02-21
-- ALL: renamed the module to `github.com/luxfi/v3`.
+- ALL: renamed the module to `github.com/tuneinsight/v3`.
 - RING: renamed `FastBasisExtender` to `BasisExtender`.
 - RING: `.PolyToBigint[...](*)` now take as input `gap` which defines the multiples of `X^{i*gap}` to reconstruct.
 - RLWE: removed `FastEncryptor`. Encryption without rescaling by `P` is now automatically used by `Encryptor` if no `P` is specified in the parameters.

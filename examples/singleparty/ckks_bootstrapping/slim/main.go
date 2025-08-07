@@ -7,7 +7,7 @@
 // the coefficient domain.
 //
 // This example assumes that the user is already familiar with the bootstrapping and its different steps.
-// See the basic example `lattice/examples/he/hefloat/bootstrapping/basic` for an introduction into the
+// See the basic example `lattice/single_party/applications/reals_bootstrapping/basics` for an introduction into the
 // bootstrapping.
 //
 // The usual order of the bootstrapping operations is:
@@ -36,14 +36,15 @@ import (
 	"flag"
 	"fmt"
 	"math"
-	"math/big"
 
-	"github.com/luxfi/lattice/v5/core/rlwe"
-	"github.com/luxfi/lattice/v5/he/hefloat"
-	"github.com/luxfi/lattice/v5/he/hefloat/bootstrapping"
-	"github.com/luxfi/lattice/v5/ring"
-	"github.com/luxfi/lattice/v5/utils"
-	"github.com/luxfi/lattice/v5/utils/sampling"
+	"github.com/luxfi/lattice/v6/circuits/ckks/bootstrapping"
+	"github.com/luxfi/lattice/v6/circuits/ckks/dft"
+	"github.com/luxfi/lattice/v6/circuits/ckks/mod1"
+	"github.com/luxfi/lattice/v6/core/rlwe"
+	"github.com/luxfi/lattice/v6/ring"
+	"github.com/luxfi/lattice/v6/schemes/ckks"
+	"github.com/luxfi/lattice/v6/utils"
+	"github.com/luxfi/lattice/v6/utils/sampling"
 )
 
 var flagShort = flag.Bool("short", false, "run the example with a smaller and insecure ring degree.")
@@ -71,7 +72,7 @@ func main() {
 	// For the purpose of the example, only one prime is allocated to the circuit in the slots domain
 	// and no prime is allocated to the circuit in the coeffs domain.
 
-	LogDefaultScale := 40
+	LogDefaultScale := 45
 
 	q0 := []int{55}                                    // 3) ScaleDown & 4) ModUp
 	qiSlotsToCoeffs := []int{39, 39, 39}               // 1) SlotsToCoeffs
@@ -84,7 +85,7 @@ func main() {
 	LogQ = append(LogQ, qiEvalMod...)
 	LogQ = append(LogQ, qiCoeffsToSlots...)
 
-	params, err := hefloat.NewParametersFromLiteral(hefloat.ParametersLiteral{
+	params, err := ckks.NewParametersFromLiteral(ckks.ParametersLiteral{
 		LogN:            LogN,                      // Log2 of the ring degree
 		LogQ:            LogQ,                      // Log2 of the ciphertext modulus
 		LogP:            []int{61, 61, 61, 61, 61}, // Log2 of the key-switch auxiliary prime moduli
@@ -101,42 +102,38 @@ func main() {
 	//====================================
 
 	// CoeffsToSlots parameters (homomorphic encoding)
-	CoeffsToSlotsParameters := hefloat.DFTMatrixLiteral{
-		Type:         hefloat.HomomorphicEncode,
-		Format:       hefloat.RepackImagAsReal, // Returns the real and imaginary part into separate ciphertexts
+	CoeffsToSlotsParameters := dft.MatrixLiteral{
+		Type:         dft.HomomorphicEncode,
+		Format:       dft.RepackImagAsReal, // Returns the real and imaginary part into separate ciphertexts
 		LogSlots:     params.LogMaxSlots(),
-		LevelStart:   params.MaxLevel(),
+		LevelQ:       params.MaxLevelQ(),
+		LevelP:       params.MaxLevelP(),
 		LogBSGSRatio: 1,
 		Levels:       []int{1, 1, 1, 1}, //qiCoeffsToSlots
 	}
 
 	// Parameters of the homomorphic modular reduction x mod 1
-	Mod1ParametersLiteral := hefloat.Mod1ParametersLiteral{
-		LogScale:        60,                  // Matches qiEvalMod
-		Mod1Type:        hefloat.CosDiscrete, // Multi-interval Chebyshev interpolation
-		Mod1Degree:      30,                  // Depth 5
-		DoubleAngle:     3,                   // Depth 3
-		K:               16,                  // With EphemeralSecretWeight = 32 and 2^{15} slots, ensures < 2^{-138.7} failure probability
-		LogMessageRatio: 5,                   // q/|m| = 2^5
-		Mod1InvDegree:   0,                   // Depth 0
-		LevelStart:      params.MaxLevel() - len(CoeffsToSlotsParameters.Levels),
+	Mod1ParametersLiteral := mod1.ParametersLiteral{
+		LevelQ:          params.MaxLevel() - CoeffsToSlotsParameters.Depth(true),
+		LogScale:        60,               // Matches qiEvalMod
+		Mod1Type:        mod1.CosDiscrete, // Multi-interval Chebyshev interpolation
+		Mod1Degree:      30,               // Depth 5
+		DoubleAngle:     3,                // Depth 3
+		K:               16,               // With EphemeralSecretWeight = 32 and 2^{15} slots, ensures < 2^{-138.7} failure probability
+		LogMessageRatio: 10,               // q/|m| = 2^10
+		Mod1InvDegree:   0,                // Depth 0
 	}
 
-	// Since we scale the values by 1/2^{LogMessageRatio} during CoeffsToSlots,
-	// we must scale them back by 2^{LogMessageRatio} after EvalMod.
-	// This is done by scaling the EvalMod polynomial coefficients by 2^{LogMessageRatio}.
-	Mod1ParametersLiteral.Scaling = math.Exp2(-float64(Mod1ParametersLiteral.LogMessageRatio))
-
 	// SlotsToCoeffs parameters (homomorphic decoding)
-	SlotsToCoeffsParameters := hefloat.DFTMatrixLiteral{
-		Type:         hefloat.HomomorphicDecode,
+	SlotsToCoeffsParameters := dft.MatrixLiteral{
+		Type:         dft.HomomorphicDecode,
 		LogSlots:     params.LogMaxSlots(),
-		Scaling:      new(big.Float).SetFloat64(math.Exp2(float64(Mod1ParametersLiteral.LogMessageRatio))),
 		LogBSGSRatio: 1,
+		LevelP:       params.MaxLevelP(),
 		Levels:       []int{1, 1, 1}, // qiSlotsToCoeffs
 	}
 
-	SlotsToCoeffsParameters.LevelStart = len(SlotsToCoeffsParameters.Levels)
+	SlotsToCoeffsParameters.LevelQ = len(SlotsToCoeffsParameters.Levels)
 
 	// Custom bootstrapping.Parameters.
 	// All fields are public and can be manually instantiated.
@@ -148,11 +145,6 @@ func main() {
 		CoeffsToSlotsParameters: CoeffsToSlotsParameters,
 		EphemeralSecretWeight:   32, // > 128bit secure for LogN=16 and LogQP = 115.
 		CircuitOrder:            bootstrapping.DecodeThenModUp,
-	}
-
-	if *flagShort {
-		// Corrects the message ratio Q0/|m(X)| to take into account the smaller number of slots and keep the same precision
-		btpParams.Mod1ParametersLiteral.LogMessageRatio += 16 - params.LogN()
 	}
 
 	// We pring some information about the bootstrapping parameters (which are identical to the residual parameters in this example).
@@ -180,7 +172,7 @@ func main() {
 
 	sk, pk := kgen.GenKeyPairNew()
 
-	encoder := hefloat.NewEncoder(params)
+	encoder := ckks.NewEncoder(params)
 	decryptor := rlwe.NewDecryptor(params, sk)
 	encryptor := rlwe.NewEncryptor(params, pk)
 
@@ -202,14 +194,14 @@ func main() {
 		panic(err)
 	}
 
-	// Generate a random plaintext with values uniformely distributed in [-1, 1] for the real and imaginary part.
+	// Generate a random plaintext with values uniformly distributed in [-1, 1] for the real and imaginary part.
 	valuesWant := make([]complex128, params.MaxSlots())
 	for i := range valuesWant {
 		valuesWant[i] = sampling.RandComplex128(-1, 1)
 	}
 
 	// We encrypt at level 0
-	plaintext := hefloat.NewPlaintext(params, SlotsToCoeffsParameters.LevelStart)
+	plaintext := ckks.NewPlaintext(params, SlotsToCoeffsParameters.LevelQ)
 	if err := encoder.Encode(valuesWant, plaintext); err != nil {
 		panic(err)
 	}
@@ -235,7 +227,7 @@ func main() {
 	}
 
 	// Step 2: Some circuit in the coefficient domain
-	// Note: the result of SlotsToCoeffs is naturaly given in bit-reversed order
+	// Note: the result of SlotsToCoeffs is naturally given in bit-reversed order
 	// In this example, we multiply by the monomial X^{N/2} (which is the imaginary
 	// unit in the slots domain)
 	if err = eval.Evaluator.Mul(ciphertext, 1i, ciphertext); err != nil {
@@ -316,7 +308,7 @@ func main() {
 	printDebug(params, ciphertext, valuesTest, decryptor, encoder)
 }
 
-func printDebug(params hefloat.Parameters, ciphertext *rlwe.Ciphertext, valuesWant []complex128, decryptor *rlwe.Decryptor, encoder *hefloat.Encoder) (valuesTest []complex128) {
+func printDebug(params ckks.Parameters, ciphertext *rlwe.Ciphertext, valuesWant []complex128, decryptor *rlwe.Decryptor, encoder *ckks.Encoder) (valuesTest []complex128) {
 
 	slots := ciphertext.Slots()
 
@@ -337,7 +329,7 @@ func printDebug(params hefloat.Parameters, ciphertext *rlwe.Ciphertext, valuesWa
 	fmt.Printf("ValuesTest: %10.14f %10.14f %10.14f %10.14f...\n", valuesTest[0], valuesTest[1], valuesTest[2], valuesTest[3])
 	fmt.Printf("ValuesWant: %10.14f %10.14f %10.14f %10.14f...\n", valuesWant[0], valuesWant[1], valuesWant[2], valuesWant[3])
 
-	precStats := hefloat.GetPrecisionStats(params, encoder, nil, valuesWant, valuesTest, 0, false)
+	precStats := ckks.GetPrecisionStats(params, encoder, nil, valuesWant, valuesTest, 0, false)
 
 	fmt.Println(precStats.String())
 	fmt.Println()
