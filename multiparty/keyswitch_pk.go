@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/luxdefi/lattice/v5/ring"
+	"github.com/luxfi/lattice/v5/ring"
 
-	"github.com/luxdefi/lattice/v5/core/rlwe"
-	"github.com/luxdefi/lattice/v5/utils"
-	"github.com/luxdefi/lattice/v5/utils/sampling"
+	"github.com/luxfi/lattice/v5/core/rlwe"
+	"github.com/luxfi/lattice/v5/utils"
+	"github.com/luxfi/lattice/v5/utils/sampling"
 )
 
 // PublicKeySwitchProtocol is the structure storing the parameters for the collective public key-switching.

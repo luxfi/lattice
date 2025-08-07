@@ -3,10 +3,10 @@ package hebin
 import (
 	"math/big"
 
-	"github.com/luxdefi/lattice/v5/core/rgsw"
-	"github.com/luxdefi/lattice/v5/core/rlwe"
-	"github.com/luxdefi/lattice/v5/ring"
-	"github.com/luxdefi/lattice/v5/utils"
+	"github.com/luxfi/lattice/v5/core/rgsw"
+	"github.com/luxfi/lattice/v5/core/rlwe"
+	"github.com/luxfi/lattice/v5/ring"
+	"github.com/luxfi/lattice/v5/utils"
 )
 
 const (

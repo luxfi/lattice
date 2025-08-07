@@ -6,9 +6,9 @@ import (
 	"io"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/luxdefi/lattice/v5/ring/ringqp"
-	"github.com/luxdefi/lattice/v5/utils/buffer"
-	"github.com/luxdefi/lattice/v5/utils/structs"
+	"github.com/luxfi/lattice/v5/ring/ringqp"
+	"github.com/luxfi/lattice/v5/utils/buffer"
+	"github.com/luxfi/lattice/v5/utils/structs"
 )
 
 // SecretKey is a type for generic RLWE secret keys.

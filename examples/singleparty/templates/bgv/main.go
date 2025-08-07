@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"math/rand"
 
-	"github.com/luxdefi/lattice/v5/core/rlwe"
-	"github.com/luxdefi/lattice/v5/he/heint"
-	"github.com/luxdefi/lattice/v5/utils"
+	"github.com/luxfi/lattice/v5/core/rlwe"
+	"github.com/luxfi/lattice/v5/he/heint"
+	"github.com/luxfi/lattice/v5/utils"
 )
 
 func main() {

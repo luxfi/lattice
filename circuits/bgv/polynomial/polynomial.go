@@ -2,9 +2,9 @@
 package polynomial
 
 import (
-	"github.com/tuneinsight/lattigo/v6/circuits/common/polynomial"
-	"github.com/tuneinsight/lattigo/v6/schemes/bgv"
-	"github.com/tuneinsight/lattigo/v6/utils/bignum"
+	"github.com/luxfi/lattice/v6/circuits/common/polynomial"
+	"github.com/luxfi/lattice/v6/schemes/bgv"
+	"github.com/luxfi/lattice/v6/utils/bignum"
 )
 
 // Polynomial is a type wrapping the type [polynomial.Polynomial].

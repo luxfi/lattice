@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/tuneinsight/lattigo/v6/ring"
-	"github.com/tuneinsight/lattigo/v6/utils"
+	"github.com/luxfi/lattice/v6/ring"
+	"github.com/luxfi/lattice/v6/utils"
 )
 
 // RingPackingEvaluator is an evaluator for Ring-LWE packing operations.

@@ -6,12 +6,12 @@ import (
 	"math"
 	"math/big"
 
-	"github.com/luxdefi/lattice/v5/core/rlwe"
-	"github.com/luxdefi/lattice/v5/he"
-	"github.com/luxdefi/lattice/v5/ring"
-	"github.com/luxdefi/lattice/v5/schemes/ckks"
-	"github.com/luxdefi/lattice/v5/utils"
-	"github.com/luxdefi/lattice/v5/utils/bignum"
+	"github.com/luxfi/lattice/v5/core/rlwe"
+	"github.com/luxfi/lattice/v5/he"
+	"github.com/luxfi/lattice/v5/ring"
+	"github.com/luxfi/lattice/v5/schemes/ckks"
+	"github.com/luxfi/lattice/v5/utils"
+	"github.com/luxfi/lattice/v5/utils/bignum"
 )
 
 // EvaluatorForDFT is an interface defining the set of methods required to instantiate a DFTEvaluator.

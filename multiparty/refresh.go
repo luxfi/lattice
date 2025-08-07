@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"io"
 
-	"github.com/luxdefi/lattice/v5/utils/buffer"
+	"github.com/luxfi/lattice/v5/utils/buffer"
 )
 
 // RefreshShare is a struct storing the decryption and recryption shares.

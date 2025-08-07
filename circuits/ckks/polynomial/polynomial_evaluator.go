@@ -3,10 +3,10 @@ package polynomial
 import (
 	"fmt"
 
-	"github.com/tuneinsight/lattigo/v6/circuits/common/polynomial"
-	"github.com/tuneinsight/lattigo/v6/core/rlwe"
-	"github.com/tuneinsight/lattigo/v6/schemes/ckks"
-	"github.com/tuneinsight/lattigo/v6/utils/bignum"
+	"github.com/luxfi/lattice/v6/circuits/common/polynomial"
+	"github.com/luxfi/lattice/v6/core/rlwe"
+	"github.com/luxfi/lattice/v6/schemes/ckks"
+	"github.com/luxfi/lattice/v6/utils/bignum"
 )
 
 // Evaluator is a wrapper of the [polynomial.Evaluator].

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/luxdefi/lattice/v5/utils"
-	"github.com/luxdefi/lattice/v5/utils/buffer"
+	"github.com/luxfi/lattice/v5/utils"
+	"github.com/luxfi/lattice/v5/utils/buffer"
 )
 
 // Matrix is a struct wrapping a double slice of components of type T.

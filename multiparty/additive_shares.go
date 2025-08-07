@@ -3,7 +3,7 @@ package mhe
 import (
 	"math/big"
 
-	"github.com/luxdefi/lattice/v5/ring"
+	"github.com/luxfi/lattice/v5/ring"
 )
 
 // AdditiveShare is a type for storing additively shared values in Z_Q[X] (RNS domain).

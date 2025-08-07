@@ -3,9 +3,9 @@ package hefloat
 import (
 	"fmt"
 
-	"github.com/luxdefi/lattice/v5/core/rlwe"
-	"github.com/luxdefi/lattice/v5/he"
-	"github.com/luxdefi/lattice/v5/ring"
+	"github.com/luxfi/lattice/v5/core/rlwe"
+	"github.com/luxfi/lattice/v5/he"
+	"github.com/luxfi/lattice/v5/ring"
 )
 
 // EvaluatorForMinimaxCompositePolynomial defines a set of common and scheme agnostic method that are necessary to instantiate a MinimaxCompositePolynomialEvaluator.

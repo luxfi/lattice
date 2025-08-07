@@ -38,12 +38,12 @@ import (
 	"math"
 	"math/big"
 
-	"github.com/luxdefi/lattice/v5/core/rlwe"
-	"github.com/luxdefi/lattice/v5/he/hefloat"
-	"github.com/luxdefi/lattice/v5/he/hefloat/bootstrapping"
-	"github.com/luxdefi/lattice/v5/ring"
-	"github.com/luxdefi/lattice/v5/utils"
-	"github.com/luxdefi/lattice/v5/utils/sampling"
+	"github.com/luxfi/lattice/v5/core/rlwe"
+	"github.com/luxfi/lattice/v5/he/hefloat"
+	"github.com/luxfi/lattice/v5/he/hefloat/bootstrapping"
+	"github.com/luxfi/lattice/v5/ring"
+	"github.com/luxfi/lattice/v5/utils"
+	"github.com/luxfi/lattice/v5/utils/sampling"
 )
 
 var flagShort = flag.Bool("short", false, "run the example with a smaller and insecure ring degree.")

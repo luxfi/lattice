@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/luxdefi/lattice/v5/core/rlwe"
-	"github.com/luxdefi/lattice/v5/he"
-	"github.com/luxdefi/lattice/v5/utils"
+	"github.com/luxfi/lattice/v5/core/rlwe"
+	"github.com/luxfi/lattice/v5/he"
+	"github.com/luxfi/lattice/v5/utils"
 )
 
 // EvaluatorForInverse defines a set of common and scheme agnostic

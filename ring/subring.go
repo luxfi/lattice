@@ -5,8 +5,8 @@ import (
 	"math/big"
 	"math/bits"
 
-	"github.com/luxdefi/lattice/v5/utils"
-	"github.com/luxdefi/lattice/v5/utils/factorization"
+	"github.com/luxfi/lattice/v5/utils"
+	"github.com/luxfi/lattice/v5/utils/factorization"
 )
 
 // SubRing is a struct storing precomputation

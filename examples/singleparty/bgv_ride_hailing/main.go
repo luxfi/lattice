@@ -6,11 +6,11 @@ import (
 	"math"
 	"math/bits"
 
-	"github.com/luxdefi/lattice/v5/core/rlwe"
-	"github.com/luxdefi/lattice/v5/utils/sampling"
+	"github.com/luxfi/lattice/v5/core/rlwe"
+	"github.com/luxfi/lattice/v5/utils/sampling"
 
-	"github.com/luxdefi/lattice/v5/he/heint"
-	"github.com/luxdefi/lattice/v5/ring"
+	"github.com/luxfi/lattice/v5/he/heint"
+	"github.com/luxfi/lattice/v5/ring"
 )
 
 var flagShort = flag.Bool("short", false, "run the example with a smaller and insecure ring degree.")

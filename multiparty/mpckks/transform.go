@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/luxdefi/lattice/v5/he/hefloat"
-	"github.com/luxdefi/lattice/v5/mhe"
-	"github.com/luxdefi/lattice/v5/ring"
+	"github.com/luxfi/lattice/v5/he/hefloat"
+	"github.com/luxfi/lattice/v5/mhe"
+	"github.com/luxfi/lattice/v5/ring"
 
-	"github.com/luxdefi/lattice/v5/core/rlwe"
-	"github.com/luxdefi/lattice/v5/utils/bignum"
-	"github.com/luxdefi/lattice/v5/utils/sampling"
+	"github.com/luxfi/lattice/v5/core/rlwe"
+	"github.com/luxfi/lattice/v5/utils/bignum"
+	"github.com/luxfi/lattice/v5/utils/sampling"
 )
 
 // MaskedLinearTransformationProtocol is a struct storing the parameters for the MaskedLinearTransformationProtocol protocol.

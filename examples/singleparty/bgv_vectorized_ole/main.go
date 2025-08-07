@@ -6,9 +6,9 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/luxdefi/lattice/v5/ring"
-	"github.com/luxdefi/lattice/v5/utils/bignum"
-	"github.com/luxdefi/lattice/v5/utils/sampling"
+	"github.com/luxfi/lattice/v5/ring"
+	"github.com/luxfi/lattice/v5/utils/bignum"
+	"github.com/luxfi/lattice/v5/utils/sampling"
 )
 
 // Vectorized oblivious evaluation is a two-party protocol for the function f(x) = ax + b where a sender

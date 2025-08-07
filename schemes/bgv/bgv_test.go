@@ -8,12 +8,12 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/luxdefi/lattice/v5/core/rlwe"
-	"github.com/luxdefi/lattice/v5/ring"
-	"github.com/luxdefi/lattice/v5/utils"
+	"github.com/luxfi/lattice/v5/core/rlwe"
+	"github.com/luxfi/lattice/v5/ring"
+	"github.com/luxfi/lattice/v5/utils"
 
 	"github.com/stretchr/testify/require"
-	"github.com/luxdefi/lattice/v5/utils/sampling"
+	"github.com/luxfi/lattice/v5/utils/sampling"
 )
 
 var flagPrintNoise = flag.Bool("print-noise", false, "print the residual noise")

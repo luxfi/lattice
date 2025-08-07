@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/tuneinsight/lattigo/v6/core/rlwe"
-	"github.com/tuneinsight/lattigo/v6/ring"
-	"github.com/tuneinsight/lattigo/v6/utils/buffer"
+	"github.com/luxfi/lattice/v6/core/rlwe"
+	"github.com/luxfi/lattice/v6/ring"
+	"github.com/luxfi/lattice/v6/utils/buffer"
 )
 
 // EvaluationKeys is a struct storing the different

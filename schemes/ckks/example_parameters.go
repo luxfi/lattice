@@ -1,8 +1,8 @@
 package ckks
 
 import (
-	"github.com/luxdefi/lattice/v5/core/rlwe"
-	"github.com/luxdefi/lattice/v5/ring"
+	"github.com/luxfi/lattice/v5/core/rlwe"
+	"github.com/luxfi/lattice/v5/ring"
 )
 
 var (
