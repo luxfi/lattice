@@ -1,11 +1,11 @@
 package mheint
 
 import (
-	"github.com/luxdefi/lattice/v5/he/heint"
-	"github.com/luxdefi/lattice/v5/mhe"
-	"github.com/luxdefi/lattice/v5/ring"
+	"github.com/luxfi/lattice/v5/he/heint"
+	"github.com/luxfi/lattice/v5/mhe"
+	"github.com/luxfi/lattice/v5/ring"
 
-	"github.com/luxdefi/lattice/v5/core/rlwe"
+	"github.com/luxfi/lattice/v5/core/rlwe"
 )
 
 // RefreshProtocol is a struct storing the relevant parameters for the Refresh protocol.

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/luxdefi/lattice/v5/utils/sampling"
+	"github.com/luxfi/lattice/v5/utils/sampling"
 )
 
 const (

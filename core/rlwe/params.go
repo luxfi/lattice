@@ -8,9 +8,9 @@ import (
 	"math/bits"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/luxdefi/lattice/v5/ring"
-	"github.com/luxdefi/lattice/v5/ring/ringqp"
-	"github.com/luxdefi/lattice/v5/utils"
+	"github.com/luxfi/lattice/v5/ring"
+	"github.com/luxfi/lattice/v5/ring/ringqp"
+	"github.com/luxfi/lattice/v5/utils"
 )
 
 // MaxLogN is the log2 of the largest supported polynomial modulus degree.

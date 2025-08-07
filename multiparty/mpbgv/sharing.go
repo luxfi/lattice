@@ -3,12 +3,12 @@ package mpbgv
 import (
 	"fmt"
 
-	"github.com/tuneinsight/lattigo/v6/core/rlwe"
-	"github.com/tuneinsight/lattigo/v6/multiparty"
-	"github.com/tuneinsight/lattigo/v6/ring"
-	"github.com/tuneinsight/lattigo/v6/schemes/bgv"
-	"github.com/tuneinsight/lattigo/v6/utils"
-	"github.com/tuneinsight/lattigo/v6/utils/sampling"
+	"github.com/luxfi/lattice/v6/core/rlwe"
+	"github.com/luxfi/lattice/v6/multiparty"
+	"github.com/luxfi/lattice/v6/ring"
+	"github.com/luxfi/lattice/v6/schemes/bgv"
+	"github.com/luxfi/lattice/v6/utils"
+	"github.com/luxfi/lattice/v6/utils/sampling"
 )
 
 // EncToShareProtocol is the structure storing the parameters and temporary buffers

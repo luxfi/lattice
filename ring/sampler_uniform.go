@@ -3,8 +3,8 @@ package ring
 import (
 	"encoding/binary"
 
-	"github.com/luxdefi/lattice/v5/utils"
-	"github.com/luxdefi/lattice/v5/utils/sampling"
+	"github.com/luxfi/lattice/v5/utils"
+	"github.com/luxfi/lattice/v5/utils/sampling"
 )
 
 // UniformSampler wraps a util.PRNG and represents the state of a sampler of uniform polynomials.

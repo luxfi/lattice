@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/luxdefi/lattice/v5/core/rlwe"
+	"github.com/luxfi/lattice/v5/core/rlwe"
 )
 
 func GetBenchName(params Parameters, opname string) string {

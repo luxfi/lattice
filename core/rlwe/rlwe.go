@@ -3,8 +3,8 @@
 package rlwe
 
 import (
-	"github.com/tuneinsight/lattigo/v6/ring"
-	"github.com/tuneinsight/lattigo/v6/ring/ringqp"
+	"github.com/luxfi/lattice/v6/ring"
+	"github.com/luxfi/lattice/v6/ring/ringqp"
 )
 
 type EvaluatorProvider interface {

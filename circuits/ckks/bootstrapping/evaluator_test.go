@@ -7,10 +7,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/luxdefi/lattice/v5/core/rlwe"
-	"github.com/luxdefi/lattice/v5/he/hefloat"
-	"github.com/luxdefi/lattice/v5/utils"
-	"github.com/luxdefi/lattice/v5/utils/sampling"
+	"github.com/luxfi/lattice/v5/core/rlwe"
+	"github.com/luxfi/lattice/v5/he/hefloat"
+	"github.com/luxfi/lattice/v5/utils"
+	"github.com/luxfi/lattice/v5/utils/sampling"
 )
 
 var minPrec float64 = 12.0

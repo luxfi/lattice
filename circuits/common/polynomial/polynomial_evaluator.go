@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"math/bits"
 
-	"github.com/luxdefi/lattice/v5/core/rlwe"
-	"github.com/luxdefi/lattice/v5/utils"
-	"github.com/luxdefi/lattice/v5/utils/bignum"
+	"github.com/luxfi/lattice/v5/core/rlwe"
+	"github.com/luxfi/lattice/v5/utils"
+	"github.com/luxfi/lattice/v5/utils/bignum"
 )
 
 // EvaluatorForPolynomial defines a set of common and scheme agnostic method that are necessary to instantiate a PolynomialVectorEvaluator.

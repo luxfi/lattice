@@ -1,5 +1,5 @@
 # Report a Vulnerability
-To report a vulnerability please contact us directly using the following email: lattice@luxdefi.com.
+To report a vulnerability please contact us directly using the following email: lattice@lux.network.
 
 # Code Review
 Lattice 2.0.0 has been code-reviewed by ELCA in November 2020 and, within the allocated time for the code review, no critical or high-risk issues were found.

@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/luxdefi/lattice/v5/core/rlwe"
-	"github.com/luxdefi/lattice/v5/ring"
-	"github.com/luxdefi/lattice/v5/ring/ringqp"
-	"github.com/luxdefi/lattice/v5/utils"
-	"github.com/luxdefi/lattice/v5/utils/bignum"
+	"github.com/luxfi/lattice/v5/core/rlwe"
+	"github.com/luxfi/lattice/v5/ring"
+	"github.com/luxfi/lattice/v5/ring/ringqp"
+	"github.com/luxfi/lattice/v5/utils"
+	"github.com/luxfi/lattice/v5/utils/bignum"
 )
 
 // Evaluator is a struct that holds the necessary elements to execute the homomorphic operations between Ciphertexts and/or Plaintexts.

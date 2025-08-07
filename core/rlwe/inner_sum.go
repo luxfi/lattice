@@ -1,9 +1,9 @@
 package rlwe
 
 import (
-	"github.com/luxdefi/lattice/v5/ring"
-	"github.com/luxdefi/lattice/v5/ring/ringqp"
-	"github.com/luxdefi/lattice/v5/utils"
+	"github.com/luxfi/lattice/v5/ring"
+	"github.com/luxfi/lattice/v5/ring/ringqp"
+	"github.com/luxfi/lattice/v5/utils"
 )
 
 // InnerSum applies an optimized inner sum on the Ciphertext (log2(n) + HW(n) rotations with double hoisting).

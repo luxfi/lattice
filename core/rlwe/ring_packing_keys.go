@@ -3,8 +3,8 @@ package rlwe
 import (
 	"fmt"
 
-	"github.com/tuneinsight/lattigo/v6/ring"
-	"github.com/tuneinsight/lattigo/v6/utils"
+	"github.com/luxfi/lattice/v6/ring"
+	"github.com/luxfi/lattice/v6/utils"
 )
 
 // RingPackingEvaluationKey is a struct storing the

@@ -2,7 +2,7 @@
 
 ## Lattice-based multiparty homomorphic encryption library in Go
 
-![Go tests](https://github.com/luxdefi/lattice/actions/workflows/ci.yml/badge.svg)
+![Go tests](https://github.com/luxfi/lattice/actions/workflows/ci.yml/badge.svg)
 
 Lattice is a Go module that implements full-RNS Ring-Learning-With-Errors-based homomorphic-encryption
 primitives and Multiparty-Homomorphic-Encryption-based secure protocols. The library features:
@@ -111,15 +111,15 @@ The Lattice library was originally exclusively developed by the EPFL Laboratory 
 until its version 2.4.0.
 
 Starting with the release of version 3.0.0, Lattice is maintained and supported by [Tune Insight
-SA](https://luxdefi.com).
+SA](https://lux.network).
 
 Also starting with from version 3.0.0, the module name has changed to
-`github.com/luxdefi/lattice/v[X]`, and the official repository has been moved to
-https://github.com/luxdefi/lattice. This has the following implications for modules that depend
+`github.com/luxfi/lattice/v[X]`, and the official repository has been moved to
+https://github.com/luxfi/lattice. This has the following implications for modules that depend
 on Lattice:
 - Modules that require `github.com/ldsec/lattice/v2` will still build correctly.
-- To upgrade to a version X.y.z >= 3.0.0, depending modules must require `github.com/luxdefi/lattice/v[X]/`,
-  for example by changing the imports to `github.com/luxdefi/lattice/v[X]/[package]` and by
+- To upgrade to a version X.y.z >= 3.0.0, depending modules must require `github.com/luxfi/lattice/v[X]/`,
+  for example by changing the imports to `github.com/luxfi/lattice/v[X]/[package]` and by
   running `go mod tidy`.
 
 The current version of Lattice, (v4.x.x) is fast-evolving and in constant development. Consequently,
@@ -145,13 +145,13 @@ External pull requests only proposing small or trivial changes will be converted
 
 ## License
 
-Lattice is licensed under the Apache 2.0 License. See [LICENSE](https://github.com/luxdefi/lattice/blob/master/LICENSE).
+Lattice is licensed under the Apache 2.0 License. See [LICENSE](https://github.com/luxfi/lattice/blob/master/LICENSE).
 
 ## Contact
 
 Before contacting us directly, please make sure that your request cannot be handled through an issue.
 
-If you want to contribute to Lattice, have a feature proposal or request, to report a security issue or simply want to contact us directly, please do so using the following email: [lattice@luxdefi.com](mailto:lattice@lux.network).
+If you want to contribute to Lattice, have a feature proposal or request, to report a security issue or simply want to contact us directly, please do so using the following email: [lattice@lux.network](mailto:lattice@lux.network).
 
 ## Citing
 
@@ -159,7 +159,7 @@ Please use the following BibTex entry for citing Lattice:
 
     @misc{lattice,
 	    title = {Lattice v5},
-	    howpublished = {Online: \url{https://github.com/luxdefi/lattice}},
+	    howpublished = {Online: \url{https://github.com/luxfi/lattice}},
 	    month = Nov,
 	    year = 2023,
 	    note = {EPFL-LDS, Tune Insight SA}

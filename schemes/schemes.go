@@ -2,9 +2,9 @@
 package he
 
 import (
-	"github.com/luxdefi/lattice/v5/core/rlwe"
-	"github.com/luxdefi/lattice/v5/ring"
-	"github.com/luxdefi/lattice/v5/ring/ringqp"
+	"github.com/luxfi/lattice/v5/core/rlwe"
+	"github.com/luxfi/lattice/v5/ring"
+	"github.com/luxfi/lattice/v5/ring/ringqp"
 )
 
 // Encoder defines a set of common and scheme agnostic method provided by an Encoder struct.

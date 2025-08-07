@@ -3,8 +3,8 @@ package examples
 import (
 	"testing"
 
-	"github.com/luxdefi/lattice/v5/he/hefloat"
-	"github.com/luxdefi/lattice/v5/he/heint"
+	"github.com/luxfi/lattice/v5/he/hefloat"
+	"github.com/luxfi/lattice/v5/he/heint"
 )
 
 func TestExampleParams(t *testing.T) {

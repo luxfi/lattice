@@ -10,12 +10,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/luxdefi/lattice/v5/core/rlwe"
-	"github.com/luxdefi/lattice/v5/he/heint"
-	"github.com/luxdefi/lattice/v5/mhe"
-	"github.com/luxdefi/lattice/v5/ring"
-	"github.com/luxdefi/lattice/v5/utils"
-	"github.com/luxdefi/lattice/v5/utils/sampling"
+	"github.com/luxfi/lattice/v5/core/rlwe"
+	"github.com/luxfi/lattice/v5/he/heint"
+	"github.com/luxfi/lattice/v5/mhe"
+	"github.com/luxfi/lattice/v5/ring"
+	"github.com/luxfi/lattice/v5/utils"
+	"github.com/luxfi/lattice/v5/utils/sampling"
 )
 
 var flagParamString = flag.String("params", "", "specify the test cryptographic parameters as a JSON string. Overrides -short and -long.")

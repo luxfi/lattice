@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/luxdefi/lattice/v5/core/rlwe"
-	"github.com/luxdefi/lattice/v5/he/hefloat"
+	"github.com/luxfi/lattice/v5/core/rlwe"
+	"github.com/luxfi/lattice/v5/he/hefloat"
 )
 
 func BenchmarkBootstrap(b *testing.B) {

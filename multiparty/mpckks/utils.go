@@ -3,7 +3,7 @@ package mhefloat
 import (
 	"math"
 
-	"github.com/luxdefi/lattice/v5/core/rlwe"
+	"github.com/luxfi/lattice/v5/core/rlwe"
 )
 
 // GetMinimumLevelForRefresh takes the security parameter lambda, the ciphertext scale, the number of parties and the moduli chain

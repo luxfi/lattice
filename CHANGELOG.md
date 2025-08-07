@@ -399,7 +399,7 @@ All notable changes to this library are documented in this file.
 - CKKS: encoder is now about 3.5x faster (without taking the NTT into account).
 
 ## [3.0.0] - 2022-02-21
-- ALL: renamed the module to `github.com/luxdefi/v3`.
+- ALL: renamed the module to `github.com/luxfi/v3`.
 - RING: renamed `FastBasisExtender` to `BasisExtender`.
 - RING: `.PolyToBigint[...](*)` now take as input `gap` which defines the multiples of `X^{i*gap}` to reconstruct.
 - RLWE: removed `FastEncryptor`. Encryption without rescaling by `P` is now automatically used by `Encryptor` if no `P` is specified in the parameters.
