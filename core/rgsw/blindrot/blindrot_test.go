@@ -6,10 +6,10 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	"github.com/luxfi/lattice/v6/core/rlwe"
 	"github.com/luxfi/lattice/v6/ring"
 	"github.com/luxfi/lattice/v6/utils"
+	"github.com/stretchr/testify/require"
 )
 
 func testString(params rlwe.Parameters, opname string) string {

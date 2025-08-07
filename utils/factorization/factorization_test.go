@@ -4,8 +4,8 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	"github.com/luxfi/lattice/v6/utils/factorization"
+	"github.com/stretchr/testify/require"
 )
 
 const (

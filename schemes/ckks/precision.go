@@ -7,11 +7,11 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	"github.com/luxfi/lattice/v6/core/rlwe"
 	"github.com/luxfi/lattice/v6/ring"
 	"github.com/luxfi/lattice/v6/utils"
 	"github.com/luxfi/lattice/v6/utils/bignum"
+	"github.com/stretchr/testify/require"
 )
 
 // PrecisionStats is a struct storing statistic about the precision of a CKKS plaintext
