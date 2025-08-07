@@ -7,8 +7,8 @@ import (
 	"math/big"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/luxfi/lattice/v5/ring"
-	"github.com/luxfi/lattice/v5/utils/bignum"
+	"github.com/luxfi/lattice/v6/ring"
+	"github.com/luxfi/lattice/v6/utils/bignum"
 )
 
 // MetaData is a struct storing metadata.
@@ -31,7 +31,7 @@ func (m MetaData) BinarySize() int {
 	return 44 + m.PlaintextMetaData.BinarySize() + m.CiphertextMetaData.BinarySize()
 }
 
-// WriteTo writes the object on an io.Writer. It implements the io.WriterTo
+// WriteTo writes the object on an [io.Writer]. It implements the [io.WriterTo]
 // interface, and will write exactly object.BinarySize() bytes on w.
 func (m MetaData) WriteTo(w io.Writer) (int64, error) {
 	if p, err := m.MarshalBinary(); err != nil {
@@ -45,15 +45,15 @@ func (m MetaData) WriteTo(w io.Writer) (int64, error) {
 	}
 }
 
-// ReadFrom reads on the object from an io.Writer. It implements the
-// io.ReaderFrom interface.
+// ReadFrom reads on the object from an [io.Writer]. It implements the
+// [io.ReaderFrom] interface.
 //
-// Unless r implements the buffer.Reader interface (see see lattice/utils/buffer/reader.go),
-// it will be wrapped into a bufio.Reader. Since this requires allocation, it
-// is preferable to pass a buffer.Reader directly:
+// Unless r implements the [buffer.Reader] interface (see see lattice/utils/buffer/reader.go),
+// it will be wrapped into a [bufio.Reader]. Since this requires allocation, it
+// is preferable to pass a [buffer.Reader] directly:
 //
-//   - When reading multiple values from a io.Reader, it is preferable to first
-//     first wrap io.Reader in a pre-allocated bufio.Reader.
+//   - When reading multiple values from a [io.Reader], it is preferable to first
+//     first wrap [io.Reader] in a pre-allocated [bufio.Reader].
 //   - When reading from a var b []byte, it is preferable to pass a buffer.NewBuffer(b)
 //     as w (see lattice/utils/buffer/buffer.go).
 func (m *MetaData) ReadFrom(r io.Reader) (int64, error) {
@@ -115,14 +115,10 @@ type PlaintextMetaData struct {
 	// in such a way that product in R[X]/(X^N+1) acts as a point-wise multiplication
 	// in the plaintext space.
 	IsBatched bool
-}
 
-// CiphertextMetaData is a struct storing metadata related to the ciphertext.
-type CiphertextMetaData struct {
-	// IsNTT is a flag indicating if the ciphertext is in the NTT domain.
-	IsNTT bool
-	// IsMontgomery is a flag indicating if the ciphertext is in the Montgomery domain.
-	IsMontgomery bool
+	// IsBitReversed is a flag indicating if the underlying plaintext is
+	// bit-reversed. This can be true for both batch and non-batched plaintexts.
+	IsBitReversed bool
 }
 
 // Slots returns the total number of slots that the plaintext holds.
@@ -146,31 +142,25 @@ func (m PlaintextMetaData) LogScale() float64 {
 func (m *PlaintextMetaData) Equal(other *PlaintextMetaData) (res bool) {
 	res = cmp.Equal(&m.Scale, &other.Scale)
 	res = res && m.IsBatched == other.IsBatched
+	res = res && m.IsBitReversed == other.IsBitReversed
 	res = res && m.LogDimensions == other.LogDimensions
-	return
-}
-
-// Equal returns true if two MetaData structs are identical.
-func (m *CiphertextMetaData) Equal(other *CiphertextMetaData) (res bool) {
-	res = m.IsNTT == other.IsNTT
-	res = res && m.IsMontgomery == other.IsMontgomery
 	return
 }
 
 // BinarySize returns the size in bytes that the object once marshalled into a binary form.
 func (m PlaintextMetaData) BinarySize() int {
-	return 61 + m.Scale.BinarySize()
+	return 84 + m.Scale.BinarySize()
 }
 
-// WriteTo writes the object on an io.Writer. It implements the io.WriterTo
+// WriteTo writes the object on an [io.Writer]. It implements the [io.WriterTo]
 // interface, and will write exactly object.BinarySize() bytes on w.
 //
-// Unless w implements the buffer.Writer interface (see lattice/utils/buffer/writer.go),
-// it will be wrapped into a bufio.Writer. Since this requires allocations, it
-// is preferable to pass a buffer.Writer directly:
+// Unless w implements the [buffer.Writer] interface (see lattice/utils/buffer/writer.go),
+// it will be wrapped into a [bufio.Writer]. Since this requires allocations, it
+// is preferable to pass a [buffer.Writer] directly:
 //
-//   - When writing multiple times to a io.Writer, it is preferable to first wrap the
-//     io.Writer in a pre-allocated bufio.Writer.
+//   - When writing multiple times to a [io.Writer], it is preferable to first wrap the
+//     io.Writer in a pre-allocated [bufio.Writer].
 //   - When writing to a pre-allocated var b []byte, it is preferable to pass
 //     buffer.NewBuffer(b) as w (see lattice/utils/buffer/buffer.go).
 func (m PlaintextMetaData) WriteTo(w io.Writer) (int64, error) {
@@ -185,15 +175,15 @@ func (m PlaintextMetaData) WriteTo(w io.Writer) (int64, error) {
 	}
 }
 
-// ReadFrom reads on the object from an io.Writer. It implements the
-// io.ReaderFrom interface.
+// ReadFrom reads on the object from an [io.Writer]. It implements the
+// [io.ReaderFrom] interface.
 //
-// Unless r implements the buffer.Reader interface (see see lattice/utils/buffer/reader.go),
-// it will be wrapped into a bufio.Reader. Since this requires allocation, it
-// is preferable to pass a buffer.Reader directly:
+// Unless r implements the [buffer.Reader] interface (see see lattice/utils/buffer/reader.go),
+// it will be wrapped into a [bufio.Reader]. Since this requires allocation, it
+// is preferable to pass a [buffer.Reader] directly:
 //
-//   - When reading multiple values from a io.Reader, it is preferable to first
-//     first wrap io.Reader in a pre-allocated bufio.Reader.
+//   - When reading multiple values from a [io.Reader], it is preferable to first
+//     first wrap [io.Reader] in a pre-allocated [bufio.Reader].
 //   - When reading from a var b []byte, it is preferable to pass a buffer.NewBuffer(b)
 //     as w (see lattice/utils/buffer/buffer.go).
 func (m *PlaintextMetaData) ReadFrom(r io.Reader) (int64, error) {
@@ -208,18 +198,25 @@ func (m *PlaintextMetaData) ReadFrom(r io.Reader) (int64, error) {
 func (m PlaintextMetaData) MarshalJSON() (p []byte, err error) {
 
 	var IsBatched uint8
-
 	if m.IsBatched {
 		IsBatched = 1
+	}
+
+	var IsBitReversed uint8
+	if m.IsBitReversed {
+		IsBitReversed = 1
 	}
 
 	aux := &struct {
 		Scale         Scale
 		IsBatched     string
+		IsBitReversed string
 		LogDimensions [2]string
 	}{
 		Scale:         m.Scale,
 		IsBatched:     fmt.Sprintf("0x%02x", IsBatched),
+		IsBitReversed: fmt.Sprintf("0x%02x", IsBitReversed),
+		/* #nosec G115 -- Rows and Cols cannot be negative if valid */
 		LogDimensions: [2]string{fmt.Sprintf("0x%02x", uint8(m.LogDimensions.Rows)), fmt.Sprintf("0x%02x", uint8(m.LogDimensions.Cols))},
 	}
 
@@ -237,6 +234,7 @@ func (m *PlaintextMetaData) UnmarshalJSON(p []byte) (err error) {
 	aux := &struct {
 		Scale         Scale
 		IsBatched     string
+		IsBitReversed string
 		LogDimensions [2]string
 	}{}
 
@@ -254,6 +252,14 @@ func (m *PlaintextMetaData) UnmarshalJSON(p []byte) (err error) {
 		m.IsBatched = false
 	}
 
+	if y, err := hexconv(aux.IsBitReversed); err != nil {
+		return err
+	} else if y == 1 {
+		m.IsBitReversed = true
+	} else {
+		m.IsBitReversed = false
+	}
+
 	logRows, err := hexconv(aux.LogDimensions[0])
 
 	if err != nil {
@@ -266,15 +272,31 @@ func (m *PlaintextMetaData) UnmarshalJSON(p []byte) (err error) {
 		return err
 	}
 
+	/* #nosec G115 -- logRows and logCols are < 256 if valid */
 	m.LogDimensions = ring.Dimensions{Rows: int(int8(logRows)), Cols: int(int8(logCols))}
 
 	return
 }
 
 // UnmarshalBinary decodes a slice of bytes generated by
-// MarshalBinary or WriteTo on the object.
+// [PlaintextMetaData.MarshalBinary] or [PlaintextMetaData.WriteTo] on the object.
 func (m *PlaintextMetaData) UnmarshalBinary(p []byte) (err error) {
 	return m.UnmarshalJSON(p)
+}
+
+// CiphertextMetaData is a struct storing metadata related to the ciphertext.
+type CiphertextMetaData struct {
+	// IsNTT is a flag indicating if the ciphertext is in the NTT domain.
+	IsNTT bool
+	// IsMontgomery is a flag indicating if the ciphertext is in the Montgomery domain.
+	IsMontgomery bool
+}
+
+// Equal returns true if two MetaData structs are identical.
+func (m *CiphertextMetaData) Equal(other *CiphertextMetaData) (res bool) {
+	res = m.IsNTT == other.IsNTT
+	res = res && m.IsMontgomery == other.IsMontgomery
+	return
 }
 
 // BinarySize returns the size in bytes that the object once marshalled into a binary form.
@@ -282,15 +304,15 @@ func (m *CiphertextMetaData) BinarySize() int {
 	return 38
 }
 
-// WriteTo writes the object on an io.Writer. It implements the io.WriterTo
+// WriteTo writes the object on an [io.Writer]. It implements the [io.WriterTo]
 // interface, and will write exactly object.BinarySize() bytes on w.
 //
-// Unless w implements the buffer.Writer interface (see lattice/utils/buffer/writer.go),
-// it will be wrapped into a bufio.Writer. Since this requires allocations, it
-// is preferable to pass a buffer.Writer directly:
+// Unless w implements the [buffer.Writer] interface (see lattice/utils/buffer/writer.go),
+// it will be wrapped into a [bufio.Writer]. Since this requires allocations, it
+// is preferable to pass a [buffer.Writer] directly:
 //
-//   - When writing multiple times to a io.Writer, it is preferable to first wrap the
-//     io.Writer in a pre-allocated bufio.Writer.
+//   - When writing multiple times to a [io.Writer], it is preferable to first wrap the
+//     io.Writer in a pre-allocated [bufio.Writer].
 //   - When writing to a pre-allocated var b []byte, it is preferable to pass
 //     buffer.NewBuffer(b) as w (see lattice/utils/buffer/buffer.go).
 func (m *CiphertextMetaData) WriteTo(w io.Writer) (int64, error) {
@@ -305,15 +327,15 @@ func (m *CiphertextMetaData) WriteTo(w io.Writer) (int64, error) {
 	}
 }
 
-// ReadFrom reads on the object from an io.Writer. It implements the
-// io.ReaderFrom interface.
+// ReadFrom reads on the object from an [io.Writer]. It implements the
+// [io.ReaderFrom] interface.
 //
-// Unless r implements the buffer.Reader interface (see see lattice/utils/buffer/reader.go),
-// it will be wrapped into a bufio.Reader. Since this requires allocation, it
-// is preferable to pass a buffer.Reader directly:
+// Unless r implements the [buffer.Reader] interface (see see lattice/utils/buffer/reader.go),
+// it will be wrapped into a [bufio.Reader]. Since this requires allocation, it
+// is preferable to pass a [buffer.Reader] directly:
 //
-//   - When reading multiple values from a io.Reader, it is preferable to first
-//     first wrap io.Reader in a pre-allocated bufio.Reader.
+//   - When reading multiple values from a [io.Reader], it is preferable to first
+//     first wrap [io.Reader] in a pre-allocated [bufio.Reader].
 //   - When reading from a var b []byte, it is preferable to pass a buffer.NewBuffer(b)
 //     as w (see lattice/utils/buffer/buffer.go).
 func (m *CiphertextMetaData) ReadFrom(r io.Reader) (int64, error) {
@@ -378,7 +400,7 @@ func (m *CiphertextMetaData) UnmarshalJSON(p []byte) (err error) {
 }
 
 // UnmarshalBinary decodes a slice of bytes generated by
-// MarshalBinary or WriteTo on the object.
+// [CiphertextMetaData.MarshalBinary] or [CiphertextMetaData.WriteTo] on the object.
 func (m *CiphertextMetaData) UnmarshalBinary(p []byte) (err error) {
 	return m.UnmarshalJSON(p)
 }

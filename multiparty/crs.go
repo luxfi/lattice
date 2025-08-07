@@ -1,7 +1,7 @@
-package mhe
+package multiparty
 
 import (
-	"github.com/luxfi/lattice/v5/utils/sampling"
+	"github.com/luxfi/lattice/v6/utils/sampling"
 )
 
 // CRS is an interface for Common Reference Strings.

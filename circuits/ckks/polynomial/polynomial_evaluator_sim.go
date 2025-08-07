@@ -1,41 +1,48 @@
-package hefloat
+package polynomial
 
 import (
+	"fmt"
 	"math/big"
 	"math/bits"
 
-	"github.com/luxfi/lattice/v5/core/rlwe"
-	"github.com/luxfi/lattice/v5/he"
-	"github.com/luxfi/lattice/v5/utils"
-	"github.com/luxfi/lattice/v5/utils/bignum"
+	"github.com/luxfi/lattice/v6/circuits/common/polynomial"
+	"github.com/luxfi/lattice/v6/core/rlwe"
+	"github.com/luxfi/lattice/v6/schemes/ckks"
+	"github.com/luxfi/lattice/v6/utils"
+	"github.com/luxfi/lattice/v6/utils/bignum"
 )
 
-// simEvaluator is a struct used to pre-computed the scaling
+// simEvaluator is a struct used to pre-compute the scaling
 // factors of the polynomial coefficients used by the inlined
 // polynomial evaluation by running the polynomial evaluation
 // with dummy operands.
-// This struct implements the interface he.SimEvaluator.
+// This struct implements the interface polynomial.SimEvaluator.
 type simEvaluator struct {
-	params                     Parameters
+	params                     ckks.Parameters
 	levelsConsumedPerRescaling int
 }
 
 // PolynomialDepth returns the depth of the polynomial.
 func (d simEvaluator) PolynomialDepth(degree int) int {
+
+	if degree <= 0 {
+		panic(fmt.Errorf("invalid degree: degree=%d should be greater than zero", degree))
+	}
+
 	return d.levelsConsumedPerRescaling * (bits.Len64(uint64(degree)) - 1)
 }
 
-// Rescale rescales the target he.SimOperand n times and returns it.
-func (d simEvaluator) Rescale(op0 *he.SimOperand) {
+// Rescale rescales the target polynomial.SimOperand n times and returns it.
+func (d simEvaluator) Rescale(op0 *polynomial.SimOperand) {
 	for i := 0; i < d.levelsConsumedPerRescaling; i++ {
 		op0.Scale = op0.Scale.Div(rlwe.NewScale(d.params.Q()[op0.Level]))
 		op0.Level--
 	}
 }
 
-// MulNew multiplies two he.SimOperand, stores the result the target he.SimOperand and returns the result.
-func (d simEvaluator) MulNew(op0, op1 *he.SimOperand) (opOut *he.SimOperand) {
-	opOut = new(he.SimOperand)
+// MulNew multiplies two polynomial.SimOperand, stores the result the target polynomial.SimOperand and returns the result.
+func (d simEvaluator) MulNew(op0, op1 *polynomial.SimOperand) (opOut *polynomial.SimOperand) {
+	opOut = new(polynomial.SimOperand)
 	opOut.Level = utils.Min(op0.Level, op1.Level)
 	opOut.Scale = op0.Scale.Mul(op1.Scale)
 	return

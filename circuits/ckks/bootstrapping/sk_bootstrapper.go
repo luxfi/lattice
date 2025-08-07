@@ -1,40 +1,39 @@
 package bootstrapping
 
 import (
-	"github.com/luxfi/lattice/v5/core/rlwe"
-	"github.com/luxfi/lattice/v5/he/hefloat"
-	"github.com/luxfi/lattice/v5/utils/bignum"
+	"github.com/luxfi/lattice/v6/core/rlwe"
+	"github.com/luxfi/lattice/v6/schemes/ckks"
+	"github.com/luxfi/lattice/v6/utils/bignum"
 )
 
-// SecretKeyBootstrapper is an implementation of the rlwe.Bootstrapping interface that
+// SecretKeyBootstrapper is an implementation of the [rlwe.Bootstrapping] interface that
 // uses the secret-key to decrypt and re-encrypt the bootstrapped ciphertext.
 type SecretKeyBootstrapper struct {
-	hefloat.Parameters
-	*hefloat.Encoder
+	ckks.Parameters
+	*ckks.Encoder
 	*rlwe.Decryptor
 	*rlwe.Encryptor
 	sk       *rlwe.SecretKey
-	Values   []*bignum.Complex
 	Counter  int // records the number of bootstrapping
 	MinLevel int
 }
 
-func NewSecretKeyBootstrapper(params hefloat.Parameters, sk *rlwe.SecretKey) *SecretKeyBootstrapper {
+func NewSecretKeyBootstrapper(params ckks.Parameters, sk *rlwe.SecretKey) *SecretKeyBootstrapper {
 	return &SecretKeyBootstrapper{
 		Parameters: params,
-		Encoder:    hefloat.NewEncoder(params),
+		Encoder:    ckks.NewEncoder(params),
 		Decryptor:  rlwe.NewDecryptor(params, sk),
 		Encryptor:  rlwe.NewEncryptor(params, sk),
 		sk:         sk,
-		Values:     make([]*bignum.Complex, params.N())}
+	}
 }
 
 func (d *SecretKeyBootstrapper) Bootstrap(ct *rlwe.Ciphertext) (*rlwe.Ciphertext, error) {
-	values := d.Values[:1<<ct.LogDimensions.Cols]
+	values := make([]*bignum.Complex, 1<<ct.LogDimensions.Cols)
 	if err := d.Decode(d.DecryptNew(ct), values); err != nil {
 		return nil, err
 	}
-	pt := hefloat.NewPlaintext(d.Parameters, d.MaxLevel())
+	pt := ckks.NewPlaintext(d.Parameters, d.MaxLevel())
 	pt.MetaData = ct.MetaData
 	pt.Scale = d.Parameters.DefaultScale()
 	if err := d.Encode(values, pt); err != nil {

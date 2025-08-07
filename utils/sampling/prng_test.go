@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/luxfi/lattice/v5/utils/sampling"
+	"github.com/luxfi/lattice/v6/utils/sampling"
 )
 
 func Test_PRNG(t *testing.T) {

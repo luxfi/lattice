@@ -3,12 +3,13 @@ package rlwe
 import (
 	"math"
 	"math/big"
+	"slices"
 
-	"github.com/luxfi/lattice/v5/ring"
-	"github.com/luxfi/lattice/v5/utils"
+	"github.com/luxfi/lattice/v6/ring"
+	"github.com/luxfi/lattice/v6/utils"
 )
 
-// NoisePublicKey returns the log2 of the standard deviation of the input public-key with respect to the given secret-key and parameters.
+// NoisePublicKey returns the log2 of the standard deviation of the input [PublicKey] with respect to the given [Secret] and parameters.
 func NoisePublicKey(pk *PublicKey, sk *SecretKey, params Parameters) float64 {
 
 	pk = pk.CopyNew()
@@ -23,14 +24,14 @@ func NoisePublicKey(pk *PublicKey, sk *SecretKey, params Parameters) float64 {
 	return ringQP.Log2OfStandardDeviation(pk.Value[0])
 }
 
-// NoiseRelinearizationKey the log2 of the standard deviation of the noise of the input relinearization key with respect to the given secret-key and paramters.
+// NoiseRelinearizationKey the log2 of the standard deviation of the noise of the input [RelinearizationKey] with respect to the given [Secret] and paramters.
 func NoiseRelinearizationKey(rlk *RelinearizationKey, sk *SecretKey, params Parameters) float64 {
 	sk2 := sk.CopyNew()
 	params.RingQP().AtLevel(rlk.LevelQ(), rlk.LevelP()).MulCoeffsMontgomery(sk2.Value, sk2.Value, sk2.Value)
 	return NoiseEvaluationKey(&rlk.EvaluationKey, sk2, sk, params)
 }
 
-// NoiseGaloisKey the log2 of the standard deviation of the noise of the input Galois key key with respect to the given secret-key and paramters.
+// NoiseGaloisKey the log2 of the standard deviation of the noise of the input [GaloisKey] key with respect to the given [SecretKey] and paramters.
 func NoiseGaloisKey(gk *GaloisKey, sk *SecretKey, params Parameters) float64 {
 
 	skIn := sk.CopyNew()
@@ -45,7 +46,7 @@ func NoiseGaloisKey(gk *GaloisKey, sk *SecretKey, params Parameters) float64 {
 	return NoiseEvaluationKey(&gk.EvaluationKey, skIn, skOut, params)
 }
 
-// NoiseGadgetCiphertext returns the log2 of the standard devaition of the noise of the input gadget ciphertext with respect to the given plaintext, secret-key and parameters.
+// NoiseGadgetCiphertext returns the log2 of the standard deviation of the noise of the input [GadgetCiphertext] with respect to the given [Plaintext], [SecretKey] and [Parameters].
 // The polynomial pt is expected to be in the NTT and Montgomery domain.
 func NoiseGadgetCiphertext(gct *GadgetCiphertext, pt ring.Poly, sk *SecretKey, params Parameters) float64 {
 
@@ -54,7 +55,7 @@ func NoiseGadgetCiphertext(gct *GadgetCiphertext, pt ring.Poly, sk *SecretKey, p
 	levelQ, levelP := gct.LevelQ(), gct.LevelP()
 	ringQP := params.RingQP().AtLevel(levelQ, levelP)
 	ringQ, ringP := ringQP.RingQ, ringQP.RingP
-	BaseTwoDecompositionVectorSize := utils.MinSlice(gct.BaseTwoDecompositionVectorSize()) // required else the check becomes very complicated
+	BaseTwoDecompositionVectorSize := slices.Min(gct.BaseTwoDecompositionVectorSize()) // required else the check becomes very complicated
 
 	// Decrypts
 	// [-asIn + w*P*sOut + e, a] + [asIn]
@@ -100,13 +101,13 @@ func NoiseGadgetCiphertext(gct *GadgetCiphertext, pt ring.Poly, sk *SecretKey, p
 	return maxLog2Std
 }
 
-// NoiseEvaluationKey the log2 of the standard deviation of the noise of the input Galois key key with respect to the given secret-key and paramters.
+// NoiseEvaluationKey the log2 of the standard deviation of the noise of the input [GaloisKey] with respect to the given [SecretKey] and [Parameters].
 func NoiseEvaluationKey(evk *EvaluationKey, skIn, skOut *SecretKey, params Parameters) float64 {
 	return NoiseGadgetCiphertext(&evk.GadgetCiphertext, skIn.Value.Q, skOut, params)
 }
 
 // Norm returns the log2 of the standard deviation, minimum and maximum absolute norm of
-// the decrypted Ciphertext, before the decoding (i.e. including the error).
+// the decrypted [Ciphertext], before the decoding (i.e. including the error).
 func Norm(ct *Ciphertext, dec *Decryptor) (std, min, max float64) {
 
 	params := dec.params
@@ -198,7 +199,7 @@ func NTTSparseAndMontgomery(r *ring.Ring, metadata *MetaData, pol ring.Poly) {
 	} else {
 
 		var n int
-		var NTT func(p1, p2 []uint64, N int, Q, QInv uint64, BRedConstant, nttPsi []uint64)
+		var NTT func(p1, p2 []uint64, N int, Q, QInv uint64, BRedConstant [2]uint64, nttPsi []uint64)
 		switch r.Type() {
 		case ring.Standard:
 			n = 2 << metadata.LogDimensions.Cols

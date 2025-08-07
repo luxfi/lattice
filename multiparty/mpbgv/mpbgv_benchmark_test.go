@@ -1,13 +1,14 @@
-package mheint
+package mpbgv
 
 import (
 	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/luxfi/lattice/v5/core/rlwe"
-	"github.com/luxfi/lattice/v5/he/heint"
-	"github.com/luxfi/lattice/v5/mhe"
+
+	"github.com/luxfi/lattice/v6/core/rlwe"
+	"github.com/luxfi/lattice/v6/multiparty"
+	"github.com/luxfi/lattice/v6/schemes/bgv"
 )
 
 func BenchmarkInteger(b *testing.B) {
@@ -17,11 +18,11 @@ func BenchmarkInteger(b *testing.B) {
 	paramsLiterals := testParams
 
 	if *flagParamString != "" {
-		var jsonParams heint.ParametersLiteral
+		var jsonParams bgv.ParametersLiteral
 		if err = json.Unmarshal([]byte(*flagParamString), &jsonParams); err != nil {
 			b.Fatal(err)
 		}
-		paramsLiterals = []heint.ParametersLiteral{jsonParams} // the custom test suite reads the parameters from the -params flag
+		paramsLiterals = []bgv.ParametersLiteral{jsonParams} // the custom test suite reads the parameters from the -params flag
 	}
 
 	for _, p := range paramsLiterals {
@@ -30,8 +31,8 @@ func BenchmarkInteger(b *testing.B) {
 
 			p.PlaintextModulus = plaintextModulus
 
-			var params heint.Parameters
-			if params, err = heint.NewParametersFromLiteral(p); err != nil {
+			var params bgv.Parameters
+			if params, err = bgv.NewParametersFromLiteral(p); err != nil {
 				b.Fatal(err)
 			}
 
@@ -57,7 +58,7 @@ func benchRefresh(tc *testContext, b *testing.B) {
 	type Party struct {
 		RefreshProtocol
 		s     *rlwe.SecretKey
-		share mhe.RefreshShare
+		share multiparty.RefreshShare
 	}
 
 	p := new(Party)
@@ -67,14 +68,14 @@ func benchRefresh(tc *testContext, b *testing.B) {
 	p.s = sk0Shards[0]
 	p.share = p.AllocateShare(minLevel, maxLevel)
 
-	ciphertext := heint.NewCiphertext(tc.params, 1, minLevel)
+	ciphertext := bgv.NewCiphertext(tc.params, 1, minLevel)
 
 	crp := p.SampleCRP(maxLevel, tc.crs)
 
 	b.Run(GetTestName("Refresh/Round1/Gen", tc.params, tc.NParties), func(b *testing.B) {
 
 		for i := 0; i < b.N; i++ {
-			p.GenShare(p.s, ciphertext, ciphertext.Scale, crp, &p.share)
+			p.GenShare(p.s, ciphertext, crp, &p.share)
 		}
 	})
 
@@ -86,7 +87,7 @@ func benchRefresh(tc *testContext, b *testing.B) {
 	})
 
 	b.Run(GetTestName("Refresh/Finalize", tc.params, tc.NParties), func(b *testing.B) {
-		opOut := heint.NewCiphertext(tc.params, 1, maxLevel)
+		opOut := bgv.NewCiphertext(tc.params, 1, maxLevel)
 		for i := 0; i < b.N; i++ {
 			p.Finalize(ciphertext, crp, p.share, opOut)
 		}

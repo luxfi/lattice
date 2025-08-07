@@ -1,4 +1,4 @@
-package mhe
+package multiparty
 
 import (
 	"encoding/json"
@@ -9,11 +9,12 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/luxfi/lattice/v5/core/rlwe"
-	"github.com/luxfi/lattice/v5/ring"
-	"github.com/luxfi/lattice/v5/utils"
-	"github.com/luxfi/lattice/v5/utils/buffer"
-	"github.com/luxfi/lattice/v5/utils/sampling"
+
+	"github.com/luxfi/lattice/v6/core/rlwe"
+	"github.com/luxfi/lattice/v6/ring"
+	"github.com/luxfi/lattice/v6/utils"
+	"github.com/luxfi/lattice/v6/utils/buffer"
+	"github.com/luxfi/lattice/v6/utils/sampling"
 )
 
 var nbParties = int(5)
@@ -61,7 +62,7 @@ func (tc testContext) nParties() int {
 	return len(tc.skShares)
 }
 
-func TestMHE(t *testing.T) {
+func TestMultiParty(t *testing.T) {
 
 	var err error
 
@@ -138,7 +139,7 @@ func testPublicKeyGenProtocol(tc *testContext, levelQ, levelP, bpw2 int, t *test
 			if i == 0 {
 				ckg[i] = NewPublicKeyGenProtocol(params)
 			} else {
-				ckg[i] = ckg[0].ShallowCopy()
+				ckg[i] = ckg[0]
 			}
 		}
 
@@ -181,7 +182,7 @@ func testRelinearizationKeyGenProtocol(tc *testContext, levelQ, levelP, bpw2 int
 			if i == 0 {
 				rkg[i] = NewRelinearizationKeyGenProtocol(params)
 			} else {
-				rkg[i] = rkg[0].ShallowCopy()
+				rkg[i] = rkg[0]
 			}
 		}
 
@@ -237,7 +238,7 @@ func testEvaluationKeyGenProtocol(tc *testContext, levelQ, levelP, bpw2 int, t *
 			if i == 0 {
 				evkg[i] = NewEvaluationKeyGenProtocol(params)
 			} else {
-				evkg[i] = evkg[0].ShallowCopy()
+				evkg[i] = evkg[0]
 			}
 		}
 
@@ -292,7 +293,7 @@ func testGaloisKeyGenProtocol(tc *testContext, levelQ, levelP, bpw2 int, t *test
 			if i == 0 {
 				gkg[i] = NewGaloisKeyGenProtocol(params)
 			} else {
-				gkg[i] = gkg[0].ShallowCopy()
+				gkg[i] = gkg[0]
 			}
 		}
 
@@ -343,7 +344,7 @@ func testKeySwitchProtocol(tc *testContext, levelQ, levelP, bpw2 int, t *testing
 				cks[i], err = NewKeySwitchProtocol(params, ring.DiscreteGaussian{Sigma: sigmaSmudging, Bound: 6 * sigmaSmudging})
 				require.NoError(t, err)
 			} else {
-				cks[i] = cks[0].ShallowCopy()
+				cks[i] = cks[0]
 			}
 		}
 
@@ -419,7 +420,7 @@ func testPublicKeySwitchProtocol(tc *testContext, levelQ, levelP, bpw2 int, t *t
 				pcks[i], err = NewPublicKeySwitchProtocol(params, ring.DiscreteGaussian{Sigma: sigmaSmudging, Bound: 6 * sigmaSmudging})
 				require.NoError(t, err)
 			} else {
-				pcks[i] = pcks[0].ShallowCopy()
+				pcks[i] = pcks[0]
 			}
 		}
 
@@ -571,6 +572,6 @@ func testRefreshShare(tc *testContext, levelQ, levelP, bpw2 int, t *testing.T) {
 		share2 := cksp.AllocateShare(levelQ)
 		cksp.GenShare(tc.skShares[0], tc.skShares[1], ciphertext, &share1)
 		cksp.GenShare(tc.skShares[1], tc.skShares[0], ciphertext, &share2)
-		buffer.RequireSerializerCorrect(t, &RefreshShare{EncToShareShare: share1, ShareToEncShare: share2})
+		buffer.RequireSerializerCorrect(t, &RefreshShare{EncToShareShare: share1, ShareToEncShare: share2, MetaData: *ciphertext.MetaData})
 	})
 }

@@ -1,14 +1,14 @@
-package mhe
+package multiparty
 
 import (
 	"io"
+	"slices"
 
-	"github.com/luxfi/lattice/v5/core/rlwe"
-	"github.com/luxfi/lattice/v5/ring"
-	"github.com/luxfi/lattice/v5/ring/ringqp"
-	"github.com/luxfi/lattice/v5/utils"
-	"github.com/luxfi/lattice/v5/utils/sampling"
-	"github.com/luxfi/lattice/v5/utils/structs"
+	"github.com/luxfi/lattice/v6/core/rlwe"
+	"github.com/luxfi/lattice/v6/ring"
+	"github.com/luxfi/lattice/v6/ring/ringqp"
+	"github.com/luxfi/lattice/v6/utils/sampling"
+	"github.com/luxfi/lattice/v6/utils/structs"
 )
 
 // RelinearizationKeyGenProtocol is the structure storing the parameters and and precomputations for the collective relinearization key generation protocol.
@@ -17,8 +17,6 @@ type RelinearizationKeyGenProtocol struct {
 
 	gaussianSamplerQ ring.Sampler
 	ternarySamplerQ  ring.Sampler
-
-	buf [2]ringqp.Poly
 }
 
 // RelinearizationKeyGenShare is a share in the RelinearizationKeyGen protocol.
@@ -29,42 +27,6 @@ type RelinearizationKeyGenShare struct {
 // RelinearizationKeyGenCRP is a type for common reference polynomials in the RelinearizationKeyGen protocol.
 type RelinearizationKeyGenCRP struct {
 	Value structs.Matrix[ringqp.Poly]
-}
-
-// ShallowCopy creates a shallow copy of RelinearizationKeyGenProtocol in which all the read-only data-structures are
-// shared with the receiver and the temporary buffers are reallocated. The receiver and the returned
-// RelinearizationKeyGenProtocol can be used concurrently.
-func (ekg *RelinearizationKeyGenProtocol) ShallowCopy() RelinearizationKeyGenProtocol {
-	var err error
-	prng, err := sampling.NewPRNG()
-
-	// Sanity check, this error should not happen.
-	if err != nil {
-		panic(err)
-	}
-
-	params := ekg.params
-
-	Xe, err := ring.NewSampler(prng, ekg.params.RingQ(), ekg.params.Xe(), false)
-
-	// Sanity check, this error should not happen.
-	if err != nil {
-		panic(err)
-	}
-
-	Xs, err := ring.NewSampler(prng, ekg.params.RingQ(), ekg.params.Xs(), false)
-
-	// Sanity check, this error should not happen.
-	if err != nil {
-		panic(err)
-	}
-
-	return RelinearizationKeyGenProtocol{
-		params:           ekg.params,
-		buf:              [2]ringqp.Poly{params.RingQP().NewPoly(), params.RingQP().NewPoly()},
-		gaussianSamplerQ: Xe,
-		ternarySamplerQ:  Xs,
-	}
 }
 
 // NewRelinearizationKeyGenProtocol creates a new RelinearizationKeyGen protocol struct.
@@ -94,7 +56,6 @@ func NewRelinearizationKeyGenProtocol(params rlwe.ParameterProvider) Relineariza
 		panic(err)
 	}
 
-	rkg.buf = [2]ringqp.Poly{rkg.params.RingQP().NewPoly(), rkg.params.RingQP().NewPoly()}
 	return rkg
 }
 
@@ -103,7 +64,7 @@ func NewRelinearizationKeyGenProtocol(params rlwe.ParameterProvider) Relineariza
 func (ekg RelinearizationKeyGenProtocol) SampleCRP(crs CRS, evkParams ...rlwe.EvaluationKeyParameters) RelinearizationKeyGenCRP {
 	params := ekg.params
 
-	levelQ, levelP, BaseTwoDecomposition := rlwe.ResolveEvaluationKeyParameters(ekg.params, evkParams)
+	levelQ, levelP, BaseTwoDecomposition, _ := rlwe.ResolveEvaluationKeyParameters(ekg.params, evkParams)
 
 	BaseRNSDecompositionVectorSize := params.BaseRNSDecompositionVectorSize(levelQ, levelP)
 	BaseTwoDecompositionVectorSize := params.BaseTwoDecompositionVectorSize(levelQ, levelP, BaseTwoDecomposition)
@@ -122,7 +83,7 @@ func (ekg RelinearizationKeyGenProtocol) SampleCRP(crs CRS, evkParams ...rlwe.Ev
 	return RelinearizationKeyGenCRP{Value: structs.Matrix[ringqp.Poly](m)}
 }
 
-// GenShareRoundOne is the first of three rounds of the RelinearizationKeyGenProtocol protocol. Each party generates a pseudo encryption of
+// GenShareRoundOne is the first of three rounds of the [RelinearizationKeyGenProtocol] protocol. Each party generates a pseudo encryption of
 // its secret share of the key s_i under its ephemeral key u_i : [-u_i*a + s_i*w + e_i] and broadcasts it to the other
 // j-1 parties.
 //
@@ -140,15 +101,16 @@ func (ekg RelinearizationKeyGenProtocol) GenShareRoundOne(sk *rlwe.SecretKey, cr
 
 	hasModulusP := levelP > -1
 
+	buffQ := ringQ.NewPoly()
 	if hasModulusP {
 		// Computes P * sk
-		ringQ.MulScalarBigint(sk.Value.Q, ringQP.RingP.ModulusAtLevel[levelP], ekg.buf[0].Q)
+		ringQ.MulScalarBigint(sk.Value.Q, ringQP.RingP.ModulusAtLevel[levelP], buffQ)
 	} else {
 		levelP = 0
-		ekg.buf[0].Q.CopyLvl(levelQ, sk.Value.Q)
+		buffQ.CopyLvl(levelQ, sk.Value.Q)
 	}
 
-	ringQ.IMForm(ekg.buf[0].Q, ekg.buf[0].Q)
+	ringQ.IMForm(buffQ, buffQ)
 
 	// u
 	ekg.ternarySamplerQ.Read(ephSkOut.Value.Q)
@@ -168,7 +130,7 @@ func (ekg RelinearizationKeyGenProtocol) GenShareRoundOne(sk *rlwe.SecretKey, cr
 	sampler := ekg.gaussianSamplerQ.AtLevel(levelQ)
 
 	var index int
-	for j := 0; j < utils.MaxSlice(BaseTwoDecompositionVectorSize); j++ {
+	for j := 0; j < slices.Max(BaseTwoDecompositionVectorSize); j++ {
 		for i := 0; i < BaseRNSDecompositionVectorSize; i++ {
 
 			if j < BaseTwoDecompositionVectorSize[i] {
@@ -192,7 +154,7 @@ func (ekg RelinearizationKeyGenProtocol) GenShareRoundOne(sk *rlwe.SecretKey, cr
 					}
 
 					qi := ringQ.SubRings[index].Modulus
-					skP := ekg.buf[0].Q.Coeffs[index]
+					skP := buffQ.Coeffs[index]
 					h := shareOut.Value[i][j][0].Q.Coeffs[index]
 
 					for w := 0; w < N; w++ {
@@ -217,19 +179,15 @@ func (ekg RelinearizationKeyGenProtocol) GenShareRoundOne(sk *rlwe.SecretKey, cr
 			}
 		}
 
-		ringQ.MulScalar(ekg.buf[0].Q, 1<<shareOut.BaseTwoDecomposition, ekg.buf[0].Q)
+		ringQ.MulScalar(buffQ, 1<<shareOut.BaseTwoDecomposition, buffQ)
 	}
 }
 
-// GenShareRoundTwo is the second of three rounds of the RelinearizationKeyGenProtocol protocol. Upon receiving the j-1 shares, each party computes :
+// GenShareRoundTwo is the second of three rounds of the [RelinearizationKeyGenProtocol] protocol. Upon receiving the j-1 shares, each party computes :
 //
-// round1 = sum([-u_i * a + s_i * P + e_0i, s_i* a + e_i1])
+//   - round1 = sum([-u_i * a + s_i * P + e_0i, s_i* a + e_i1]) = [-ua + sP + e0, sa + e1]
 //
-//	= [u * a + s * P + e0, s * a + e1]
-//
-// round2 = [s_i * round1[0] + e_i2, (u_i - s_i) * round1[1] + e_i3]
-//
-//	= [s_i * {u * a + s * P + e0} + e_i2, (u_i - s_i) * {s * a + e1} + e_i3]
+//   - round2 = [s_i * round1[0] + (u_i - s_i) * round1[1] + e_i2] = [s_i * {-ua + s * P + e0} + (u_i - s_i) * {sa + e1} + e_i2]
 //
 // and broadcasts both values to the other j-1 parties.
 func (ekg RelinearizationKeyGenProtocol) GenShareRoundTwo(ephSk, sk *rlwe.SecretKey, round1 RelinearizationKeyGenShare, shareOut *RelinearizationKeyGenShare) {
@@ -242,7 +200,9 @@ func (ekg RelinearizationKeyGenProtocol) GenShareRoundTwo(ephSk, sk *rlwe.Secret
 	ringQP := ekg.params.RingQP().AtLevel(levelQ, levelP)
 
 	// (u_i - s_i)
-	ringQP.Sub(ephSk.Value, sk.Value, ekg.buf[0])
+	buffQP0 := ringQP.NewPoly()
+	buffQP1 := ekg.params.RingQP().NewPoly()
+	ringQP.Sub(ephSk.Value, sk.Value, buffQP0)
 
 	sampler := ekg.gaussianSamplerQ.AtLevel(levelQ)
 
@@ -257,25 +217,18 @@ func (ekg RelinearizationKeyGenProtocol) GenShareRoundTwo(ephSk, sk *rlwe.Secret
 			ringQP.MulCoeffsMontgomeryLazy(round1.Value[i][j][0], sk.Value, shareOut.Value[i][j][0])
 
 			// (AggregateShareRoundTwo samples) * sk + e_1i
-			sampler.Read(ekg.buf[1].Q)
+			sampler.Read(buffQP1.Q)
 
 			if levelP > -1 {
-				ringQP.ExtendBasisSmallNormAndCenter(ekg.buf[1].Q, levelP, ekg.buf[1].Q, ekg.buf[1].P)
+				ringQP.ExtendBasisSmallNormAndCenter(buffQP1.Q, levelP, buffQP1.Q, buffQP1.P)
 			}
 
-			ringQP.NTT(ekg.buf[1], ekg.buf[1])
-			ringQP.Add(shareOut.Value[i][j][0], ekg.buf[1], shareOut.Value[i][j][0])
+			ringQP.NTT(buffQP1, buffQP1)
+			ringQP.Add(shareOut.Value[i][j][0], buffQP1, shareOut.Value[i][j][0])
 
 			// second part
-			// (u_i - s_i) * (sum [x][s*a_i + e_2i]) + e3i
-			sampler.Read(shareOut.Value[i][j][1].Q)
-
-			if levelP > -1 {
-				ringQP.ExtendBasisSmallNormAndCenter(shareOut.Value[i][j][1].Q, levelP, shareOut.Value[i][j][1].Q, shareOut.Value[i][j][1].P)
-			}
-
-			ringQP.NTT(shareOut.Value[i][j][1], shareOut.Value[i][j][1])
-			ringQP.MulCoeffsMontgomeryThenAdd(ekg.buf[0], round1.Value[i][j][1], shareOut.Value[i][j][1])
+			// (AggRound1Samples[0])*sk + (u_i - s_i) * (AggRound1Samples[1]) + e_1
+			ringQP.MulCoeffsMontgomeryThenAdd(buffQP0, round1.Value[i][j][1], shareOut.Value[i][j][0])
 		}
 	}
 }
@@ -292,23 +245,19 @@ func (ekg RelinearizationKeyGenProtocol) AggregateShares(share1, share2 Relinear
 
 	for i := 0; i < BaseRNSDecompositionVectorSize; i++ {
 		for j := 0; j < BaseTwoDecompositionVectorSize[i]; j++ {
-			ringQP.Add(share1.Value[i][j][0], share2.Value[i][j][0], shareOut.Value[i][j][0])
-			ringQP.Add(share1.Value[i][j][1], share2.Value[i][j][1], shareOut.Value[i][j][1])
+			// deg(round 1 shares) = 1, deg(round 2 shares) = 0
+			for k := 0; k <= share1.Degree(); k++ {
+				ringQP.Add(share1.Value[i][j][k], share2.Value[i][j][k], shareOut.Value[i][j][k])
+			}
 		}
 	}
 }
 
 // GenRelinearizationKey computes the generated RLK from the public shares and write the result in evalKeyOut.
 //
-// round1 = [u * a + s * P + e0, s * a + e1]
-//
-// round2 = sum([s_i * {u * a + s * P + e0} + e_i2, (u_i - s_i) * {s * a + e1} + e_i3])
-//
-//	= [-sua + P*s^2 + s*e0 + e2, sua + ue1 - s^2a -s*e1 + e3]
-//
-// [round2[0] + round2[1], round1[1]] = [- s^2a - s*e1 + P*s^2 + s*e0 + u*e1 + e2 + e3, s * a + e1]
-//
-//	= [s * b + P * s^2 + s*e0 + u*e1 + e2 + e3, b]
+//   - round1 = [-ua + sP + e0, sa + e1]
+//   - round2 = sum([s_i * {-ua + sP + e0} + (u_i - s_i) * {sa + e1} + e_i2]) = [-sua + Ps^2 + se0 + e2, sua + ue1 - s^2a -se1]
+//   - [round2[0] + round2[1], round1[1]] = [-{s^2a + se1} + Ps^2 + {se0 + ue1 + e2}, sa + e1] = [sb + Ps^2 + e, b]
 func (ekg RelinearizationKeyGenProtocol) GenRelinearizationKey(round1 RelinearizationKeyGenShare, round2 RelinearizationKeyGenShare, evalKeyOut *rlwe.RelinearizationKey) {
 
 	levelQ := round1.LevelQ()
@@ -320,23 +269,22 @@ func (ekg RelinearizationKeyGenProtocol) GenRelinearizationKey(round1 Relineariz
 
 	for i := 0; i < BaseRNSDecompositionVectorSize; i++ {
 		for j := 0; j < BaseTwoDecompositionVectorSize[i]; j++ {
-			ringQP.Add(round2.Value[i][j][0], round2.Value[i][j][1], evalKeyOut.Value[i][j][0])
-			evalKeyOut.Value[i][j][1].Copy(round1.Value[i][j][1])
-			ringQP.MForm(evalKeyOut.Value[i][j][0], evalKeyOut.Value[i][j][0])
-			ringQP.MForm(evalKeyOut.Value[i][j][1], evalKeyOut.Value[i][j][1])
+			ringQP.MForm(round2.Value[i][j][0], evalKeyOut.Value[i][j][0])
+			ringQP.MForm(round1.Value[i][j][1], evalKeyOut.Value[i][j][1])
 		}
 	}
 }
 
 // AllocateShare allocates the share of the EKG protocol.
+// To satisfy the correctness of the multi-party protocol, linearization keys shares cannot be allocated in the compressed format.
 func (ekg RelinearizationKeyGenProtocol) AllocateShare(evkParams ...rlwe.EvaluationKeyParameters) (ephSk *rlwe.SecretKey, r1 RelinearizationKeyGenShare, r2 RelinearizationKeyGenShare) {
 	params := ekg.params
 	ephSk = rlwe.NewSecretKey(params)
 
-	levelQ, levelP, BaseTwoDecomposition := rlwe.ResolveEvaluationKeyParameters(ekg.params, evkParams)
+	levelQ, levelP, BaseTwoDecomposition, _ := rlwe.ResolveEvaluationKeyParameters(ekg.params, evkParams)
 
 	r1 = RelinearizationKeyGenShare{GadgetCiphertext: *rlwe.NewGadgetCiphertext(params, 1, levelQ, levelP, BaseTwoDecomposition)}
-	r2 = RelinearizationKeyGenShare{GadgetCiphertext: *rlwe.NewGadgetCiphertext(params, 1, levelQ, levelP, BaseTwoDecomposition)}
+	r2 = RelinearizationKeyGenShare{GadgetCiphertext: *rlwe.NewGadgetCiphertext(params, 0, levelQ, levelP, BaseTwoDecomposition)}
 
 	return
 }
@@ -346,30 +294,30 @@ func (share RelinearizationKeyGenShare) BinarySize() int {
 	return share.GadgetCiphertext.BinarySize()
 }
 
-// WriteTo writes the object on an io.Writer. It implements the io.WriterTo
+// WriteTo writes the object on an [io.Writer]. It implements the [io.WriterTo]
 // interface, and will write exactly object.BinarySize() bytes on w.
 //
-// Unless w implements the buffer.Writer interface (see lattice/utils/buffer/writer.go),
-// it will be wrapped into a bufio.Writer. Since this requires allocations, it
-// is preferable to pass a buffer.Writer directly:
+// Unless w implements the [buffer.Writer] interface (see lattice/utils/buffer/writer.go),
+// it will be wrapped into a [bufio.Writer]. Since this requires allocations, it
+// is preferable to pass a [buffer.Writer] directly:
 //
 //   - When writing multiple times to a io.Writer, it is preferable to first wrap the
-//     io.Writer in a pre-allocated bufio.Writer.
+//     io.Writer in a pre-allocated [bufio.Writer].
 //   - When writing to a pre-allocated var b []byte, it is preferable to pass
 //     buffer.NewBuffer(b) as w (see lattice/utils/buffer/buffer.go).
 func (share RelinearizationKeyGenShare) WriteTo(w io.Writer) (n int64, err error) {
 	return share.GadgetCiphertext.WriteTo(w)
 }
 
-// ReadFrom reads on the object from an io.Writer. It implements the
-// io.ReaderFrom interface.
+// ReadFrom reads on the object from an [io.Writer]. It implements the
+// [io.ReaderFrom] interface.
 //
-// Unless r implements the buffer.Reader interface (see see lattice/utils/buffer/reader.go),
-// it will be wrapped into a bufio.Reader. Since this requires allocation, it
-// is preferable to pass a buffer.Reader directly:
+// Unless r implements the [buffer.Reader] interface (see see lattice/utils/buffer/reader.go),
+// it will be wrapped into a [bufio.Reader]. Since this requires allocation, it
+// is preferable to pass a [buffer.Reader] directly:
 //
 //   - When reading multiple values from a io.Reader, it is preferable to first
-//     first wrap io.Reader in a pre-allocated bufio.Reader.
+//     first wrap [io.Reader] in a pre-allocated bufio.Reader.
 //   - When reading from a var b []byte, it is preferable to pass a buffer.NewBuffer(b)
 //     as w (see lattice/utils/buffer/buffer.go).
 func (share *RelinearizationKeyGenShare) ReadFrom(r io.Reader) (n int64, err error) {
@@ -382,7 +330,7 @@ func (share RelinearizationKeyGenShare) MarshalBinary() (data []byte, err error)
 }
 
 // UnmarshalBinary decodes a slice of bytes generated by
-// MarshalBinary or WriteTo on the object.
+// [RelinearizationKeyGenShare.MarshalBinary] or [RelinearizationKeyGenShare.WriteTo] on the object.
 func (share *RelinearizationKeyGenShare) UnmarshalBinary(data []byte) (err error) {
 	return share.GadgetCiphertext.UnmarshalBinary(data)
 }

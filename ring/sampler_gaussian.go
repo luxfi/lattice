@@ -5,8 +5,8 @@ import (
 	"math"
 	"math/big"
 
-	"github.com/luxfi/lattice/v5/utils/bignum"
-	"github.com/luxfi/lattice/v5/utils/sampling"
+	"github.com/luxfi/lattice/v6/utils/bignum"
+	"github.com/luxfi/lattice/v6/utils/sampling"
 )
 
 const (
@@ -15,21 +15,19 @@ const (
 
 // GaussianSampler keeps the state of a truncated Gaussian polynomial sampler.
 type GaussianSampler struct {
-	baseSampler
-	xe            DiscreteGaussian
-	randomBufferN []byte
-	ptr           uint64
-	montgomery    bool
+	*baseSampler
+	xe         DiscreteGaussian
+	montgomery bool
 }
 
 // NewGaussianSampler creates a new instance of GaussianSampler from a PRNG, a ring definition and the truncated
 // Gaussian distribution parameters. Sigma is the desired standard deviation and bound is the maximum coefficient norm in absolute
 // value.
+// WARNING: If the PRNG is deterministic/keyed (of type [sampling.KeyedPRNG]), *concurrent* calls to the sampler will not necessarily result in a deterministic output.
 func NewGaussianSampler(prng sampling.PRNG, baseRing *Ring, X DiscreteGaussian, montgomery bool) (g *GaussianSampler) {
 	g = new(GaussianSampler)
+	g.baseSampler = &baseSampler{}
 	g.prng = prng
-	g.randomBufferN = make([]byte, 1024)
-	g.ptr = 0
 	g.baseRing = baseRing
 	g.xe = X
 	g.montgomery = montgomery
@@ -40,10 +38,9 @@ func NewGaussianSampler(prng sampling.PRNG, baseRing *Ring, X DiscreteGaussian, 
 // This instance is not thread safe and cannot be used concurrently to the base instance.
 func (g *GaussianSampler) AtLevel(level int) Sampler {
 	return &GaussianSampler{
-		baseSampler:   g.baseSampler.AtLevel(level),
-		randomBufferN: g.randomBufferN,
-		xe:            g.xe,
-		ptr:           g.ptr,
+		baseSampler: g.baseSampler.AtLevel(level),
+		xe:          g.xe,
+		montgomery:  g.montgomery,
 	}
 }
 
@@ -75,9 +72,12 @@ func (g *GaussianSampler) read(pol Poly, f func(a, b, c uint64) uint64) {
 
 	r := g.baseRing
 
+	var randomBufferN [1024]byte
+	var ptr int
+
 	level := r.level
 
-	if _, err := g.prng.Read(g.randomBufferN); err != nil {
+	if _, err := g.prng.Read(randomBufferN[:]); err != nil {
 		// Sanity check, this error should not happen.
 		panic(err)
 	}
@@ -108,39 +108,48 @@ func (g *GaussianSampler) read(pol Poly, f func(a, b, c uint64) uint64) {
 			Qi[i] = bignum.NewInt(qi)
 		}
 
-		var coeffInt *big.Int
-
 		boundInt := new(big.Int)
 		new(big.Float).SetFloat64(bound).Int(boundInt)
 
-		coeffTmp := new(big.Int)
+		coeff := new(big.Int)
 
 		normInt := new(big.Int)
-
-		bias := math.Log2(math.Sqrt(2 * math.Pi)) // Corrects small bias due to discretization
+		normFlo := new(big.Float)
+		normIntLowBits := new(big.Int)
 
 		for i := 0; i < N; i++ {
 
 			for {
-				norm, sign = g.normFloat64()
+				// Sample norm with sigma = 1 and sign
+				norm, sign = g.normFloat64(randomBufferN[:], &ptr)
 
-				if norm < 1 {
-					normInt.Rsh(sigmaInt, uint(-(math.Log2(norm))))
-				} else {
-					normInt.Lsh(sigmaInt, uint(math.Log2(norm)+bias))
+				// Sets normFlo = norm * sigma with precision 53 bits
+				// and 0.5 for rounding discretization
+				normFlo.SetFloat64(norm*sigma + 0.5)
+
+				// Discretizes to an integer
+				normFlo.Int(normInt)
+
+				// Derive the number of zero bits: normInt>>53
+				normIntLowBits.Rsh(normInt, 53)
+
+				// Sample in the size of the number of zero bits and adds
+				// (normInt + rand(normInt>>53)) * sign
+				// This might not be constant time
+				if normIntLowBits.Cmp(new(big.Int)) > 0 {
+					normInt.Add(normInt, bignum.RandInt(g.prng, normIntLowBits))
 				}
 
-				coeffInt = bignum.RandInt(g.prng, normInt)
+				/* #nosec G115 -- sign is 0 or 1 */
+				normInt.Mul(normInt, bignum.NewInt(2*int64(sign)-1))
 
-				coeffInt.Mul(coeffInt, bignum.NewInt(2*int64(sign)-1))
-
-				if coeffInt.Cmp(boundInt) < 1 {
+				if normInt.Cmp(boundInt) < 1 {
 					break
 				}
 			}
 
 			for j, qi := range moduli {
-				coeffs[j][i] = f(coeffs[j][i], coeffTmp.Mod(coeffInt, Qi[j]).Uint64(), qi)
+				coeffs[j][i] = f(coeffs[j][i], coeff.Mod(normInt, Qi[j]).Uint64(), qi)
 			}
 		}
 
@@ -151,7 +160,7 @@ func (g *GaussianSampler) read(pol Poly, f func(a, b, c uint64) uint64) {
 		for i := 0; i < N; i++ {
 
 			for {
-				norm, sign = g.normFloat64()
+				norm, sign = g.normFloat64(randomBufferN[:], &ptr)
 
 				if v := norm * sigma; v <= bound {
 					coeffInt = uint64(v + 0.5) // rounding
@@ -180,34 +189,33 @@ func (g *GaussianSampler) read(pol Poly, f func(a, b, c uint64) uint64) {
 //
 // Algorithm adapted from https://golang.org/src/math/rand/normal.go
 // to use a secure PRNG instead of math/rand.
-func (g *GaussianSampler) normFloat64() (float64, uint64) {
+func (g *GaussianSampler) normFloat64(buff []byte, ptr *int) (float64, uint64) {
 
-	ptr := g.ptr
-	buff := g.randomBufferN
+	currPtr := *ptr
 	prng := g.prng
-	buffLen := uint64(len(buff))
+	buffLen := len(buff)
 
 	read := func() {
-		if ptr == buffLen {
+		if currPtr == buffLen {
 			if _, err := prng.Read(buff); err != nil {
 				// Sanity check, this error should not happen.
 				panic(err)
 			}
-			ptr = 0
+			currPtr = 0
 		}
 	}
 
 	randU32 := func() (x uint32) {
 		read()
-		x = binary.LittleEndian.Uint32(buff[ptr : ptr+4])
-		ptr += 8 // Avoids buffer misalignment
+		x = binary.LittleEndian.Uint32(buff[currPtr : currPtr+4])
+		currPtr += 8 // Avoids buffer misalignment
 		return
 	}
 
 	randF64 := func() (x float64) {
 		read()
-		x = float64(binary.LittleEndian.Uint64(buff[ptr:ptr+8])&0x1fffffffffffff) / float64(0x1fffffffffffff)
-		ptr += 8
+		x = float64(binary.LittleEndian.Uint64(buff[currPtr:currPtr+8])&0x1fffffffffffff) / float64(0x1fffffffffffff)
+		currPtr += 8
 		return
 	}
 
@@ -215,6 +223,7 @@ func (g *GaussianSampler) normFloat64() (float64, uint64) {
 
 		juint32 := randU32()
 
+		/* #nosec G115 -- juint32 is masked to 31 bits */
 		j := int32(juint32 & 0x7fffffff)
 		sign := uint64(juint32 >> 31)
 
@@ -223,8 +232,9 @@ func (g *GaussianSampler) normFloat64() (float64, uint64) {
 		x := float64(j) * float64(wn[i])
 
 		// 1 (>99%)
+		/* #nosec G115 -- j cannot be negative */
 		if uint32(j) < kn[i] {
-			g.ptr = ptr
+			*ptr = currPtr
 			return x, sign
 		}
 
@@ -242,13 +252,13 @@ func (g *GaussianSampler) normFloat64() (float64, uint64) {
 				}
 			}
 
-			g.ptr = ptr
+			*ptr = currPtr
 			return x + rn, sign
 		}
 
 		// 3
 		if fn[i]+float32(randF64())*(fn[i-1]-fn[i]) < float32(math.Exp(-0.5*x*x)) {
-			g.ptr = ptr
+			*ptr = currPtr
 			return x, sign
 		}
 	}

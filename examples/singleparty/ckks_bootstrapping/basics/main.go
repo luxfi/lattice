@@ -10,12 +10,12 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/luxfi/lattice/v5/core/rlwe"
-	"github.com/luxfi/lattice/v5/he/hefloat"
-	"github.com/luxfi/lattice/v5/he/hefloat/bootstrapping"
-	"github.com/luxfi/lattice/v5/ring"
-	"github.com/luxfi/lattice/v5/utils"
-	"github.com/luxfi/lattice/v5/utils/sampling"
+	"github.com/luxfi/lattice/v6/circuits/ckks/bootstrapping"
+	"github.com/luxfi/lattice/v6/core/rlwe"
+	"github.com/luxfi/lattice/v6/ring"
+	"github.com/luxfi/lattice/v6/schemes/ckks"
+	"github.com/luxfi/lattice/v6/utils"
+	"github.com/luxfi/lattice/v6/utils/sampling"
 )
 
 var flagShort = flag.Bool("short", false, "run the example with a smaller and insecure ring degree.")
@@ -40,7 +40,7 @@ func main() {
 	// The residual parameters are the parameters used outside of the bootstrapping circuit.
 	// For this example, we have a LogN=16, logQ = 55 + 10*40 and logP = 3*61, so LogQP = 638.
 	// With LogN=16, LogQP=638 and H=192, these parameters achieve well over 128-bit of security.
-	params, err := hefloat.NewParametersFromLiteral(hefloat.ParametersLiteral{
+	params, err := ckks.NewParametersFromLiteral(ckks.ParametersLiteral{
 		LogN:            LogN,                                              // Log2 of the ring degree
 		LogQ:            []int{55, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40}, // Log2 of the ciphertext prime moduli
 		LogP:            []int{61, 61, 61},                                 // Log2 of the key-switch auxiliary prime moduli
@@ -66,7 +66,7 @@ func main() {
 	// which provides parameters which are at least 128-bit if their LogQP <= 1550.
 
 	// For this first example, we do not specify any circuit specific optional field in the bootstrapping parameters literal.
-	// Thus we expect the bootstrapping to give a precision of 27.25 bits with H=192 (and 23.8 with H=N/2)
+	// Thus we expect the bootstrapping to give a average precision of 27.9 bits with H=192 (and 24.4 with H=N/2)
 	// if the plaintext values are uniformly distributed in [-1, 1] for both the real and imaginary part.
 	// See `he/float/bootstrapping/parameters_literal.go` for detailed information about the optional fields.
 	btpParametersLit := bootstrapping.ParametersLiteral{
@@ -89,10 +89,10 @@ func main() {
 
 	// Now that the residual parameters and the bootstrapping parameters literals are defined, we can instantiate
 	// the bootstrapping parameters.
-	// The instantiated bootstrapping parameters store their own hefloat.Parameter, which are the parameters of the
+	// The instantiated bootstrapping parameters store their own ckks.Parameter, which are the parameters of the
 	// ring used by the bootstrapping circuit.
-	// The bootstrapping parameters are a wrapper of hefloat.Parameters, with additional information.
-	// They therefore has the same API as the hefloat.Parameters and we can use this API to print some information.
+	// The bootstrapping parameters are a wrapper of ckks.Parameters, with additional information.
+	// They therefore has the same API as the ckks.Parameters and we can use this API to print some information.
 	btpParams, err := bootstrapping.NewParametersFromLiteral(params, btpParametersLit)
 	if err != nil {
 		panic(err)
@@ -137,7 +137,7 @@ func main() {
 
 	sk, pk := kgen.GenKeyPairNew()
 
-	encoder := hefloat.NewEncoder(params)
+	encoder := ckks.NewEncoder(params)
 	decryptor := rlwe.NewDecryptor(params, sk)
 	encryptor := rlwe.NewEncryptor(params, pk)
 
@@ -166,13 +166,17 @@ func main() {
 	}
 
 	// We encrypt at level 0
-	plaintext := hefloat.NewPlaintext(params, 0)
+	plaintext := ckks.NewPlaintext(params, 0)
 	if err := encoder.Encode(valuesWant, plaintext); err != nil {
 		panic(err)
 	}
 
 	// Encrypt
 	ciphertext1, err := encryptor.EncryptNew(plaintext)
+	if err != nil {
+		panic(err)
+	}
+	ciphertext2, err := encryptor.EncryptNew(plaintext)
 	if err != nil {
 		panic(err)
 	}
@@ -187,12 +191,25 @@ func main() {
 	// and returns a ciphertext with the max level of `floatParamsResidualLit`.
 	// CAUTION: the scale of the ciphertext MUST be equal (or very close) to params.DefaultScale()
 	// To equalize the scale, the function evaluator.SetScale(ciphertext, parameters.DefaultScale()) can be used at the expense of one level.
-	// If the ciphertext is is at level one or greater when given to the bootstrapper, this equalization is automatically done.
+	// If the ciphertext is at level one or greater when given to the bootstrapper, this equalization is automatically done.
+	// Here we bootstrap two ciphertexts in parallel to demonstrate that evaluators are thread-safe.
+	resChan := make(chan *rlwe.Ciphertext, 1)
 	fmt.Println("Bootstrapping...")
-	ciphertext2, err := eval.Bootstrap(ciphertext1)
+
+	go func() {
+		res, err := eval.Bootstrap(ciphertext2)
+		if err != nil {
+			panic(err)
+		}
+		resChan <- res
+	}()
+
+	res1, err := eval.Bootstrap(ciphertext1)
 	if err != nil {
 		panic(err)
 	}
+
+	res2 := <-resChan
 	fmt.Println("Done")
 
 	//==================
@@ -202,10 +219,11 @@ func main() {
 	// Decrypt, print and compare with the plaintext values
 	fmt.Println()
 	fmt.Println("Precision of ciphertext vs. Bootstrap(ciphertext)")
-	printDebug(params, ciphertext2, valuesTest1, decryptor, encoder)
+	printDebug(params, res1, valuesTest1, decryptor, encoder)
+	printDebug(params, res2, valuesTest1, decryptor, encoder)
 }
 
-func printDebug(params hefloat.Parameters, ciphertext *rlwe.Ciphertext, valuesWant []complex128, decryptor *rlwe.Decryptor, encoder *hefloat.Encoder) (valuesTest []complex128) {
+func printDebug(params ckks.Parameters, ciphertext *rlwe.Ciphertext, valuesWant []complex128, decryptor *rlwe.Decryptor, encoder *ckks.Encoder) (valuesTest []complex128) {
 
 	valuesTest = make([]complex128, ciphertext.Slots())
 
@@ -220,7 +238,7 @@ func printDebug(params hefloat.Parameters, ciphertext *rlwe.Ciphertext, valuesWa
 	fmt.Printf("ValuesTest: %6.10f %6.10f %6.10f %6.10f...\n", valuesTest[0], valuesTest[1], valuesTest[2], valuesTest[3])
 	fmt.Printf("ValuesWant: %6.10f %6.10f %6.10f %6.10f...\n", valuesWant[0], valuesWant[1], valuesWant[2], valuesWant[3])
 
-	precStats := hefloat.GetPrecisionStats(params, encoder, nil, valuesWant, valuesTest, 0, false)
+	precStats := ckks.GetPrecisionStats(params, encoder, nil, valuesWant, valuesTest, 0, false)
 
 	fmt.Println(precStats.String())
 	fmt.Println()

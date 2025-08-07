@@ -1,7 +1,7 @@
-package mhe
+package multiparty
 
 import (
-	"github.com/luxfi/lattice/v5/core/rlwe"
+	"github.com/luxfi/lattice/v6/core/rlwe"
 )
 
 type TestParametersLiteral struct {
