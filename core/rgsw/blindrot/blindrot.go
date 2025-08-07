@@ -1,9 +1,9 @@
-// Package hebin implements blind rotations evaluation for RLWE schemes.
-package hebin
+// Package blindrot implements blind rotations evaluation for RLWE schemes.
+package blindrot
 
 import (
-	"github.com/luxfi/lattice/v5/core/rlwe"
-	"github.com/luxfi/lattice/v5/ring"
+	"github.com/luxfi/lattice/v6/core/rlwe"
+	"github.com/luxfi/lattice/v6/ring"
 )
 
 // InitTestPolynomial takes a function g, and creates a test polynomial polynomial for the function in the interval [a, b].

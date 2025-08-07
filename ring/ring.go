@@ -9,13 +9,13 @@ import (
 	"math/big"
 	"math/bits"
 
-	"github.com/luxfi/lattice/v5/utils"
-	"github.com/luxfi/lattice/v5/utils/bignum"
+	"github.com/luxfi/lattice/v6/utils"
+	"github.com/luxfi/lattice/v6/utils/bignum"
 )
 
 const (
 	// GaloisGen is an integer of order N/2 modulo M that spans Z_M with the integer -1.
-	// The j-th ring automorphism takes the root zeta to zeta^(5j).
+	// The j-th ring automorphism takes the root zeta to zeta^(5^j).
 	GaloisGen uint64 = 5
 
 	// MinimumRingDegreeForLoopUnrolledOperations is the minimum ring degree required to
@@ -78,6 +78,7 @@ type Ring struct {
 	RescaleConstants [][]uint64
 
 	level int
+	pool  *BufferPool
 }
 
 // ConjugateInvariantRing returns the conjugate invariant ring of the receiver ring.
@@ -100,6 +101,7 @@ func (r Ring) ConjugateInvariantRing() (*Ring, error) {
 
 	for i, s := range r.SubRings {
 
+		/* #nosec G115 -- library requires 64-bit system -> int = int64 */
 		if cr.SubRings[i], err = NewSubRingWithCustomNTT(s.N>>1, s.Modulus, NewNumberTheoreticTransformerConjugateInvariant, int(s.NthRoot)); err != nil {
 			return nil, err
 		}
@@ -130,6 +132,7 @@ func (r Ring) StandardRing() (*Ring, error) {
 
 	for i, s := range r.SubRings {
 
+		/* #nosec G115 -- library requires 64-bit system -> int = int64 */
 		if sr.SubRings[i], err = NewSubRingWithCustomNTT(s.N<<1, s.Modulus, NewNumberTheoreticTransformerStandard, int(s.NthRoot)); err != nil {
 			return nil, err
 		}
@@ -147,6 +150,7 @@ func (r Ring) N() int {
 
 // LogN returns log2(ring degree).
 func (r Ring) LogN() int {
+	/* #nosec G115 -- N cannot be negative */
 	return bits.Len64(uint64(r.N() - 1))
 }
 
@@ -192,6 +196,7 @@ func (r Ring) AtLevel(level int) *Ring {
 		ModulusAtLevel:   r.ModulusAtLevel,
 		RescaleConstants: r.RescaleConstants,
 		level:            level,
+		pool:             r.pool,
 	}
 }
 
@@ -229,8 +234,8 @@ func (r Ring) MRedConstants() (MRC []uint64) {
 
 // BRedConstants returns the concatenation of the Barrett constants
 // of the target ring.
-func (r Ring) BRedConstants() (BRC [][]uint64) {
-	BRC = make([][]uint64, len(r.SubRings))
+func (r Ring) BRedConstants() (BRC [][2]uint64) {
+	BRC = make([][2]uint64, len(r.SubRings))
 	for i := range r.SubRings {
 		BRC[i] = r.SubRings[i].BRedConstant
 	}
@@ -240,6 +245,7 @@ func (r Ring) BRedConstants() (BRC [][]uint64) {
 
 // NewRing creates a new RNS Ring with degree N and coefficient moduli Moduli with Standard NTT. N must be a power of two larger than 8. Moduli should be
 // a non-empty []uint64 with distinct prime elements. All moduli must also be equal to 1 modulo 2*N.
+// A pool implementing BufferPool[*[]uint64] will be stored in the returned Ring and will be used to efficiently instantiate large objects.
 // An error is returned with a nil *Ring in the case of non NTT-enabling parameters.
 func NewRing(N int, Moduli []uint64) (r *Ring, err error) {
 	return NewRingWithCustomNTT(N, Moduli, NewNumberTheoreticTransformerStandard, 2*N)

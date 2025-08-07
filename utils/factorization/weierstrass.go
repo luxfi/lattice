@@ -3,7 +3,7 @@ package factorization
 import (
 	"math/big"
 
-	"github.com/luxfi/lattice/v5/utils/sampling"
+	"github.com/luxfi/lattice/v6/utils/sampling"
 )
 
 // Weierstrass is an elliptic curve y^2 = x^3 + ax + b mod N.

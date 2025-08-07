@@ -1,12 +1,12 @@
-package he
+package polynomial
 
 import (
 	"testing"
 
-	"github.com/luxfi/lattice/v5/core/rlwe"
-	"github.com/luxfi/lattice/v5/utils/bignum"
-	"github.com/luxfi/lattice/v5/utils/buffer"
-	"github.com/luxfi/lattice/v5/utils/sampling"
+	"github.com/luxfi/lattice/v6/core/rlwe"
+	"github.com/luxfi/lattice/v6/utils/bignum"
+	"github.com/luxfi/lattice/v6/utils/buffer"
+	"github.com/luxfi/lattice/v6/utils/sampling"
 )
 
 func TestPowerBasis(t *testing.T) {

@@ -8,12 +8,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/luxfi/lattice/v5/core/rlwe"
-	"github.com/luxfi/lattice/v5/mhe"
-	"github.com/luxfi/lattice/v5/utils/sampling"
+	"github.com/luxfi/lattice/v6/core/rlwe"
+	"github.com/luxfi/lattice/v6/multiparty"
+	"github.com/luxfi/lattice/v6/utils/sampling"
 )
 
-// This example showcases the use of the mhe package to generate an evaluation key in a multiparty setting.
+// This example showcases the use of the multiparty package to generate an evaluation key in a multiparty setting.
 // It simulate multiple parties and their interactions within a single Go program using multiple goroutines.
 // The parties use the t-out-of-N-threshold RLWE encryption scheme as described in "An Efficient Threshold
 // Access-Structure for RLWE-Based Multiparty Homomorphic Encryption" (2022) by Mouchet, C., Bertrand, E. and
@@ -33,28 +33,28 @@ import (
 
 // party represents a party in the scenario.
 type party struct {
-	mhe.GaloisKeyGenProtocol
-	mhe.Thresholdizer
-	mhe.Combiner
+	multiparty.GaloisKeyGenProtocol
+	multiparty.Thresholdizer
+	multiparty.Combiner
 
 	i        int
 	sk       *rlwe.SecretKey
-	tsk      mhe.ShamirSecretShare
-	ssp      mhe.ShamirPolynomial
-	shamirPk mhe.ShamirPublicPoint
+	tsk      multiparty.ShamirSecretShare
+	ssp      multiparty.ShamirPolynomial
+	shamirPk multiparty.ShamirPublicPoint
 
 	genTaskQueue chan genTask
 }
 
 // cloud represents the cloud server assisting the parties.
 type cloud struct {
-	mhe.GaloisKeyGenProtocol
+	multiparty.GaloisKeyGenProtocol
 
 	aggTaskQueue chan genTaskResult
 	finDone      chan rlwe.GaloisKey
 }
 
-var crp map[uint64]mhe.GaloisKeyGenCRP
+var crp map[uint64]multiparty.GaloisKeyGenCRP
 
 // Run simulate the behavior of a party during the key generation protocol. The parties process
 // a queue of share-generation tasks which is attributed to them by a protocol orchestrator
@@ -73,7 +73,7 @@ func (p *party) Run(wg *sync.WaitGroup, params rlwe.Parameters, N int, P []*part
 		if t == N {
 			sk = p.sk
 		} else {
-			activePk := make([]mhe.ShamirPublicPoint, 0)
+			activePk := make([]multiparty.ShamirPublicPoint, 0)
 			for _, pi := range task.group {
 				activePk = append(activePk, pi.shamirPk)
 			}
@@ -111,12 +111,12 @@ func (p *party) String() string {
 func (c *cloud) Run(galEls []uint64, params rlwe.Parameters, t int) {
 
 	shares := make(map[uint64]*struct {
-		share  mhe.GaloisKeyGenShare
+		share  multiparty.GaloisKeyGenShare
 		needed int
 	}, len(galEls))
 	for _, galEl := range galEls {
 		shares[galEl] = &struct {
-			share  mhe.GaloisKeyGenShare
+			share  multiparty.GaloisKeyGenShare
 			needed int
 		}{c.AllocateShare(), t}
 		shares[galEl].share.GaloisElement = galEl
@@ -210,7 +210,7 @@ func main() {
 
 	wg := new(sync.WaitGroup)
 	C := &cloud{
-		GaloisKeyGenProtocol: mhe.NewGaloisKeyGenProtocol(params),
+		GaloisKeyGenProtocol: multiparty.NewGaloisKeyGenProtocol(params),
 		aggTaskQueue:         make(chan genTaskResult, len(galEls)*N),
 		finDone:              make(chan rlwe.GaloisKey, len(galEls)),
 	}
@@ -218,24 +218,25 @@ func main() {
 	// Initialize the parties' state
 	P := make([]*party, N)
 	skIdeal := rlwe.NewSecretKey(params)
-	shamirPks := make([]mhe.ShamirPublicPoint, 0)
+	shamirPks := make([]multiparty.ShamirPublicPoint, 0)
 
 	for i := range P {
 		pi := new(party)
-		pi.GaloisKeyGenProtocol = mhe.NewGaloisKeyGenProtocol(params)
+		pi.GaloisKeyGenProtocol = multiparty.NewGaloisKeyGenProtocol(params)
 		pi.i = i
 		pi.sk = kg.GenSecretKeyNew()
 		pi.genTaskQueue = make(chan genTask, k)
 
 		if t != N {
-			pi.Thresholdizer = mhe.NewThresholdizer(params)
+			pi.Thresholdizer = multiparty.NewThresholdizer(params)
 			pi.tsk = pi.AllocateThresholdSecretShare()
 			var err error
 			pi.ssp, err = pi.GenShamirPolynomial(t, pi.sk)
 			if err != nil {
 				panic(err)
 			}
-			pi.shamirPk = mhe.ShamirPublicPoint(i + 1)
+			/* #nosec G115 -- i cannot be negative */
+			pi.shamirPk = multiparty.ShamirPublicPoint(i + 1)
 		}
 
 		P[i] = pi
@@ -249,14 +250,14 @@ func main() {
 	// if t < N, use the t-out-of-N scheme and performs the share-resharing procedure.
 	if t != N {
 		for _, pi := range P {
-			pi.Combiner = mhe.NewCombiner(params, pi.shamirPk, shamirPks, t)
+			pi.Combiner = multiparty.NewCombiner(params, pi.shamirPk, shamirPks, t)
 		}
 
 		fmt.Println("Performing threshold setup")
-		shares := make(map[*party]map[*party]mhe.ShamirSecretShare, len(P))
+		shares := make(map[*party]map[*party]multiparty.ShamirSecretShare, len(P))
 		for _, pi := range P {
 
-			shares[pi] = make(map[*party]mhe.ShamirSecretShare)
+			shares[pi] = make(map[*party]multiparty.ShamirSecretShare)
 
 			for _, pj := range P {
 				share := pi.AllocateThresholdSecretShare()
@@ -283,7 +284,7 @@ func main() {
 
 	// Sample the common random polynomials from the CRS.
 	// For the scenario, we consider it is provided as-is to the parties.
-	crp = make(map[uint64]mhe.GaloisKeyGenCRP)
+	crp = make(map[uint64]multiparty.GaloisKeyGenCRP)
 	for _, galEl := range galEls {
 		crp[galEl] = P[0].SampleCRP(crs)
 	}
@@ -323,7 +324,7 @@ func main() {
 
 	fmt.Printf("Checking the keys... ")
 
-	noise := mhe.NoiseGaloisKey(params, t)
+	noise := multiparty.NoiseGaloisKey(params, t)
 
 	for _, galEl := range galEls {
 
@@ -347,7 +348,7 @@ type genTask struct {
 
 type genTaskResult struct {
 	galEl    uint64
-	rtgShare mhe.GaloisKeyGenShare
+	rtgShare multiparty.GaloisKeyGenShare
 }
 
 func getTasks(galEls []uint64, groups [][]*party) []genTask {

@@ -1,6 +1,6 @@
 package rlwe
 
-import "github.com/luxfi/lattice/v5/ring"
+import "github.com/luxfi/lattice/v6/ring"
 
 const (
 	// XsUniformTernary is the standard deviation of a ternary key with uniform distribution

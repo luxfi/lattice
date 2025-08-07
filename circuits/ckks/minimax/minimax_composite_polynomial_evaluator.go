@@ -1,41 +1,36 @@
-package hefloat
+package minimax
 
 import (
 	"fmt"
 
-	"github.com/luxfi/lattice/v5/core/rlwe"
-	"github.com/luxfi/lattice/v5/he"
-	"github.com/luxfi/lattice/v5/ring"
+	"github.com/luxfi/lattice/v6/circuits/ckks/bootstrapping"
+	"github.com/luxfi/lattice/v6/circuits/ckks/polynomial"
+	"github.com/luxfi/lattice/v6/core/rlwe"
+	"github.com/luxfi/lattice/v6/ring"
+	"github.com/luxfi/lattice/v6/schemes/ckks"
 )
 
-// EvaluatorForMinimaxCompositePolynomial defines a set of common and scheme agnostic method that are necessary to instantiate a MinimaxCompositePolynomialEvaluator.
-type EvaluatorForMinimaxCompositePolynomial interface {
-	he.Evaluator
-	ConjugateNew(ct *rlwe.Ciphertext) (ctConj *rlwe.Ciphertext, err error)
-}
-
-// MinimaxCompositePolynomialEvaluator is an evaluator used to evaluate composite polynomials on ciphertexts.
+// Evaluator is an evaluator used to evaluate composite polynomials on ciphertexts.
 // All fields of this struct are publics, enabling custom instantiations.
-type MinimaxCompositePolynomialEvaluator struct {
-	EvaluatorForMinimaxCompositePolynomial
-	PolynomialEvaluator
-	he.Bootstrapper[rlwe.Ciphertext]
-	Parameters Parameters
+type Evaluator struct {
+	*ckks.Evaluator
+	PolyEval   *polynomial.Evaluator
+	BtsEval    bootstrapping.Bootstrapper
+	Parameters ckks.Parameters
 }
 
-// NewMinimaxCompositePolynomialEvaluator instantiates a new MinimaxCompositePolynomialEvaluator.
-// The default hefloat.Evaluator is compliant to the EvaluatorForMinimaxCompositePolynomial interface.
+// NewEvaluator instantiates a new Evaluator.
 // This method is allocation free.
-func NewMinimaxCompositePolynomialEvaluator(params Parameters, eval EvaluatorForMinimaxCompositePolynomial, bootstrapper he.Bootstrapper[rlwe.Ciphertext]) *MinimaxCompositePolynomialEvaluator {
-	return &MinimaxCompositePolynomialEvaluator{eval, *NewPolynomialEvaluator(params, eval), bootstrapper, params}
+func NewEvaluator(params ckks.Parameters, eval *ckks.Evaluator, btsEval bootstrapping.Bootstrapper) *Evaluator {
+	return &Evaluator{eval, polynomial.NewEvaluator(params, eval), btsEval, params}
 }
 
 // Evaluate evaluates the provided MinimaxCompositePolynomial on the input ciphertext.
-func (eval MinimaxCompositePolynomialEvaluator) Evaluate(ct *rlwe.Ciphertext, mcp MinimaxCompositePolynomial) (res *rlwe.Ciphertext, err error) {
+func (eval Evaluator) Evaluate(ct *rlwe.Ciphertext, mcp Polynomial) (res *rlwe.Ciphertext, err error) {
 
 	params := eval.Parameters
 
-	btp := eval.Bootstrapper
+	btp := eval.BtsEval
 
 	levelsConsumedPerRescaling := params.LevelsConsumedPerRescaling()
 
@@ -66,7 +61,7 @@ func (eval MinimaxCompositePolynomialEvaluator) Evaluate(ct *rlwe.Ciphertext, mc
 		}
 
 		// Evaluate the polynomial
-		if res, err = eval.PolynomialEvaluator.Evaluate(res, poly, targetScale); err != nil {
+		if res, err = eval.PolyEval.Evaluate(res, poly, targetScale); err != nil {
 			return nil, fmt.Errorf("evaluate polynomial: %w", err)
 		}
 

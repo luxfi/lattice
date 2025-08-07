@@ -14,7 +14,7 @@
 // The method is described in details by Bae et al. in META-BTS: Bootstrapping Precision Beyond the Limit (https://eprint.iacr.org/2022/1167).
 //
 // This example assumes that the user is already familiar with the bootstrapping and its different steps.
-// See the basic example `lattice/examples/he/hefloat/bootstrapping/basic` for an introduction into the
+// See the basic example `lattice/single_party/applications/reals_bootstrapping/basics` for an introduction into the
 // bootstrapping.
 // Use the flag -short to run the examples fast but with insecure parameters.
 package main
@@ -24,13 +24,13 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/luxfi/lattice/v5/core/rlwe"
-	"github.com/luxfi/lattice/v5/he/hefloat"
-	"github.com/luxfi/lattice/v5/he/hefloat/bootstrapping"
-	"github.com/luxfi/lattice/v5/ring"
-	"github.com/luxfi/lattice/v5/utils"
-	"github.com/luxfi/lattice/v5/utils/bignum"
-	"github.com/luxfi/lattice/v5/utils/sampling"
+	"github.com/luxfi/lattice/v6/circuits/ckks/bootstrapping"
+	"github.com/luxfi/lattice/v6/core/rlwe"
+	"github.com/luxfi/lattice/v6/ring"
+	"github.com/luxfi/lattice/v6/schemes/ckks"
+	"github.com/luxfi/lattice/v6/utils"
+	"github.com/luxfi/lattice/v6/utils/bignum"
+	"github.com/luxfi/lattice/v6/utils/sampling"
 )
 
 var flagShort = flag.Bool("short", false, "run the example with a smaller and insecure ring degree.")
@@ -55,7 +55,7 @@ func main() {
 	// The residual parameters are the parameters used outside of the bootstrapping circuit.
 	// For this example, we have a LogN=16, logQ = (55+45) + 5*(45+45) and logP = 3*61, so LogQP = 638.
 	// With LogN=16, LogQP=638 and H=192, these parameters achieve well over 128-bit of security.
-	params, err := hefloat.NewParametersFromLiteral(hefloat.ParametersLiteral{
+	params, err := ckks.NewParametersFromLiteral(ckks.ParametersLiteral{
 		LogN:            LogN,              // Log2 of the ring degree
 		LogQ:            []int{60, 45},     // Log2 of the ciphertext prime moduli
 		LogP:            []int{61, 61, 61}, // Log2 of the key-switch auxiliary prime moduli
@@ -83,9 +83,9 @@ func main() {
 	// which provides parameters which are at least 128-bit if their LogQP <= 1550.
 
 	// For this first example, we do not specify any circuit specific optional field in the bootstrapping parameters literal.
-	// Thus we expect the bootstrapping to give a precision of 27.25 bits with H=192 (and 23.8 with H=N/2)
+	// Thus we expect the bootstrapping to give an average precision of 27.9 bits with H=192 (and 24.4 with H=N/2)
 	// if the plaintext values are uniformly distributed in [-1, 1] for both the real and imaginary part.
-	// See `he/float/bootstrapping/parameters_literal.go` for detailed information about the optional fields.
+	// See `circuits/bootstrapping/parameters_literal.go` for detailed information about the optional fields.
 	btpParametersLit := bootstrapping.ParametersLiteral{
 		// We specify LogN to ensure that both the residual parameters and the bootstrapping parameters
 		// have the same LogN. This is not required, but we want it for this example.
@@ -96,13 +96,13 @@ func main() {
 		LogP: []int{61, 61, 61, 61},
 
 		// Sets the IterationsParameters.
-		// The default bootstrapping parameters have 27.5 bits of average precision and
+		// The default bootstrapping parameters have 27.9 bits of average precision and
 		// ~25 bits of minimum precision, and the maximum precision that can be theoretically
 		// achieved is LogScale - LogN/2.
-		// Therefore we start with 27.5 bits and each can in theory increase the precision an additional 25 bits.
+		// Therefore we start with 27.9 bits and each can in theory increase the precision an additional 25 bits.
 		// However, to achieve the best possible precision, we must carefully adjust each iteration by hand so
 		// that the sum of all the minimum precision is as close as possible
-		// to LogScale - LogN/2. Here 27.5+25+25+5 = 82.5 (for the insecure parameters with LogN=13, with
+		// to LogScale - LogN/2. Here 27.9+25+25+5 ~= 82.5 (for the insecure parameters with LogN=13, with
 		// the secure parameters using LogN=16 achieve 82.5 - (16-13)/2 = 81 bits of precision).
 		IterationsParameters: &bootstrapping.IterationsParameters{
 			BootstrappingPrecision: []float64{25, 25, 5},
@@ -120,10 +120,10 @@ func main() {
 
 	// Now that the residual parameters and the bootstrapping parameters literals are defined, we can instantiate
 	// the bootstrapping parameters.
-	// The instantiated bootstrapping parameters store their own hefloat.Parameter, which are the parameters of the
+	// The instantiated bootstrapping parameters store their own ckks.Parameter, which are the parameters of the
 	// ring used by the bootstrapping circuit.
-	// The bootstrapping parameters are a wrapper of hefloat.Parameters, with additional information.
-	// They therefore has the same API as the hefloat.Parameters and we can use this API to print some information.
+	// The bootstrapping parameters are a wrapper of ckks.Parameters, with additional information.
+	// They therefore has the same API as the ckks.Parameters and we can use this API to print some information.
 	btpParams, err := bootstrapping.NewParametersFromLiteral(params, btpParametersLit)
 	if err != nil {
 		panic(err)
@@ -168,7 +168,7 @@ func main() {
 
 	sk, pk := kgen.GenKeyPairNew()
 
-	encoder := hefloat.NewEncoder(params)
+	encoder := ckks.NewEncoder(params)
 	decryptor := rlwe.NewDecryptor(params, sk)
 	encryptor := rlwe.NewEncryptor(params, pk)
 
@@ -200,7 +200,7 @@ func main() {
 	}
 
 	// We encrypt at level=LevelsConsumedPerRescaling-1
-	plaintext := hefloat.NewPlaintext(params, params.LevelsConsumedPerRescaling()-1)
+	plaintext := ckks.NewPlaintext(params, params.LevelsConsumedPerRescaling()-1)
 	if err := encoder.Encode(valuesWant, plaintext); err != nil {
 		panic(err)
 	}
@@ -240,7 +240,7 @@ func main() {
 	printDebug(params, ciphertext2, valuesTest1, decryptor, encoder)
 }
 
-func printDebug(params hefloat.Parameters, ciphertext *rlwe.Ciphertext, valuesWant []*bignum.Complex, decryptor *rlwe.Decryptor, encoder *hefloat.Encoder) (valuesTest []*bignum.Complex) {
+func printDebug(params ckks.Parameters, ciphertext *rlwe.Ciphertext, valuesWant []*bignum.Complex, decryptor *rlwe.Decryptor, encoder *ckks.Encoder) (valuesTest []*bignum.Complex) {
 
 	valuesTest = make([]*bignum.Complex, ciphertext.Slots())
 
@@ -255,7 +255,7 @@ func printDebug(params hefloat.Parameters, ciphertext *rlwe.Ciphertext, valuesWa
 	fmt.Printf("ValuesTest: %6.27f %6.27f...\n", valuesTest[0], valuesTest[1])
 	fmt.Printf("ValuesWant: %6.27f %6.27f...\n", valuesWant[0], valuesWant[1])
 
-	precStats := hefloat.GetPrecisionStats(params, encoder, nil, valuesWant, valuesTest, 0, false)
+	precStats := ckks.GetPrecisionStats(params, encoder, nil, valuesWant, valuesTest, 0, false)
 
 	fmt.Println(precStats.String())
 	fmt.Println()

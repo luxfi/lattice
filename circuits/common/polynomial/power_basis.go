@@ -1,4 +1,4 @@
-package he
+package polynomial
 
 import (
 	"bufio"
@@ -6,10 +6,11 @@ import (
 	"io"
 	"math/bits"
 
-	"github.com/luxfi/lattice/v5/core/rlwe"
-	"github.com/luxfi/lattice/v5/utils/bignum"
-	"github.com/luxfi/lattice/v5/utils/buffer"
-	"github.com/luxfi/lattice/v5/utils/structs"
+	"github.com/luxfi/lattice/v6/core/rlwe"
+	"github.com/luxfi/lattice/v6/schemes"
+	"github.com/luxfi/lattice/v6/utils/bignum"
+	"github.com/luxfi/lattice/v6/utils/buffer"
+	"github.com/luxfi/lattice/v6/utils/structs"
 )
 
 // PowerBasis is a struct storing powers of a ciphertext.
@@ -18,9 +19,9 @@ type PowerBasis struct {
 	Value structs.Map[int, rlwe.Ciphertext]
 }
 
-// NewPowerBasis creates a new PowerBasis. It takes as input a ciphertext
+// NewPowerBasis creates a new [PowerBasis]. It takes as input a ciphertext
 // and a basis type. The struct treats the input ciphertext as a monomial X and
-// can be used to generates power of this monomial X^{n} in the given BasisType.
+// can be used to generates power of this monomial X^{n} in the given [BasisType].
 func NewPowerBasis(ct *rlwe.Ciphertext, basis bignum.Basis) (p PowerBasis) {
 	return PowerBasis{
 		Value: map[int]*rlwe.Ciphertext{1: ct.CopyNew()},
@@ -32,11 +33,16 @@ func NewPowerBasis(ct *rlwe.Ciphertext, basis bignum.Basis) (p PowerBasis) {
 // with a and/or b odd if possible.
 func SplitDegree(n int) (a, b int) {
 
+	if n <= 0 {
+		panic(fmt.Errorf("invalid n: n=%d should be greater than zero", n))
+	}
+
 	if n&(n-1) == 0 {
 		a, b = n/2, n/2 //Necessary for optimal depth
 	} else {
 		// [Lee et al. 2020] : High-Precision and Low-Complexity Approximate Homomorphic Encryption by Error Variance Minimization
 		// Maximize the number of odd terms of Chebyshev basis
+		/* #nosec G115 -- previous check ensures n is greater than 0 */
 		k := bits.Len64(uint64(n-1)) - 1
 		a = (1 << k) - 1
 		b = n + 1 - (1 << k)
@@ -48,7 +54,7 @@ func SplitDegree(n int) (a, b int) {
 // GenPower recursively computes X^{n}.
 // If lazy = true, the final X^{n} will not be relinearized.
 // Previous non-relinearized X^{n} that are required to compute the target X^{n} are automatically relinearized.
-func (p *PowerBasis) GenPower(n int, lazy bool, eval Evaluator) (err error) {
+func (p *PowerBasis) GenPower(n int, lazy bool, eval schemes.Evaluator) (err error) {
 
 	if eval == nil {
 		return fmt.Errorf("cannot GenPower: EvaluatorInterface is nil")
@@ -71,7 +77,7 @@ func (p *PowerBasis) GenPower(n int, lazy bool, eval Evaluator) (err error) {
 	return nil
 }
 
-func (p *PowerBasis) genPower(n int, lazy, rescale bool, eval Evaluator) (rescaltOut bool, err error) {
+func (p *PowerBasis) genPower(n int, lazy, rescale bool, eval schemes.Evaluator) (rescaltOut bool, err error) {
 
 	if p.Value[n] == nil {
 
@@ -180,15 +186,15 @@ func (p PowerBasis) BinarySize() (size int) {
 	return 1 + p.Value.BinarySize()
 }
 
-// WriteTo writes the object on an io.Writer. It implements the io.WriterTo
+// WriteTo writes the object on an [io.Writer]. It implements the [io.WriterTo]
 // interface, and will write exactly object.BinarySize() bytes on w.
 //
-// Unless w implements the buffer.Writer interface (see lattice/utils/buffer/writer.go),
-// it will be wrapped into a bufio.Writer. Since this requires allocations, it
-// is preferable to pass a buffer.Writer directly:
+// Unless w implements the [buffer.Writer] interface (see lattice/utils/buffer/writer.go),
+// it will be wrapped into a [bufio.Writer]. Since this requires allocations, it
+// is preferable to pass a [buffer.Writer] directly:
 //
-//   - When writing multiple times to a io.Writer, it is preferable to first wrap the
-//     io.Writer in a pre-allocated bufio.Writer.
+//   - When writing multiple times to a [io.Writer], it is preferable to first wrap the
+//     [io.Writer] in a pre-allocated [bufio.Writer].
 //   - When writing to a pre-allocated var b []byte, it is preferable to pass
 //     buffer.NewBuffer(b) as w (see lattice/utils/buffer/buffer.go).
 func (p PowerBasis) WriteTo(w io.Writer) (n int64, err error) {
@@ -198,6 +204,7 @@ func (p PowerBasis) WriteTo(w io.Writer) (n int64, err error) {
 
 		var inc int64
 
+		/* #nosec G115 -- Basis cannot be negative if receiver is valid */
 		if inc, err = buffer.WriteUint8(w, uint8(p.Basis)); err != nil {
 			return n + inc, err
 		}
@@ -213,15 +220,15 @@ func (p PowerBasis) WriteTo(w io.Writer) (n int64, err error) {
 	}
 }
 
-// ReadFrom reads on the object from an io.Writer. It implements the
-// io.ReaderFrom interface.
+// ReadFrom reads on the object from an [io.Writer]. It implements the
+// [io.ReaderFrom] interface.
 //
-// Unless r implements the buffer.Reader interface (see see lattice/utils/buffer/reader.go),
-// it will be wrapped into a bufio.Reader. Since this requires allocation, it
-// is preferable to pass a buffer.Reader directly:
+// Unless r implements the [buffer.Reader] interface (see see lattice/utils/buffer/reader.go),
+// it will be wrapped into a [bufio.Reader]. Since this requires allocation, it
+// is preferable to pass a [buffer.Reader] directly:
 //
-//   - When reading multiple values from a io.Reader, it is preferable to first
-//     first wrap io.Reader in a pre-allocated bufio.Reader.
+//   - When reading multiple values from a [io.Reader], it is preferable to first
+//     first wrap [io.Reader] in a pre-allocated [bufio.Reader].
 //   - When reading from a var b []byte, it is preferable to pass a buffer.NewBuffer(b)
 //     as w (see lattice/utils/buffer/buffer.go).
 func (p *PowerBasis) ReadFrom(r io.Reader) (n int64, err error) {
@@ -260,7 +267,7 @@ func (p PowerBasis) MarshalBinary() (data []byte, err error) {
 }
 
 // UnmarshalBinary decodes a slice of bytes generated by
-// MarshalBinary or WriteTo on the object.
+// [PowerBasis.MarshalBinary] or [PowerBasis.WriteTo] on the object.
 func (p *PowerBasis) UnmarshalBinary(data []byte) (err error) {
 	_, err = p.ReadFrom(buffer.NewBuffer(data))
 	return

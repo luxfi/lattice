@@ -3,16 +3,15 @@ package rlwe
 import (
 	"fmt"
 
-	"github.com/luxfi/lattice/v5/ring"
-	"github.com/luxfi/lattice/v5/utils"
+	"github.com/luxfi/lattice/v6/utils"
 )
 
-// ApplyEvaluationKey is a generic method to apply an EvaluationKey on a ciphertext.
+// ApplyEvaluationKey is a generic method to apply an [EvaluationKey] on a ciphertext.
 // An EvaluationKey is a type of public key that is be used during the evaluation of
 // a homomorphic circuit to provide additional functionalities, like relinearization
 // or rotations.
 //
-// In a nutshell, an Evaluationkey encrypts a secret skIn under a secret skOut and
+// In a nutshell, an [EvaluationKey] encrypts a secret skIn under a secret skOut and
 // enables the public and non interactive re-encryption of any ciphertext encrypted
 // under skIn to a new ciphertext encrypted under skOut.
 //
@@ -22,7 +21,7 @@ import (
 // Note that the parameters of the smaller ring degree must be the same or a subset of the
 // moduli Q and P of the one for the larger ring degree.
 //
-// To do so, it must be provided with the appropriate EvaluationKey, and have the operands
+// To do so, it must be provided with the appropriate [EvaluationKey], and have the operands
 // matching the target ring degrees.
 //
 // To switch a ciphertext to a smaller ring degree:
@@ -72,13 +71,8 @@ func (eval Evaluator) ApplyEvaluationKey(ctIn *Ciphertext, evk *EvaluationKey, o
 
 		level := utils.Min(ctIn.Level(), opOut.Level())
 
-		ctTmp, err := NewCiphertextAtLevelFromPoly(level, eval.BuffCt.Value)
-
-		// Sanity check, this error should not happen unless the
-		// evaluator's buffer have been improperly tempered with.
-		if err != nil {
-			panic(err)
-		}
+		ctTmp := eval.pool.GetBuffCt(ctIn.Degree(), level)
+		defer eval.pool.RecycleBuffCt(ctTmp)
 
 		ctTmp.MetaData = ctIn.MetaData
 
@@ -103,9 +97,10 @@ func (eval Evaluator) ApplyEvaluationKey(ctIn *Ciphertext, evk *EvaluationKey, o
 }
 
 func (eval Evaluator) applyEvaluationKey(level int, ctIn *Ciphertext, evk *EvaluationKey, opOut *Ciphertext) {
-	ctTmp := &Ciphertext{}
-	ctTmp.Value = []ring.Poly{eval.BuffQP[0].Q, eval.BuffQP[1].Q}
+	ctTmp := eval.pool.GetBuffCt(1, level)
+	defer eval.pool.RecycleBuffCt(ctTmp)
 	ctTmp.MetaData = ctIn.MetaData
+
 	eval.GadgetProduct(level, ctIn.Value[1], &evk.GadgetCiphertext, ctTmp)
 	eval.params.RingQ().AtLevel(level).Add(ctIn.Value[0], ctTmp.Value[0], opOut.Value[0])
 	opOut.Value[1].CopyLvl(level, ctTmp.Value[1])
@@ -137,8 +132,8 @@ func (eval Evaluator) Relinearize(ctIn *Ciphertext, opOut *Ciphertext) (err erro
 
 	ringQ := eval.params.RingQ().AtLevel(level)
 
-	ctTmp := &Ciphertext{}
-	ctTmp.Value = []ring.Poly{eval.BuffQP[0].Q, eval.BuffQP[1].Q}
+	ctTmp := eval.pool.GetBuffCt(1, ringQ.Level())
+	defer eval.pool.RecycleBuffCt(ctTmp)
 	ctTmp.MetaData = ctIn.MetaData
 
 	eval.GadgetProduct(level, ctIn.Value[2], &rlk.GadgetCiphertext, ctTmp)

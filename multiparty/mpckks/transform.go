@@ -1,19 +1,19 @@
-package mhefloat
+package mpckks
 
 import (
 	"fmt"
 	"math/big"
 
-	"github.com/luxfi/lattice/v5/he/hefloat"
-	"github.com/luxfi/lattice/v5/mhe"
-	"github.com/luxfi/lattice/v5/ring"
+	"github.com/luxfi/lattice/v6/multiparty"
+	"github.com/luxfi/lattice/v6/ring"
+	"github.com/luxfi/lattice/v6/schemes/ckks"
 
-	"github.com/luxfi/lattice/v5/core/rlwe"
-	"github.com/luxfi/lattice/v5/utils/bignum"
-	"github.com/luxfi/lattice/v5/utils/sampling"
+	"github.com/luxfi/lattice/v6/core/rlwe"
+	"github.com/luxfi/lattice/v6/utils/bignum"
+	"github.com/luxfi/lattice/v6/utils/sampling"
 )
 
-// MaskedLinearTransformationProtocol is a struct storing the parameters for the MaskedLinearTransformationProtocol protocol.
+// MaskedLinearTransformationProtocol is a struct storing the parameters for the [MaskedLinearTransformationProtocol] protocol.
 type MaskedLinearTransformationProtocol struct {
 	e2s EncToShareProtocol
 	s2e ShareToEncProtocol
@@ -23,33 +23,12 @@ type MaskedLinearTransformationProtocol struct {
 	defaultScale *big.Int
 	prec         uint
 
-	mask    []*big.Int
-	encoder *hefloat.Encoder
+	encoder *ckks.Encoder
 }
 
-// ShallowCopy creates a shallow copy of MaskedLinearTransformationProtocol in which all the read-only data-structures are
-// shared with the receiver and the temporary buffers are reallocated. The receiver and the returned
-// MaskedLinearTransformationProtocol can be used concurrently.
-func (mltp MaskedLinearTransformationProtocol) ShallowCopy() MaskedLinearTransformationProtocol {
-
-	mask := make([]*big.Int, mltp.e2s.params.N())
-	for i := range mask {
-		mask[i] = new(big.Int)
-	}
-
-	return MaskedLinearTransformationProtocol{
-		e2s:          mltp.e2s.ShallowCopy(),
-		s2e:          mltp.s2e.ShallowCopy(),
-		prec:         mltp.prec,
-		defaultScale: mltp.defaultScale,
-		mask:         mask,
-		encoder:      mltp.encoder.ShallowCopy(),
-	}
-}
-
-// WithParams creates a shallow copy of the target MaskedLinearTransformationProtocol but with new output parameters.
+// WithParams creates a shallow copy of the target [MaskedLinearTransformationProtocol] but with new output parameters.
 // The expected input parameters remain unchanged.
-func (mltp MaskedLinearTransformationProtocol) WithParams(paramsOut hefloat.Parameters) MaskedLinearTransformationProtocol {
+func (mltp MaskedLinearTransformationProtocol) WithParams(paramsOut ckks.Parameters) MaskedLinearTransformationProtocol {
 
 	s2e, err := NewShareToEncProtocol(paramsOut, mltp.noise)
 
@@ -68,23 +47,24 @@ func (mltp MaskedLinearTransformationProtocol) WithParams(paramsOut hefloat.Para
 	defaultScale, _ := new(big.Float).SetPrec(mltp.prec).Set(&scale).Int(nil)
 
 	return MaskedLinearTransformationProtocol{
-		e2s:          mltp.e2s.ShallowCopy(),
+		e2s:          mltp.e2s,
 		s2e:          s2e,
 		prec:         mltp.prec,
 		defaultScale: defaultScale,
-		mask:         mask,
-		encoder:      hefloat.NewEncoder(paramsOut, mltp.prec),
+		encoder:      ckks.NewEncoder(paramsOut, mltp.prec),
 	}
 }
 
 // MaskedLinearTransformationFunc represents a user-defined in-place function that can be evaluated on masked float plaintexts, as a part of the
 // Masked Transform Protocol.
-// The function is called with a vector of *Complex modulo hefloat.Parameters.Slots() as input, and must write
+// The function is called with a vector of *Complex modulo ckks.Parameters.Slots() as input, and must write
 // its output on the same buffer.
 // Transform can be the identity.
-// Decode: if true, then the masked float plaintext will be decoded before applying Transform.
-// Recode: if true, then the masked float plaintext will be recoded after applying Transform.
-// i.e. : Decode (true/false) -> Transform -> Recode (true/false).
+//
+//   - Decode: if true, then the masked float plaintext will be decoded before applying Transform.
+//   - Recode: if true, then the masked float plaintext will be recoded after applying Transform.
+//
+// Decode (true/false) -> Transform -> Recode (true/false).
 type MaskedLinearTransformationFunc struct {
 	Decode bool
 	Func   func(coeffs []*bignum.Complex)
@@ -92,11 +72,11 @@ type MaskedLinearTransformationFunc struct {
 }
 
 // NewMaskedLinearTransformationProtocol creates a new instance of the PermuteProtocol.
-// paramsIn: the hefloat.Parameters of the ciphertext before the protocol.
-// paramsOut: the hefloat.Parameters of the ciphertext after the protocol.
+// paramsIn: the ckks.Parameters of the ciphertext before the protocol.
+// paramsOut: the ckks.Parameters of the ciphertext after the protocol.
 // prec : the log2 of decimal precision of the internal encoder.
 // The method will return an error if the maximum number of slots of the output parameters is smaller than the number of slots of the input ciphertext.
-func NewMaskedLinearTransformationProtocol(paramsIn, paramsOut hefloat.Parameters, prec uint, noise ring.DistributionParameters) (mltp MaskedLinearTransformationProtocol, err error) {
+func NewMaskedLinearTransformationProtocol(paramsIn, paramsOut ckks.Parameters, prec uint, noise ring.DistributionParameters) (mltp MaskedLinearTransformationProtocol, err error) {
 
 	mltp = MaskedLinearTransformationProtocol{}
 
@@ -116,37 +96,34 @@ func NewMaskedLinearTransformationProtocol(paramsIn, paramsOut hefloat.Parameter
 
 	mltp.defaultScale, _ = new(big.Float).SetPrec(prec).Set(&scale).Int(nil)
 
-	mltp.mask = make([]*big.Int, paramsIn.N())
-	for i := range mltp.mask {
-		mltp.mask[i] = new(big.Int)
-	}
-
-	mltp.encoder = hefloat.NewEncoder(paramsOut, prec)
+	mltp.encoder = ckks.NewEncoder(paramsOut, prec)
 
 	return
 }
 
 // AllocateShare allocates the shares of the PermuteProtocol
-func (mltp MaskedLinearTransformationProtocol) AllocateShare(levelDecrypt, levelRecrypt int) mhe.RefreshShare {
-	return mhe.RefreshShare{EncToShareShare: mltp.e2s.AllocateShare(levelDecrypt), ShareToEncShare: mltp.s2e.AllocateShare(levelRecrypt)}
+func (mltp MaskedLinearTransformationProtocol) AllocateShare(levelDecrypt, levelRecrypt int) multiparty.RefreshShare {
+	return multiparty.RefreshShare{EncToShareShare: mltp.e2s.AllocateShare(levelDecrypt), ShareToEncShare: mltp.s2e.AllocateShare(levelRecrypt)}
 }
 
 // SampleCRP samples a common random polynomial to be used in the Masked-Transform protocol from the provided
 // common reference string. The CRP is considered to be in the NTT domain.
-func (mltp MaskedLinearTransformationProtocol) SampleCRP(level int, crs sampling.PRNG) mhe.KeySwitchCRP {
+func (mltp MaskedLinearTransformationProtocol) SampleCRP(level int, crs sampling.PRNG) multiparty.KeySwitchCRP {
 	return mltp.s2e.SampleCRP(level, crs)
 }
 
 // GenShare generates the shares of the PermuteProtocol
-// This protocol requires additional inputs which are :
-// skIn     : the secret-key if the input ciphertext.
-// skOut    : the secret-key of the output ciphertext.
-// logBound : the bit length of the masks.
-// ct1      : the degree 1 element the ciphertext to refresh, i.e. ct1 = ckk.Ciphetext.Value[1].
-// scale    : the scale of the ciphertext when entering the refresh.
-// The method "GetMinimumLevelForBootstrapping" should be used to get the minimum level at which the masked transform can be called while still ensure 128-bits of security, as well as the
+// This protocol requires additional inputs which are:
+//
+//   - skIn     : the secret-key if the input ciphertext.
+//   - skOut    : the secret-key of the output ciphertext.
+//   - logBound : the bit length of the masks.
+//   - ct1      : the degree 1 element the ciphertext to refresh, i.e. ct1 = ckk.Ciphetext.Value[1].
+//   - scale    : the scale of the ciphertext when entering the refresh.
+//
+// The method [GetMinimumLevelForRefresh] should be used to get the minimum level at which the masked transform can be called while still ensure 128-bits of security, as well as the
 // value for logBound.
-func (mltp MaskedLinearTransformationProtocol) GenShare(skIn, skOut *rlwe.SecretKey, logBound uint, ct *rlwe.Ciphertext, crs mhe.KeySwitchCRP, transform *MaskedLinearTransformationFunc, shareOut *mhe.RefreshShare) (err error) {
+func (mltp MaskedLinearTransformationProtocol) GenShare(skIn, skOut *rlwe.SecretKey, logBound uint, ct *rlwe.Ciphertext, crs multiparty.KeySwitchCRP, transform *MaskedLinearTransformationFunc, shareOut *multiparty.RefreshShare) (err error) {
 
 	ct1 := ct.Value[1]
 
@@ -174,11 +151,14 @@ func (mltp MaskedLinearTransformationProtocol) GenShare(skIn, skOut *rlwe.Secret
 		dslots *= 2
 	}
 
-	mask := mltp.mask[:dslots]
+	mask := make([]*big.Int, dslots)
+	for i := range mask {
+		mask[i] = new(big.Int)
+	}
 
 	// Generates the decryption share
 	// Returns [M_i] on mltp.tmpMask and [a*s_i -M_i + e] on EncToShareShare
-	if err = mltp.e2s.GenShare(skIn, logBound, ct, &mhe.AdditiveShareBigint{Value: mask}, &shareOut.EncToShareShare); err != nil {
+	if err = mltp.e2s.GenShare(skIn, logBound, ct, &multiparty.AdditiveShareBigint{Value: mask}, &shareOut.EncToShareShare); err != nil {
 		return
 	}
 
@@ -187,12 +167,15 @@ func (mltp MaskedLinearTransformationProtocol) GenShare(skIn, skOut *rlwe.Secret
 		return
 	}
 
+	// Stores the metadata of the ciphertext
+	shareOut.MetaData = *ct.MetaData
+
 	// Returns [-a*s_i + LT(M_i) * diffscale + e] on ShareToEncShare
-	return mltp.s2e.GenShare(skOut, crs, ct.MetaData, mhe.AdditiveShareBigint{Value: mask}, &shareOut.ShareToEncShare)
+	return mltp.s2e.GenShare(skOut, crs, ct.MetaData, multiparty.AdditiveShareBigint{Value: mask}, &shareOut.ShareToEncShare)
 }
 
 // AggregateShares sums share1 and share2 on shareOut.
-func (mltp MaskedLinearTransformationProtocol) AggregateShares(share1, share2, shareOut *mhe.RefreshShare) (err error) {
+func (mltp MaskedLinearTransformationProtocol) AggregateShares(share1, share2, shareOut *multiparty.RefreshShare) (err error) {
 
 	if share1.EncToShareShare.Value.Level() != share2.EncToShareShare.Value.Level() || share1.EncToShareShare.Value.Level() != shareOut.EncToShareShare.Value.Level() {
 		return fmt.Errorf("cannot AggregateShares: all e2s shares must be at the same level")
@@ -210,10 +193,14 @@ func (mltp MaskedLinearTransformationProtocol) AggregateShares(share1, share2, s
 
 // Transform decrypts the ciphertext to LSSS-shares, applies the linear transformation on the LSSS-shares and re-encrypts the LSSS-shares to an RLWE ciphertext.
 // The re-encrypted ciphertext's scale is set to the default scaling factor of the output parameters.
-func (mltp MaskedLinearTransformationProtocol) Transform(ct *rlwe.Ciphertext, transform *MaskedLinearTransformationFunc, crs mhe.KeySwitchCRP, share mhe.RefreshShare, ciphertextOut *rlwe.Ciphertext) (err error) {
+func (mltp MaskedLinearTransformationProtocol) Transform(ct *rlwe.Ciphertext, transform *MaskedLinearTransformationFunc, crs multiparty.KeySwitchCRP, share multiparty.RefreshShare, ciphertextOut *rlwe.Ciphertext) (err error) {
 
 	if ct.Level() < share.EncToShareShare.Value.Level() {
 		return fmt.Errorf("cannot Transform: input ciphertext level must be at least equal to e2s level")
+	}
+
+	if !ct.MetaData.Equal(&share.MetaData) {
+		return fmt.Errorf("cannot Transform: input ciphertext MetaData is not equal to share.MetaData")
 	}
 
 	maxLevel := crs.Value.Level()
@@ -240,10 +227,13 @@ func (mltp MaskedLinearTransformationProtocol) Transform(ct *rlwe.Ciphertext, tr
 		dslots *= 2
 	}
 
-	mask := mltp.mask[:dslots]
+	mask := make([]*big.Int, dslots)
+	for i := range mask {
+		mask[i] = new(big.Int)
+	}
 
 	// Returns -sum(M_i) + x (outside of the NTT domain)
-	mltp.e2s.GetShare(nil, share.EncToShareShare, ct, &mhe.AdditiveShareBigint{Value: mask})
+	mltp.e2s.GetShare(nil, share.EncToShareShare, ct, &multiparty.AdditiveShareBigint{Value: mask})
 
 	// Returns LT(-sum(M_i) + x)
 	if err = mltp.applyTransformAndScale(transform, *ct.MetaData, mask); err != nil {
@@ -273,7 +263,7 @@ func (mltp MaskedLinearTransformationProtocol) Transform(ct *rlwe.Ciphertext, tr
 	ringQ.Add(ciphertextOut.Value[0], share.ShareToEncShare.Value, ciphertextOut.Value[0])
 
 	// Copies the result on the out ciphertext
-	if err = mltp.s2e.GetEncryption(mhe.KeySwitchShare{Value: ciphertextOut.Value[0]}, crs, ciphertextOut); err != nil {
+	if err = mltp.s2e.GetEncryption(multiparty.KeySwitchShare{Value: ciphertextOut.Value[0]}, crs, ciphertextOut); err != nil {
 		return
 	}
 
