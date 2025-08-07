@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/luxfi/lattice/v6/utils/bignum"
+	"github.com/luxfi/lattice/v5/utils/bignum"
 )
 
 // IsPrime applies the Baillie-PSW, which is 100% accurate for numbers bellow 2^64.

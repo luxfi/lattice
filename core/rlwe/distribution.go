@@ -3,7 +3,7 @@ package rlwe
 import (
 	"math"
 
-	"github.com/luxfi/lattice/v6/ring"
+	"github.com/luxfi/lattice/v5/ring"
 )
 
 type Distribution struct {

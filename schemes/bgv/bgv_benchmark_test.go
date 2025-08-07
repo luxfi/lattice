@@ -2,13 +2,24 @@ package bgv
 
 import (
 	"encoding/json"
+	"fmt"
 	"runtime"
 	"testing"
 
-	"github.com/luxfi/lattice/v6/core/rlwe"
+	"github.com/luxfi/lattice/v5/core/rlwe"
 )
 
+func GetBenchName(params Parameters, opname string) string {
+	return fmt.Sprintf("%s/logN=%d/Qi=%d/Pi=%d/LogSlots=%d",
+		opname,
+		params.LogN(),
+		params.QCount(),
+		params.PCount(),
+		params.LogMaxSlots())
+}
+
 func BenchmarkBGV(b *testing.B) {
+
 	var err error
 
 	var testParams []ParametersLiteral
@@ -30,12 +41,22 @@ func BenchmarkBGV(b *testing.B) {
 	}
 
 	for _, paramsLiteral := range testParams {
-		tc := NewTestContext(paramsLiteral, false)
 
-		for _, testSet := range []func(tc *TestContext, b *testing.B){
+		var params Parameters
+		if params, err = NewParametersFromLiteral(paramsLiteral); err != nil {
+			b.Error(err)
+			b.Fail()
+		}
+
+		var tc *testContext
+		if tc, err = genTestParams(params); err != nil {
+			b.Error(err)
+			b.Fail()
+		}
+
+		for _, testSet := range []func(tc *testContext, b *testing.B){
 			benchEncoder,
 			benchEvaluator,
-			benchEvaluatorParallel,
 		} {
 			testSet(tc, b)
 			runtime.GC()
@@ -43,12 +64,11 @@ func BenchmarkBGV(b *testing.B) {
 	}
 }
 
-func benchEncoder(tc *TestContext, b *testing.B) {
+func benchEncoder(tc *testContext, b *testing.B) {
 
-	params := tc.Params
-	lvl := params.MaxLevel()
+	params := tc.params
 
-	poly := tc.Sampler.ReadNew()
+	poly := tc.uSampler.ReadNew()
 	params.RingT().Reduce(poly, poly)
 	coeffsUint64 := poly.Coeffs[0]
 	coeffsInt64 := make([]int64, len(coeffsUint64))
@@ -56,10 +76,10 @@ func benchEncoder(tc *TestContext, b *testing.B) {
 		coeffsInt64[i] = int64(coeffsUint64[i])
 	}
 
-	encoder := tc.Ecd
+	encoder := tc.encoder
 
-	b.Run(name("Encoder/Encode/Uint", tc, lvl), func(b *testing.B) {
-		plaintext := NewPlaintext(params, lvl)
+	b.Run(GetBenchName(params, "Encoder/Encode/Uint"), func(b *testing.B) {
+		plaintext := NewPlaintext(params, params.MaxLevel())
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			if err := encoder.Encode(coeffsUint64, plaintext); err != nil {
@@ -69,8 +89,8 @@ func benchEncoder(tc *TestContext, b *testing.B) {
 		}
 	})
 
-	b.Run(name("Encoder/Encode/Int", tc, lvl), func(b *testing.B) {
-		plaintext := NewPlaintext(params, lvl)
+	b.Run(GetBenchName(params, "Encoder/Encode/Int"), func(b *testing.B) {
+		plaintext := NewPlaintext(params, params.MaxLevel())
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			if err := encoder.Encode(coeffsInt64, plaintext); err != nil {
@@ -80,8 +100,8 @@ func benchEncoder(tc *TestContext, b *testing.B) {
 		}
 	})
 
-	b.Run(name("Encoder/Decode/Uint", tc, lvl), func(b *testing.B) {
-		plaintext := NewPlaintext(params, lvl)
+	b.Run(GetBenchName(params, "Encoder/Decode/Uint"), func(b *testing.B) {
+		plaintext := NewPlaintext(params, params.MaxLevel())
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			if err := encoder.Decode(plaintext, coeffsUint64); err != nil {
@@ -91,8 +111,8 @@ func benchEncoder(tc *TestContext, b *testing.B) {
 		}
 	})
 
-	b.Run(name("Encoder/Decode/Int", tc, lvl), func(b *testing.B) {
-		plaintext := NewPlaintext(params, lvl)
+	b.Run(GetBenchName(params, "Encoder/Decode/Int"), func(b *testing.B) {
+		plaintext := NewPlaintext(params, params.MaxLevel())
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			if err := encoder.Decode(plaintext, coeffsInt64); err != nil {
@@ -103,16 +123,16 @@ func benchEncoder(tc *TestContext, b *testing.B) {
 	})
 }
 
-func benchEvaluatorParallel(tc *TestContext, b *testing.B) {
-	params := tc.Params
-	lvl := params.MaxLevel()
-	eval := tc.Evl
+func benchEvaluator(tc *testContext, b *testing.B) {
 
-	plaintext := NewPlaintext(params, lvl)
-	plaintext.Value = rlwe.NewCiphertextRandom(tc.Prng, params.Parameters, 0, plaintext.Level()).Value[0]
+	params := tc.params
+	eval := tc.evaluator
 
-	ciphertext1 := rlwe.NewCiphertextRandom(tc.Prng, params.Parameters, 1, lvl)
-	ciphertext2 := rlwe.NewCiphertextRandom(tc.Prng, params.Parameters, 1, lvl)
+	plaintext := NewPlaintext(params, params.MaxLevel())
+	plaintext.Value = rlwe.NewCiphertextRandom(tc.prng, params.Parameters, 0, plaintext.Level()).Value[0]
+
+	ciphertext1 := rlwe.NewCiphertextRandom(tc.prng, params.Parameters, 1, params.MaxLevel())
+	ciphertext2 := rlwe.NewCiphertextRandom(tc.prng, params.Parameters, 1, params.MaxLevel())
 	scalar := params.PlaintextModulus() >> 1
 
 	*ciphertext1.MetaData = *plaintext.MetaData
@@ -120,238 +140,7 @@ func benchEvaluatorParallel(tc *TestContext, b *testing.B) {
 
 	vector := plaintext.Value.Coeffs[0][:params.MaxSlots()]
 
-	b.Run(name("EvaluatorParallel/Add/Scalar", tc, lvl), func(b *testing.B) {
-		b.ResetTimer()
-		b.RunParallel(func(pb *testing.PB) {
-			receiver := NewCiphertext(params, 1, ciphertext1.Level())
-			for pb.Next() {
-				if err := eval.Add(ciphertext1, scalar, receiver); err != nil {
-					b.Log(err)
-					b.Fail()
-				}
-			}
-		})
-	})
-
-	b.Run(name("EvaluatorParallel/Add/Vector", tc, lvl), func(b *testing.B) {
-		b.ResetTimer()
-		b.RunParallel(func(pb *testing.PB) {
-			receiver := NewCiphertext(params, 1, ciphertext1.Level())
-			for pb.Next() {
-				if err := eval.Add(ciphertext1, vector, receiver); err != nil {
-					b.Log(err)
-					b.Fail()
-				}
-			}
-		})
-	})
-
-	b.Run(name("EvaluatorParallel/Add/Plaintext", tc, lvl), func(b *testing.B) {
-		b.ResetTimer()
-		b.RunParallel(func(pb *testing.PB) {
-			receiver := NewCiphertext(params, 1, ciphertext1.Level())
-			for pb.Next() {
-				if err := eval.Add(ciphertext1, plaintext, receiver); err != nil {
-					b.Log(err)
-					b.Fail()
-				}
-			}
-		})
-	})
-
-	b.Run(name("EvaluatorParallel/Add/Ciphertext", tc, lvl), func(b *testing.B) {
-		b.ResetTimer()
-		b.RunParallel(func(pb *testing.PB) {
-			receiver := NewCiphertext(params, 1, ciphertext1.Level())
-			for pb.Next() {
-				if err := eval.Add(ciphertext1, ciphertext2, receiver); err != nil {
-					b.Log(err)
-					b.Fail()
-				}
-			}
-		})
-	})
-
-	b.Run(name("EvaluatorParallel/Mul/Scalar", tc, lvl), func(b *testing.B) {
-		b.ResetTimer()
-		b.RunParallel(func(pb *testing.PB) {
-			receiver := NewCiphertext(params, 1, ciphertext1.Level())
-			for pb.Next() {
-				if err := eval.Mul(ciphertext1, scalar, receiver); err != nil {
-					b.Log(err)
-					b.Fail()
-				}
-			}
-		})
-	})
-
-	b.Run(name("EvaluatorParallel/Mul/Vector", tc, lvl), func(b *testing.B) {
-		b.ResetTimer()
-		b.RunParallel(func(pb *testing.PB) {
-			receiver := NewCiphertext(params, 1, ciphertext1.Level())
-			for pb.Next() {
-				if err := eval.Mul(ciphertext1, vector, receiver); err != nil {
-					b.Log(err)
-					b.Fail()
-				}
-			}
-		})
-	})
-
-	b.Run(name("EvaluatorParallel/Mul/Plaintext", tc, lvl), func(b *testing.B) {
-		b.ResetTimer()
-		b.RunParallel(func(pb *testing.PB) {
-			receiver := NewCiphertext(params, 1, ciphertext1.Level())
-			for pb.Next() {
-				if err := eval.Mul(ciphertext1, plaintext, receiver); err != nil {
-					b.Log(err)
-					b.Fail()
-				}
-			}
-		})
-	})
-
-	b.Run(name("EvaluatorParallel/Mul/Ciphertext", tc, lvl), func(b *testing.B) {
-		b.ResetTimer()
-		b.RunParallel(func(pb *testing.PB) {
-			receiver := NewCiphertext(params, 2, ciphertext1.Level())
-			for pb.Next() {
-				if err := eval.Mul(ciphertext1, ciphertext2, receiver); err != nil {
-					b.Log(err)
-					b.Fail()
-				}
-			}
-		})
-	})
-
-	b.Run(name("EvaluatorParallel/MulRelin/Ciphertext", tc, lvl), func(b *testing.B) {
-		b.ResetTimer()
-		b.RunParallel(func(pb *testing.PB) {
-			receiver := NewCiphertext(params, 1, ciphertext1.Level())
-			for pb.Next() {
-				if err := eval.MulRelin(ciphertext1, ciphertext2, receiver); err != nil {
-					b.Log(err)
-					b.Fail()
-				}
-			}
-		})
-	})
-
-	b.Run(name("EvaluatorParallel/MulThenAdd/Scalar", tc, lvl), func(b *testing.B) {
-		b.ResetTimer()
-		b.RunParallel(func(pb *testing.PB) {
-			receiver := NewCiphertext(params, 1, ciphertext1.Level())
-			for pb.Next() {
-				if err := eval.MulThenAdd(ciphertext1, scalar, receiver); err != nil {
-					b.Log(err)
-					b.Fail()
-				}
-			}
-		})
-	})
-
-	b.Run(name("EvaluatorParallel/MulThenAdd/Vector", tc, lvl), func(b *testing.B) {
-		b.ResetTimer()
-		b.RunParallel(func(pb *testing.PB) {
-			receiver := NewCiphertext(params, 1, ciphertext1.Level())
-			for pb.Next() {
-				if err := eval.MulThenAdd(ciphertext1, vector, receiver); err != nil {
-					b.Log(err)
-					b.Fail()
-				}
-			}
-		})
-	})
-
-	b.Run(name("EvaluatorParallel/MulThenAdd/Plaintext", tc, lvl), func(b *testing.B) {
-		b.ResetTimer()
-		b.RunParallel(func(pb *testing.PB) {
-			receiver := NewCiphertext(params, 1, ciphertext1.Level())
-			for pb.Next() {
-				if err := eval.MulThenAdd(ciphertext1, plaintext, receiver); err != nil {
-					b.Log(err)
-					b.Fail()
-				}
-			}
-		})
-	})
-
-	b.Run(name("EvaluatorParallel/MulThenAdd/Ciphertext", tc, lvl), func(b *testing.B) {
-		b.ResetTimer()
-		b.RunParallel(func(pb *testing.PB) {
-			receiver := NewCiphertext(params, 2, ciphertext1.Level())
-			for pb.Next() {
-				if err := eval.MulThenAdd(ciphertext1, ciphertext2, receiver); err != nil {
-					b.Log(err)
-					b.Fail()
-				}
-			}
-		})
-	})
-
-	b.Run(name("EvaluatorParallel/MulRelinThenAdd/Ciphertext", tc, lvl), func(b *testing.B) {
-		b.ResetTimer()
-		b.RunParallel(func(pb *testing.PB) {
-			receiver := NewCiphertext(params, 1, ciphertext1.Level())
-			for pb.Next() {
-				if err := eval.MulRelinThenAdd(ciphertext1, ciphertext2, receiver); err != nil {
-					b.Log(err)
-					b.Fail()
-				}
-			}
-		})
-	})
-
-	b.Run(name("EvaluatorParallel/Rescale", tc, lvl), func(b *testing.B) {
-		b.ResetTimer()
-		b.RunParallel(func(pb *testing.PB) {
-			receiver := NewCiphertext(params, 1, ciphertext1.Level()-1)
-			for pb.Next() {
-				if err := eval.Rescale(ciphertext1, receiver); err != nil {
-					b.Log(err)
-					b.Fail()
-				}
-			}
-		})
-	})
-
-	b.Run(name("EvaluatorParallel/Rotate", tc, lvl), func(b *testing.B) {
-		b.ResetTimer()
-		gk := tc.Kgen.GenGaloisKeyNew(5, tc.Sk)
-		evk := rlwe.NewMemEvaluationKeySet(nil, gk)
-		eval := eval.WithKey(evk)
-		b.RunParallel(func(pb *testing.PB) {
-			receiver := NewCiphertext(params, 1, ciphertext1.Level())
-			b.ResetTimer()
-			for pb.Next() {
-				if err := eval.RotateColumns(ciphertext1, 1, receiver); err != nil {
-					b.Log(err)
-					b.Fail()
-				}
-			}
-		})
-	})
-}
-
-func benchEvaluator(tc *TestContext, b *testing.B) {
-
-	params := tc.Params
-	lvl := params.MaxLevel()
-	eval := tc.Evl
-
-	plaintext := NewPlaintext(params, lvl)
-	plaintext.Value = rlwe.NewCiphertextRandom(tc.Prng, params.Parameters, 0, plaintext.Level()).Value[0]
-
-	ciphertext1 := rlwe.NewCiphertextRandom(tc.Prng, params.Parameters, 1, lvl)
-	ciphertext2 := rlwe.NewCiphertextRandom(tc.Prng, params.Parameters, 1, lvl)
-	scalar := params.PlaintextModulus() >> 1
-
-	*ciphertext1.MetaData = *plaintext.MetaData
-	*ciphertext2.MetaData = *plaintext.MetaData
-
-	vector := plaintext.Value.Coeffs[0][:params.MaxSlots()]
-
-	b.Run(name("Evaluator/Add/Scalar", tc, lvl), func(b *testing.B) {
+	b.Run(GetBenchName(params, "Evaluator/Add/Scalar"), func(b *testing.B) {
 		receiver := NewCiphertext(params, 1, ciphertext1.Level())
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
@@ -362,7 +151,7 @@ func benchEvaluator(tc *TestContext, b *testing.B) {
 		}
 	})
 
-	b.Run(name("Evaluator/Add/Vector", tc, lvl), func(b *testing.B) {
+	b.Run(GetBenchName(params, "Evaluator/Add/Vector"), func(b *testing.B) {
 		receiver := NewCiphertext(params, 1, ciphertext1.Level())
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
@@ -373,7 +162,7 @@ func benchEvaluator(tc *TestContext, b *testing.B) {
 		}
 	})
 
-	b.Run(name("Evaluator/Add/Plaintext", tc, lvl), func(b *testing.B) {
+	b.Run(GetBenchName(params, "Evaluator/Add/Plaintext"), func(b *testing.B) {
 		receiver := NewCiphertext(params, 1, ciphertext1.Level())
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
@@ -384,7 +173,7 @@ func benchEvaluator(tc *TestContext, b *testing.B) {
 		}
 	})
 
-	b.Run(name("Evaluator/Add/Ciphertext", tc, lvl), func(b *testing.B) {
+	b.Run(GetBenchName(params, "Evaluator/Add/Ciphertext"), func(b *testing.B) {
 		receiver := NewCiphertext(params, 1, ciphertext1.Level())
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
@@ -395,7 +184,7 @@ func benchEvaluator(tc *TestContext, b *testing.B) {
 		}
 	})
 
-	b.Run(name("Evaluator/Mul/Scalar", tc, lvl), func(b *testing.B) {
+	b.Run(GetBenchName(params, "Evaluator/Mul/Scalar"), func(b *testing.B) {
 		receiver := NewCiphertext(params, 1, ciphertext1.Level())
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
@@ -406,7 +195,7 @@ func benchEvaluator(tc *TestContext, b *testing.B) {
 		}
 	})
 
-	b.Run(name("Evaluator/Mul/Plaintext", tc, lvl), func(b *testing.B) {
+	b.Run(GetBenchName(params, "Evaluator/Mul/Plaintext"), func(b *testing.B) {
 		receiver := NewCiphertext(params, 1, ciphertext1.Level())
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
@@ -417,7 +206,7 @@ func benchEvaluator(tc *TestContext, b *testing.B) {
 		}
 	})
 
-	b.Run(name("Evaluator/Mul/Vector", tc, lvl), func(b *testing.B) {
+	b.Run(GetBenchName(params, "Evaluator/Mul/Vector"), func(b *testing.B) {
 		receiver := NewCiphertext(params, 1, ciphertext1.Level())
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
@@ -428,7 +217,7 @@ func benchEvaluator(tc *TestContext, b *testing.B) {
 		}
 	})
 
-	b.Run(name("Evaluator/Mul/Ciphertext", tc, lvl), func(b *testing.B) {
+	b.Run(GetBenchName(params, "Evaluator/Mul/Ciphertext"), func(b *testing.B) {
 		receiver := NewCiphertext(params, 2, ciphertext1.Level())
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
@@ -439,7 +228,7 @@ func benchEvaluator(tc *TestContext, b *testing.B) {
 		}
 	})
 
-	b.Run(name("Evaluator/MulRelin/Ciphertext", tc, lvl), func(b *testing.B) {
+	b.Run(GetBenchName(params, "Evaluator/MulRelin/Ciphertext"), func(b *testing.B) {
 		receiver := NewCiphertext(params, 1, ciphertext1.Level())
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
@@ -450,7 +239,7 @@ func benchEvaluator(tc *TestContext, b *testing.B) {
 		}
 	})
 
-	b.Run(name("Evaluator/MulInvariant/Ciphertext", tc, lvl), func(b *testing.B) {
+	b.Run(GetBenchName(params, "Evaluator/MulInvariant/Ciphertext"), func(b *testing.B) {
 		receiver := NewCiphertext(params, 2, ciphertext1.Level())
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
@@ -461,7 +250,7 @@ func benchEvaluator(tc *TestContext, b *testing.B) {
 		}
 	})
 
-	b.Run(name("Evaluator/MulRelinInvariant/Ciphertext", tc, lvl), func(b *testing.B) {
+	b.Run(GetBenchName(params, "Evaluator/MulRelinInvariant/Ciphertext"), func(b *testing.B) {
 		receiver := NewCiphertext(params, 1, ciphertext1.Level())
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
@@ -472,7 +261,7 @@ func benchEvaluator(tc *TestContext, b *testing.B) {
 		}
 	})
 
-	b.Run(name("Evaluator/MulThenAdd/Scalar", tc, lvl), func(b *testing.B) {
+	b.Run(GetBenchName(params, "Evaluator/MulThenAdd/Scalar"), func(b *testing.B) {
 		receiver := NewCiphertext(params, 1, ciphertext1.Level())
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
@@ -483,7 +272,7 @@ func benchEvaluator(tc *TestContext, b *testing.B) {
 		}
 	})
 
-	b.Run(name("Evaluator/MulThenAdd/Vector", tc, lvl), func(b *testing.B) {
+	b.Run(GetBenchName(params, "Evaluator/MulThenAdd/Vector"), func(b *testing.B) {
 		receiver := NewCiphertext(params, 1, ciphertext1.Level())
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
@@ -494,7 +283,7 @@ func benchEvaluator(tc *TestContext, b *testing.B) {
 		}
 	})
 
-	b.Run(name("Evaluator/MulThenAdd/Plaintext", tc, lvl), func(b *testing.B) {
+	b.Run(GetBenchName(params, "Evaluator/MulThenAdd/Plaintext"), func(b *testing.B) {
 		receiver := NewCiphertext(params, 1, ciphertext1.Level())
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
@@ -505,7 +294,7 @@ func benchEvaluator(tc *TestContext, b *testing.B) {
 		}
 	})
 
-	b.Run(name("Evaluator/MulThenAdd/Ciphertext", tc, lvl), func(b *testing.B) {
+	b.Run(GetBenchName(params, "Evaluator/MulThenAdd/Ciphertext"), func(b *testing.B) {
 		receiver := NewCiphertext(params, 1, ciphertext1.Level())
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
@@ -516,7 +305,7 @@ func benchEvaluator(tc *TestContext, b *testing.B) {
 		}
 	})
 
-	b.Run(name("Evaluator/MulRelinThenAdd/Ciphertext", tc, lvl), func(b *testing.B) {
+	b.Run(GetBenchName(params, "Evaluator/MulRelinThenAdd/Ciphertext"), func(b *testing.B) {
 		receiver := NewCiphertext(params, 2, ciphertext1.Level())
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
@@ -527,7 +316,7 @@ func benchEvaluator(tc *TestContext, b *testing.B) {
 		}
 	})
 
-	b.Run(name("Evaluator/Rescale", tc, lvl), func(b *testing.B) {
+	b.Run(GetBenchName(params, "Evaluator/Rescale"), func(b *testing.B) {
 		receiver := NewCiphertext(params, 1, ciphertext1.Level()-1)
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
@@ -538,8 +327,8 @@ func benchEvaluator(tc *TestContext, b *testing.B) {
 		}
 	})
 
-	b.Run(name("Evaluator/Rotate", tc, lvl), func(b *testing.B) {
-		gk := tc.Kgen.GenGaloisKeyNew(5, tc.Sk)
+	b.Run(GetBenchName(params, "Evaluator/Rotate"), func(b *testing.B) {
+		gk := tc.kgen.GenGaloisKeyNew(5, tc.sk)
 		evk := rlwe.NewMemEvaluationKeySet(nil, gk)
 		eval := eval.WithKey(evk)
 		receiver := NewCiphertext(params, 1, ciphertext2.Level())

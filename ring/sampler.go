@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/luxfi/lattice/v6/utils/sampling"
+	"github.com/luxfi/lattice/v5/utils/sampling"
 )
 
 const (
@@ -61,8 +61,6 @@ type Ternary struct {
 // i.e., with coefficients uniformly distributed in the given ring.
 type Uniform struct{}
 
-// NewSampler returns a new sampler that follows the distribution given by DistributionParameters.
-// WARNING: If the PRNG is deterministic/keyed (of type [sampling.KeyedPRNG]), *concurrent* calls to the sampler will not necessarily result in a deterministic output.
 func NewSampler(prng sampling.PRNG, baseRing *Ring, X DistributionParameters, montgomery bool) (Sampler, error) {
 	switch X := X.(type) {
 	case DiscreteGaussian:
@@ -83,8 +81,8 @@ type baseSampler struct {
 
 // AtLevel returns an instance of the target base sampler that operates at the target level.
 // This instance is not thread safe and cannot be used concurrently to the base instance.
-func (b baseSampler) AtLevel(level int) *baseSampler {
-	return &baseSampler{
+func (b *baseSampler) AtLevel(level int) baseSampler {
+	return baseSampler{
 		prng:     b.prng,
 		baseRing: b.baseRing.AtLevel(level),
 	}
@@ -168,30 +166,20 @@ func ParametersFromMap(distDef map[string]interface{}) (DistributionParameters, 
 	case ternaryDistName:
 		_, hasP := distDef["P"]
 		_, hasH := distDef["H"]
-
-		var (
-			p   float64
-			h   int
-			err error
-		)
-
-		// a zero value for both P and H is interpreted as an unset value
-		if hasP {
-			if p, err = getFloatFromMap(distDef, "P"); err != nil {
-				return nil, fmt.Errorf("unable to parse ternary parameters P: %w", err)
-			}
-			hasP = (p != 0)
+		var p float64
+		var h int
+		var err error
+		switch {
+		case !hasH && hasP:
+			p, err = getFloatFromMap(distDef, "P")
+		case hasH && !hasP:
+			h, err = getIntFromMap(distDef, "H")
+		default:
+			err = fmt.Errorf("exactly one of the field P or H need to be set")
 		}
-		if hasH {
-			if h, err = getIntFromMap(distDef, "H"); err != nil {
-				return nil, fmt.Errorf("unable to parse ternary parameters H: %w", err)
-			}
-			hasH = (h != 0)
+		if err != nil {
+			return nil, err
 		}
-		if (hasP && hasH) || (!hasP && !hasH) {
-			return nil, fmt.Errorf("exactly one of the fields P or H need to be set")
-		}
-
 		return Ternary{P: p, H: h}, nil
 	case discreteGaussianName:
 		sigma, errSigma := getFloatFromMap(distDef, "Sigma")

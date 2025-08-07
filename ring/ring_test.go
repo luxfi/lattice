@@ -7,12 +7,12 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/luxfi/lattice/v6/utils/buffer"
-	"github.com/luxfi/lattice/v6/utils/sampling"
-	"github.com/luxfi/lattice/v6/utils/structs"
+	"github.com/luxfi/lattice/v5/utils/buffer"
+	"github.com/luxfi/lattice/v5/utils/sampling"
+	"github.com/luxfi/lattice/v5/utils/structs"
 
 	"github.com/stretchr/testify/require"
-	"github.com/luxfi/lattice/v6/utils/bignum"
+	"github.com/luxfi/lattice/v5/utils/bignum"
 )
 
 var T = uint64(0x3ee0001)
@@ -163,9 +163,6 @@ func testNewRing(t *testing.T) {
 		require.NotNil(t, r)
 		require.NoError(t, err)
 
-		r, err = NewRing(16, []uint64{97}) // Passing NTT-enabling coeff modulus
-		require.NotNil(t, r)
-		require.NoError(t, err)
 	})
 }
 
@@ -349,7 +346,7 @@ func testMarshalBinary(tc *testParams, t *testing.T) {
 			t.Fatal(err)
 		}
 
-		require.Equal(t, ringQTest.parametersLiteral(), tc.ringQ.parametersLiteral())
+		require.Equal(t, ringQTest, tc.ringQ)
 	})
 
 	t.Run(testString("MarshalBinary/Poly", tc.ringQ), func(t *testing.T) {

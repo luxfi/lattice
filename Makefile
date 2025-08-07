@@ -2,11 +2,10 @@
 
 .PHONY: test_gotest
 test_gotest:
-	go clean -testcache
 	go test -timeout=0 ./...
 
-.PHONY: checks
-checks: check_tools
+.PHONY: static_check
+static_check: check_tools
 	@echo Checking correct formatting of files
 	
 	@FMTOUT=$$(go fmt ./...); \
@@ -35,7 +34,7 @@ checks: check_tools
 		false;\
     fi
 	
-	@STATICCHECKOUT=$$(staticcheck -go 1.23 -checks all ./...); \
+	@STATICCHECKOUT=$$(staticcheck -go 1.20 -checks all ./...); \
 	if [ -z "$$STATICCHECKOUT" ]; then\
         echo "staticcheck: OK";\
 	else \
@@ -43,24 +42,6 @@ checks: check_tools
 		echo "$$STATICCHECKOUT";\
 		false;\
     fi
-
-	@GOVULNCHECKOUT=$$(govulncheck ./...); \
-	if echo "$$GOVULNCHECKOUT" | grep -q "No vulnerabilities found"; then\
-		echo "govulncheck: OK";\
-    else \
-		echo "govulncheck:" >&2;\
-		echo "$$GOVULNCHECKOUT" >&2;\
-		false;\
-	fi
-
-	@GOSECOUT=$$(gosec -quiet ./...); \
-	if [ -z "$$GOSECOUT" ]; then\
-		echo "gosec: OK";\
-	else \
-		echo "gosec: problems in files:";\
-		echo "$$GOSECOUT";\
-		false;\
-	fi
 	
 	@echo Checking all local changes are committed
 	go mod tidy
@@ -70,15 +51,13 @@ checks: check_tools
 test: test_gotest
 
 .PHONY: ci_test
-ci_test: checks test_gotest
+ci_test: static_check test_gotest
 
-EXECUTABLES = goimports staticcheck govulncheck gosec
+EXECUTABLES = goimports staticcheck
 .PHONY: get_tools
 get_tools:
 	go install golang.org/x/tools/cmd/goimports@latest
-	go install honnef.co/go/tools/cmd/staticcheck@2024.1.1
-	go install golang.org/x/vuln/cmd/govulncheck@latest
-	go install github.com/securego/gosec/v2/cmd/gosec@latest
+	go install honnef.co/go/tools/cmd/staticcheck@2023.1.5
 
 .PHONY: check_tools
 check_tools:
