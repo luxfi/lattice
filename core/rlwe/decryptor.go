@@ -3,8 +3,8 @@ package rlwe
 import (
 	"fmt"
 
-	"github.com/luxdefi/lattice/v5/ring"
-	"github.com/luxdefi/lattice/v5/utils"
+	"github.com/luxfi/lattice/v5/ring"
+	"github.com/luxfi/lattice/v5/utils"
 )
 
 // Decryptor is a structure used to decrypt Ciphertext. It stores the secret-key.

@@ -7,10 +7,10 @@ import (
 	"math/big"
 	"math/bits"
 
-	"github.com/luxdefi/lattice/v5/core/rlwe"
-	"github.com/luxdefi/lattice/v5/he/hefloat/cosine"
-	"github.com/luxdefi/lattice/v5/utils"
-	"github.com/luxdefi/lattice/v5/utils/bignum"
+	"github.com/luxfi/lattice/v5/core/rlwe"
+	"github.com/luxfi/lattice/v5/he/hefloat/cosine"
+	"github.com/luxfi/lattice/v5/utils"
+	"github.com/luxfi/lattice/v5/utils/bignum"
 )
 
 // Mod1Type is the type of function/approximation used to evaluate x mod 1.

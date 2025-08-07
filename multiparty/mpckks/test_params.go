@@ -1,7 +1,7 @@
 package mhefloat
 
 import (
-	"github.com/luxdefi/lattice/v5/he/hefloat"
+	"github.com/luxfi/lattice/v5/he/hefloat"
 )
 
 var (

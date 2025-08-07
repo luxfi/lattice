@@ -5,7 +5,7 @@ import (
 	"math/bits"
 	"unsafe"
 
-	"github.com/luxdefi/lattice/v5/utils"
+	"github.com/luxfi/lattice/v5/utils"
 )
 
 // AutomorphismNTTIndex computes the look-up table for the automorphism X^{i} -> X^{i*k mod NthRoot}.

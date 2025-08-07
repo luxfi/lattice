@@ -4,9 +4,9 @@ import (
 	"bufio"
 	"io"
 
-	"github.com/luxdefi/lattice/v5/utils"
-	"github.com/luxdefi/lattice/v5/utils/buffer"
-	"github.com/luxdefi/lattice/v5/utils/structs"
+	"github.com/luxfi/lattice/v5/utils"
+	"github.com/luxfi/lattice/v5/utils/buffer"
+	"github.com/luxfi/lattice/v5/utils/structs"
 )
 
 // Poly is the structure that contains the coefficients of a polynomial.

@@ -1,9 +1,9 @@
 package rgsw
 
 import (
-	"github.com/luxdefi/lattice/v5/core/rlwe"
-	"github.com/luxdefi/lattice/v5/ring"
-	"github.com/luxdefi/lattice/v5/ring/ringqp"
+	"github.com/luxfi/lattice/v5/core/rlwe"
+	"github.com/luxfi/lattice/v5/ring"
+	"github.com/luxfi/lattice/v5/ring/ringqp"
 )
 
 // Evaluator is a type for evaluating homomorphic operations involving RGSW ciphertexts.

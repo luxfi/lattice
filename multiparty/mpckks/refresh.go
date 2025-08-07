@@ -1,11 +1,11 @@
 package mpckks
 
 import (
-	"github.com/tuneinsight/lattigo/v6/multiparty"
-	"github.com/tuneinsight/lattigo/v6/ring"
-	"github.com/tuneinsight/lattigo/v6/schemes/ckks"
+	"github.com/luxfi/lattice/v6/multiparty"
+	"github.com/luxfi/lattice/v6/ring"
+	"github.com/luxfi/lattice/v6/schemes/ckks"
 
-	"github.com/tuneinsight/lattigo/v6/core/rlwe"
+	"github.com/luxfi/lattice/v6/core/rlwe"
 )
 
 // RefreshProtocol is a struct storing the relevant parameters for the Refresh protocol.

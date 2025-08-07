@@ -6,10 +6,10 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	"github.com/luxdefi/lattice/v5/he/hefloat"
-	"github.com/luxdefi/lattice/v5/ring"
-	"github.com/luxdefi/lattice/v5/schemes/ckks"
-	"github.com/luxdefi/lattice/v5/utils"
+	"github.com/luxfi/lattice/v5/he/hefloat"
+	"github.com/luxfi/lattice/v5/ring"
+	"github.com/luxfi/lattice/v5/schemes/ckks"
+	"github.com/luxfi/lattice/v5/utils"
 )
 
 // Parameters is a struct storing the parameters

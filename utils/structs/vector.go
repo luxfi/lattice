@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/luxdefi/lattice/v5/utils/buffer"
+	"github.com/luxfi/lattice/v5/utils/buffer"
 )
 
 // Vector is a struct wrapping a slice of components of type T.

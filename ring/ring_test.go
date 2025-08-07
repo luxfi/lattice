@@ -7,12 +7,12 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/luxdefi/lattice/v5/utils/buffer"
-	"github.com/luxdefi/lattice/v5/utils/sampling"
-	"github.com/luxdefi/lattice/v5/utils/structs"
+	"github.com/luxfi/lattice/v5/utils/buffer"
+	"github.com/luxfi/lattice/v5/utils/sampling"
+	"github.com/luxfi/lattice/v5/utils/structs"
 
 	"github.com/stretchr/testify/require"
-	"github.com/luxdefi/lattice/v5/utils/bignum"
+	"github.com/luxfi/lattice/v5/utils/bignum"
 )
 
 var T = uint64(0x3ee0001)
