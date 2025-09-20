@@ -18,8 +18,9 @@ import (
 func TestMod1(t *testing.T) {
 	var err error
 
+	// Test all architectures including WASM - removed skip
 	if runtime.GOARCH == "wasm" {
-		t.Skip("skipping homomorphic mod tests for GOARCH=wasm")
+		t.Logf("Running homomorphic mod tests on WASM architecture")
 	}
 
 	ParametersLiteral := ckks.ParametersLiteral{

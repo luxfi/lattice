@@ -28,9 +28,7 @@ func TestInverse(t *testing.T) {
 
 		paramsLiteral.RingType = ringType
 
-		if testing.Short() {
-			paramsLiteral.LogN = 10
-		}
+		// paramsLiteral.LogN = 10
 
 		tc := ckks.NewTestContext(paramsLiteral)
 

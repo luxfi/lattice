@@ -74,7 +74,7 @@ func TestParametersMarshalling(t *testing.T) {
 func TestCircuitWithEncapsulation(t *testing.T) {
 
 	if runtime.GOARCH == "wasm" {
-		t.Skip("skipping bootstrapping tests for GOARCH=wasm")
+		t.Logf("Running tests on all architectures including WASM")
 	}
 
 	paramSet := DefaultParametersSparse[0]
@@ -116,7 +116,7 @@ func TestCircuitWithEncapsulation(t *testing.T) {
 func TestCircuitOriginal(t *testing.T) {
 
 	if runtime.GOARCH == "wasm" {
-		t.Skip("skipping bootstrapping tests for GOARCH=wasm")
+		t.Logf("Running tests on all architectures including WASM")
 	}
 
 	paramSet := DefaultParametersDense[0]

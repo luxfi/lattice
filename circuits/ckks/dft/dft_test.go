@@ -20,7 +20,7 @@ func TestHomomorphicDFT(t *testing.T) {
 	var err error
 
 	if runtime.GOARCH == "wasm" {
-		t.Skip("skipping homomorphic DFT tests for GOARCH=wasm")
+		t.Logf("Running tests on all architectures including WASM")
 	}
 
 	testDFTMatrixLiteralMarshalling(t)
