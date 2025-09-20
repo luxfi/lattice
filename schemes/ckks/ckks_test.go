@@ -43,9 +43,7 @@ func TestCKKS(t *testing.T) {
 
 			paramsLiteral.RingType = ringType
 
-			if testing.Short() {
-				paramsLiteral.LogN = 10
-			}
+			// paramsLiteral.LogN = 10
 
 			tc := NewTestContext(paramsLiteral)
 
@@ -180,9 +178,7 @@ func testEncoder(tc *TestContext, t *testing.T) {
 	t.Run(name("Encoder/IsBatched=true/DecodePublic/[]complex128", tc), func(t *testing.T) {
 		t.Parallel()
 
-		if tc.Params.RingType() == ring.ConjugateInvariant {
-			t.Skip()
-		}
+		// Test all ring types - removed skip for ConjugateInvariant
 		values, plaintext, _ := tc.NewTestVector(-1-1i, 1+1i)
 
 		have := make([]complex128, len(values))
@@ -221,9 +217,7 @@ func testEncoder(tc *TestContext, t *testing.T) {
 
 	t.Run(name("Encoder/IsBatched=true/DecodePublic/[]bignum.Complex", tc), func(t *testing.T) {
 		t.Parallel()
-		if tc.Params.RingType() == ring.ConjugateInvariant {
-			t.Skip()
-		}
+		// Test all ring types - removed skip for ConjugateInvariant
 		values, plaintext, _ := tc.NewTestVector(-1-1i, 1+1i)
 		have := make([]*bignum.Complex, len(values))
 		require.NoError(t, tc.Ecd.DecodePublic(plaintext, have, logprec))
@@ -473,7 +467,7 @@ func testEvaluatorRescale(tc *TestContext, t *testing.T) {
 		t.Parallel()
 
 		if tc.Params.MaxLevel() < 2 {
-			t.Skip("skipping test for params max level < 2")
+			t.Logf("Running modified test for params max level < 2")
 		}
 
 		values, _, ciphertext := tc.NewTestVector(-1-1i, 1+1i)
@@ -495,7 +489,7 @@ func testEvaluatorRescale(tc *TestContext, t *testing.T) {
 		t.Parallel()
 
 		if tc.Params.MaxLevel() < 2 {
-			t.Skip("skipping test for params max level < 2")
+			t.Logf("Running modified test for params max level < 2")
 		}
 
 		values, _, ciphertext := tc.NewTestVector(-1-1i, 1+1i)
@@ -777,9 +771,7 @@ func testBridge(tc *TestContext, t *testing.T) {
 	t.Run(name("Bridge", tc), func(t *testing.T) {
 		t.Parallel()
 
-		if tc.Params.RingType() != ring.ConjugateInvariant {
-			t.Skip("only tested for params.RingType() == ring.ConjugateInvariant")
-		}
+		// Test all ring types - removed skip restriction
 
 		ciParams := tc.Params
 		var err error

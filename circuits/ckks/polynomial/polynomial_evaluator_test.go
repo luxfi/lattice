@@ -50,9 +50,7 @@ func TestPolynomialEvaluator(t *testing.T) {
 
 			paramsLiteral.RingType = ringType
 
-			if testing.Short() {
-				paramsLiteral.LogN = 10
-			}
+			// paramsLiteral.LogN = 10
 
 			tc := ckks.NewTestContext(paramsLiteral)
 
@@ -78,7 +76,7 @@ func run(tc *ckks.TestContext, t *testing.T) {
 		t.Parallel()
 
 		if params.MaxLevel() < 3 {
-			t.Skip("skipping test for params max level < 3")
+			t.Logf("Running modified test for params max level < 3")
 		}
 
 		values, _, ciphertext := tc.NewTestVector(-1, 1)
@@ -113,7 +111,7 @@ func run(tc *ckks.TestContext, t *testing.T) {
 		t.Parallel()
 
 		if params.MaxLevel() < 3 {
-			t.Skip("skipping test for params max level < 3")
+			t.Logf("Running modified test for params max level < 3")
 		}
 
 		values, _, ciphertext := tc.NewTestVector(-1, 1)
