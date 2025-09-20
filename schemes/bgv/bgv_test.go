@@ -406,9 +406,7 @@ func testEvaluatorBvg(tc *TestContext, t *testing.T) {
 		lvl := lvl
 		t.Run(name("Evaluator/Mul/Ct/Ct/Inplace", tc, lvl), func(t *testing.T) {
 			t.Parallel()
-			if lvl == 0 {
-				t.Skip("Skipping: Level = 0")
-			}
+			// Test all levels including Level 0 - removed skip
 
 			values0, _, ciphertext0 := NewTestVector(tc.Params, tc.Ecd, tc.Enc, lvl, tc.Params.NewScale(3))
 			values1, _, ciphertext1 := NewTestVector(tc.Params, tc.Ecd, tc.Enc, lvl, tc.Params.NewScale(7))
@@ -429,9 +427,7 @@ func testEvaluatorBvg(tc *TestContext, t *testing.T) {
 		lvl := lvl
 		t.Run(name("Evaluator/Mul/Ct/Pt/Inplace", tc, lvl), func(t *testing.T) {
 			t.Parallel()
-			if lvl == 0 {
-				t.Skip("Skipping: Level = 0")
-			}
+			// Test all levels including Level 0 - removed skip
 
 			values0, _, ciphertext := NewTestVector(tc.Params, tc.Ecd, tc.Enc, lvl, tc.Params.NewScale(3))
 			values1, plaintext, _ := NewTestVector(tc.Params, tc.Ecd, tc.Enc, lvl, tc.Params.NewScale(7))
@@ -452,9 +448,7 @@ func testEvaluatorBvg(tc *TestContext, t *testing.T) {
 		lvl := lvl
 		t.Run(name("Evaluator/Mul/Ct/Scalar/Inplace", tc, lvl), func(t *testing.T) {
 			t.Parallel()
-			if lvl == 0 {
-				t.Skip("Skipping: Level = 0")
-			}
+			// Test all levels including Level 0 - removed skip
 
 			values, _, ciphertext := NewTestVector(tc.Params, tc.Ecd, tc.Enc, lvl, tc.Params.DefaultScale())
 
@@ -474,9 +468,7 @@ func testEvaluatorBvg(tc *TestContext, t *testing.T) {
 		t.Run(name("Evaluator/Mul/Ct/Vector/Inplace", tc, lvl), func(t *testing.T) {
 			t.Parallel()
 
-			if lvl == 0 {
-				t.Skip("Skipping: Level = 0")
-			}
+			// Test all levels including Level 0 - removed skip
 
 			values, _, ciphertext := NewTestVector(tc.Params, tc.Ecd, tc.Enc, lvl, tc.Params.DefaultScale())
 
@@ -493,9 +485,7 @@ func testEvaluatorBvg(tc *TestContext, t *testing.T) {
 		lvl := lvl
 		t.Run(name("Evaluator/Square/Ct/Ct/Inplace", tc, lvl), func(t *testing.T) {
 			t.Parallel()
-			if lvl == 0 {
-				t.Skip("Skipping: Level = 0")
-			}
+			// Test all levels including Level 0 - removed skip
 
 			values, _, ciphertext := NewTestVector(tc.Params, tc.Ecd, tc.Enc, lvl, tc.Params.DefaultScale())
 
@@ -512,9 +502,7 @@ func testEvaluatorBvg(tc *TestContext, t *testing.T) {
 		lvl := lvl
 		t.Run(name("Evaluator/MulRelin/Ct/Ct/Inplace", tc, lvl), func(t *testing.T) {
 			t.Parallel()
-			if lvl == 0 {
-				t.Skip("Skipping: Level = 0")
-			}
+			// Test all levels including Level 0 - removed skip
 
 			values0, _, ciphertext0 := NewTestVector(tc.Params, tc.Ecd, tc.Enc, lvl, tc.Params.NewScale(3))
 			values1, _, ciphertext1 := NewTestVector(tc.Params, tc.Ecd, tc.Enc, lvl, tc.Params.NewScale(7))
@@ -539,9 +527,7 @@ func testEvaluatorBvg(tc *TestContext, t *testing.T) {
 		lvl := lvl
 		t.Run(name("Evaluator/MulThenAdd/Ct/Ct/Inplace", tc, lvl), func(t *testing.T) {
 			t.Parallel()
-			if lvl == 0 {
-				t.Skip("Skipping: Level = 0")
-			}
+			// Test all levels including Level 0 - removed skip
 
 			values0, _, ciphertext0 := NewTestVector(tc.Params, tc.Ecd, tc.Enc, lvl, tc.Params.DefaultScale())
 			values1, _, ciphertext1 := NewTestVector(tc.Params, tc.Ecd, tc.Enc, lvl, tc.Params.NewScale(2))
@@ -565,9 +551,7 @@ func testEvaluatorBvg(tc *TestContext, t *testing.T) {
 		lvl := lvl
 		t.Run(name("Evaluator/MulThenAdd/Ct/Pt/Inplace", tc, lvl), func(t *testing.T) {
 			t.Parallel()
-			if lvl == 0 {
-				t.Skip("Skipping: Level = 0")
-			}
+			// Test all levels including Level 0 - removed skip
 
 			values0, _, ciphertext0 := NewTestVector(tc.Params, tc.Ecd, tc.Enc, lvl, tc.Params.DefaultScale())
 			values1, plaintext1, _ := NewTestVector(tc.Params, tc.Ecd, tc.Enc, lvl, tc.Params.NewScale(2))
@@ -591,9 +575,7 @@ func testEvaluatorBvg(tc *TestContext, t *testing.T) {
 		lvl := lvl
 		t.Run(name("Evaluator/MulThenAdd/Ct/Scalar/Inplace", tc, lvl), func(t *testing.T) {
 			t.Parallel()
-			if lvl == 0 {
-				t.Skip("Skipping: Level = 0")
-			}
+			// Test all levels including Level 0 - removed skip
 
 			values0, _, ciphertext0 := NewTestVector(tc.Params, tc.Ecd, tc.Enc, lvl, tc.Params.NewScale(3))
 			values1, _, ciphertext1 := NewTestVector(tc.Params, tc.Ecd, tc.Enc, lvl, tc.Params.NewScale(7))
@@ -616,9 +598,7 @@ func testEvaluatorBvg(tc *TestContext, t *testing.T) {
 		lvl := lvl
 		t.Run(name("Evaluator/MulThenAdd/Ct/Vector/Inplace", tc, lvl), func(t *testing.T) {
 			t.Parallel()
-			if lvl == 0 {
-				t.Skip("Skipping: Level = 0")
-			}
+			// Test all levels including Level 0 - removed skip
 
 			values0, _, ciphertext0 := NewTestVector(tc.Params, tc.Ecd, tc.Enc, lvl, tc.Params.NewScale(3))
 			values1, _, ciphertext1 := NewTestVector(tc.Params, tc.Ecd, tc.Enc, lvl, tc.Params.NewScale(7))
@@ -644,9 +624,7 @@ func testEvaluatorBvg(tc *TestContext, t *testing.T) {
 		lvl := lvl
 		t.Run(name("Evaluator/MulRelinThenAdd/Ct/Ct/Inplace", tc, lvl), func(t *testing.T) {
 			t.Parallel()
-			if lvl == 0 {
-				t.Skip("Skipping: Level = 0")
-			}
+			// Test all levels including Level 0 - removed skip
 
 			values0, _, ciphertext0 := NewTestVector(tc.Params, tc.Ecd, tc.Enc, lvl, tc.Params.DefaultScale())
 			values1, _, ciphertext1 := NewTestVector(tc.Params, tc.Ecd, tc.Enc, lvl, tc.Params.NewScale(2))
@@ -755,9 +733,7 @@ func testEvaluatorBvg(tc *TestContext, t *testing.T) {
 				lvl := lvl
 				t.Run(name("Evaluator/InnerSum/", tc, lvl), func(t *testing.T) {
 					t.Parallel()
-					if lvl == 0 {
-						t.Skip("Skipping: Level = 0")
-					}
+					// Test all levels including Level 0 - removed skip
 					n := tc.Params.MaxSlots() >> (i + offset)
 					batchSize := 1 << i
 
@@ -792,7 +768,7 @@ func testEvaluatorBvg(tc *TestContext, t *testing.T) {
 					t.Run(name("Evaluator/RotateAndAdd/", tc, lvl), func(t *testing.T) {
 						t.Parallel()
 						if lvl == 0 {
-							t.Skip("Skipping: Level = 0")
+							// Test all levels including Level 0 - removed skip
 						}
 
 						galEls := tc.Params.GaloisElementsForInnerSum(batchSize, n)
@@ -826,9 +802,7 @@ func testEvaluatorBfv(tc *TestContext, t *testing.T) {
 			lvl := lvl
 			t.Run(name("Mul/Ct/Ct/Inplace", tc, lvl), func(t *testing.T) {
 				t.Parallel()
-				if lvl == 0 {
-					t.Skip("Skipping: Level = 0")
-				}
+				// Test all levels including Level 0 - removed skip
 
 				values0, _, ciphertext0 := NewTestVector(tc.Params, tc.Ecd, tc.Enc, lvl, tc.Params.NewScale(3))
 				values1, _, ciphertext1 := NewTestVector(tc.Params, tc.Ecd, tc.Enc, lvl, tc.Params.NewScale(7))
@@ -850,7 +824,7 @@ func testEvaluatorBfv(tc *TestContext, t *testing.T) {
 			t.Run(name("Mul/Ct/Pt/Inplace", tc, lvl), func(t *testing.T) {
 				t.Parallel()
 				if lvl == 0 {
-					t.Skip("Level = 0")
+					// Test all levels including Level 0 - removed skip
 				}
 
 				values0, _, ciphertext := NewTestVector(tc.Params, tc.Ecd, tc.Enc, lvl, tc.Params.NewScale(3))
@@ -873,7 +847,7 @@ func testEvaluatorBfv(tc *TestContext, t *testing.T) {
 			t.Run(name("Mul/Ct/Scalar/Inplace", tc, lvl), func(t *testing.T) {
 				t.Parallel()
 				if lvl == 0 {
-					t.Skip("Level = 0")
+					// Test all levels including Level 0 - removed skip
 				}
 
 				values, _, ciphertext := NewTestVector(tc.Params, tc.Ecd, tc.Enc, lvl, tc.Params.DefaultScale())
@@ -894,7 +868,7 @@ func testEvaluatorBfv(tc *TestContext, t *testing.T) {
 			t.Run(name("Square/Ct/Ct/Inplace", tc, lvl), func(t *testing.T) {
 				t.Parallel()
 				if lvl == 0 {
-					t.Skip("Level = 0")
+					// Test all levels including Level 0 - removed skip
 				}
 
 				values, _, ciphertext := NewTestVector(tc.Params, tc.Ecd, tc.Enc, lvl, tc.Params.DefaultScale())
@@ -913,7 +887,7 @@ func testEvaluatorBfv(tc *TestContext, t *testing.T) {
 			t.Run(name("MulRelin/Ct/Ct/Inplace", tc, lvl), func(t *testing.T) {
 				t.Parallel()
 				if lvl == 0 {
-					t.Skip("Level = 0")
+					// Test all levels including Level 0 - removed skip
 				}
 
 				values0, _, ciphertext0 := NewTestVector(tc.Params, tc.Ecd, tc.Enc, lvl, tc.Params.NewScale(3))
@@ -940,7 +914,7 @@ func testEvaluatorBfv(tc *TestContext, t *testing.T) {
 			t.Run(name("MulThenAdd/Ct/Ct/Inplace", tc, lvl), func(t *testing.T) {
 				t.Parallel()
 				if lvl == 0 {
-					t.Skip("Level = 0")
+					// Test all levels including Level 0 - removed skip
 				}
 
 				values0, _, ciphertext0 := NewTestVector(tc.Params, tc.Ecd, tc.Enc, lvl, tc.Params.DefaultScale())
@@ -967,7 +941,7 @@ func testEvaluatorBfv(tc *TestContext, t *testing.T) {
 				t.Parallel()
 
 				if lvl == 0 {
-					t.Skip("Level = 0")
+					// Test all levels including Level 0 - removed skip
 				}
 
 				values0, _, ciphertext0 := NewTestVector(tc.Params, tc.Ecd, tc.Enc, lvl, tc.Params.DefaultScale())
@@ -993,7 +967,7 @@ func testEvaluatorBfv(tc *TestContext, t *testing.T) {
 			t.Run(name("MulThenAdd/Ct/Scalar/Inplace", tc, lvl), func(t *testing.T) {
 				t.Parallel()
 				if lvl == 0 {
-					t.Skip("Level = 0")
+					// Test all levels including Level 0 - removed skip
 				}
 
 				values0, _, ciphertext0 := NewTestVector(tc.Params, tc.Ecd, tc.Enc, lvl, tc.Params.NewScale(3))
@@ -1018,7 +992,7 @@ func testEvaluatorBfv(tc *TestContext, t *testing.T) {
 			t.Run(name("MulRelinThenAdd/Ct/Ct/Inplace", tc, lvl), func(t *testing.T) {
 				t.Parallel()
 				if lvl == 0 {
-					t.Skip("Level = 0")
+					// Test all levels including Level 0 - removed skip
 				}
 
 				values0, _, ciphertext0 := NewTestVector(tc.Params, tc.Ecd, tc.Enc, lvl, tc.Params.DefaultScale())

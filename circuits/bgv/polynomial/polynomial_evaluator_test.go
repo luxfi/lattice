@@ -48,8 +48,9 @@ func TestPolynomialEvaluator(t *testing.T) {
 func run(tc *bgv.TestContext, t *testing.T) {
 	t.Run("Single", func(t *testing.T) {
 
+		// Test all level configurations - removed skip
 		if tc.Params.MaxLevel() < 4 {
-			t.Skip("MaxLevel() to low")
+			t.Logf("Running modified test for low MaxLevel() < 4")
 		}
 
 		values, _, ciphertext := bgv.NewTestVector(tc.Params, tc.Ecd, tc.Enc, tc.Params.MaxLevel(), tc.Params.DefaultScale())
