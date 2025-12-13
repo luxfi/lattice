@@ -1,0 +1,656 @@
+---
+title: API Reference
+description: Complete API documentation for Lattice cryptographic library
+---
+
+# API Reference
+
+Comprehensive API documentation for all Lattice packages and functions.
+
+## Core Packages
+
+### `ring` - Polynomial Arithmetic
+
+Foundation for all lattice-based operations providing modular arithmetic for polynomials.
+
+```go
+import "github.com/luxfi/lattice/v6/ring"
+```
+
+#### Types
+
+```go
+// Ring represents a quotient polynomial ring
+type Ring struct {
+    N            int         // Ring degree (power of 2)
+    Modulus      uint64      // Prime modulus
+    BRedConstant []uint64    // Barrett reduction constants
+    NTTTable     []uint64    // NTT twiddle factors
+}
+
+// Poly represents a polynomial in the ring
+type Poly struct {
+    Coeffs [][]uint64  // Coefficients in RNS representation
+    IsNTT  bool        // Whether polynomial is in NTT form
+}
+```
+
+#### Functions
+
+```go
+// NewRing creates a new polynomial ring
+func NewRing(N int, moduli []uint64) (*Ring, error)
+
+// NewPoly allocates a new polynomial
+func (r *Ring) NewPoly() *Poly
+
+// NTT performs Number Theoretic Transform
+func (r *Ring) NTT(p1, p2 *Poly)
+
+// INTT performs inverse NTT
+func (r *Ring) INTT(p1, p2 *Poly)
+
+// Add performs polynomial addition
+func (r *Ring) Add(p1, p2, pOut *Poly)
+
+// Mul performs polynomial multiplication
+func (r *Ring) Mul(p1, p2, pOut *Poly)
+
+// MulScalar multiplies polynomial by scalar
+func (r *Ring) MulScalar(p1 *Poly, scalar uint64, pOut *Poly)
+
+// Reduce performs modular reduction
+func (r *Ring) Reduce(p1, p2 *Poly)
+```
+
+### `rlwe` - RLWE Cryptographic Primitives
+
+Core cryptographic operations for Ring Learning With Errors.
+
+```go
+import "github.com/luxfi/lattice/v6/core/rlwe"
+```
+
+#### Types
+
+```go
+// Parameters defines RLWE parameters
+type Parameters struct {
+    logN   int      // Log2 of ring degree
+    qi     []uint64 // Ciphertext moduli chain
+    pi     []uint64 // Key-switching moduli
+    sigma  float64  // Error standard deviation
+}
+
+// SecretKey represents a secret key
+type SecretKey struct {
+    Value *ring.Poly
+}
+
+// PublicKey represents a public key
+type PublicKey struct {
+    Value [2]*ring.Poly
+}
+
+// Ciphertext represents an encrypted value
+type Ciphertext struct {
+    Value []*ring.Poly
+    Level int
+}
+
+// Plaintext represents an unencrypted value
+type Plaintext struct {
+    Value *ring.Poly
+    Scale float64
+}
+```
+
+#### Key Generation
+
+```go
+// KeyGenerator generates cryptographic keys
+type KeyGenerator struct {
+    params Parameters
+    prng   utils.PRNG
+}
+
+// NewKeyGenerator creates a new key generator
+func NewKeyGenerator(params Parameters) *KeyGenerator
+
+// GenSecretKey generates a secret key
+func (kg *KeyGenerator) GenSecretKey() *SecretKey
+
+// GenPublicKey generates a public key
+func (kg *KeyGenerator) GenPublicKey(sk *SecretKey) *PublicKey
+
+// GenRelinearizationKey generates relinearization keys
+func (kg *KeyGenerator) GenRelinearizationKey(sk *SecretKey, maxDegree int) *RelinearizationKey
+
+// GenGaloisKeys generates Galois keys for rotations
+func (kg *KeyGenerator) GenGaloisKeys(sk *SecretKey, galoisElements []uint64) *GaloisKeys
+```
+
+#### Encryption/Decryption
+
+```go
+// Encryptor encrypts plaintexts
+type Encryptor interface {
+    Encrypt(pt *Plaintext, ct *Ciphertext) error
+    EncryptNew(pt *Plaintext) (*Ciphertext, error)
+    EncryptZero(ct *Ciphertext) error
+    EncryptZeroNew(level int) (*Ciphertext, error)
+}
+
+// NewEncryptor creates an encryptor
+func NewEncryptor(params Parameters, pk *PublicKey) Encryptor
+
+// Decryptor decrypts ciphertexts
+type Decryptor interface {
+    Decrypt(ct *Ciphertext, pt *Plaintext) error
+    DecryptNew(ct *Ciphertext) (*Plaintext, error)
+}
+
+// NewDecryptor creates a decryptor
+func NewDecryptor(params Parameters, sk *SecretKey) Decryptor
+```
+
+### `schemes/ckks` - CKKS Homomorphic Encryption
+
+Approximate arithmetic over complex/real numbers.
+
+```go
+import "github.com/luxfi/lattice/v6/schemes/ckks"
+```
+
+#### Parameters
+
+```go
+// ParametersLiteral defines CKKS parameters
+type ParametersLiteral struct {
+    LogN            int     // Log2 of ring degree
+    LogQ            []int   // Log2 of ciphertext moduli
+    LogP            []int   // Log2 of key-switching moduli
+    LogDefaultScale int     // Log2 of default scale
+    Sigma           float64 // Error standard deviation
+    RingType        ring.Type // Standard or ConjugateInvariant
+}
+
+// NewParametersFromLiteral creates parameters
+func NewParametersFromLiteral(pl ParametersLiteral) (Parameters, error)
+
+// DefaultParams provides pre-configured parameter sets
+var (
+    PN12QP109 Parameters // N=4096, 128-bit security
+    PN13QP218 Parameters // N=8192, 128-bit security
+    PN14QP438 Parameters // N=16384, 128-bit security
+    PN15QP880 Parameters // N=32768, 128-bit security
+)
+```
+
+#### Encoder
+
+```go
+// Encoder encodes/decodes between values and plaintexts
+type Encoder interface {
+    Encode(values interface{}, pt *Plaintext) error
+    Decode(pt *Plaintext, slots int) []complex128
+    EncodeCoeffs(coeffs []float64, pt *Plaintext) error
+    DecodeCoeffs(pt *Plaintext) []float64
+}
+
+// NewEncoder creates an encoder
+func NewEncoder(params Parameters) Encoder
+
+// Encoding options
+func (e *Encoder) EncodeWithScale(values interface{}, scale float64, pt *Plaintext) error
+func (e *Encoder) EncodeDiagMatrix(matrix map[int][]complex128, scale float64, pt *Plaintext) error
+```
+
+#### Evaluator
+
+```go
+// Evaluator performs homomorphic operations
+type Evaluator interface {
+    // Arithmetic operations
+    Add(op0, op1 Operand, opOut *Ciphertext) error
+    Sub(op0, op1 Operand, opOut *Ciphertext) error
+    Mul(op0, op1 Operand, opOut *Ciphertext) error
+    MulRelin(op0, op1 Operand, opOut *Ciphertext) error
+
+    // Rescaling
+    Rescale(ctIn, ctOut *Ciphertext) error
+
+    // Rotations
+    Rotate(ctIn *Ciphertext, k int, ctOut *Ciphertext) error
+    Conjugate(ctIn, ctOut *Ciphertext) error
+
+    // Advanced operations
+    Power(ct *Ciphertext, degree int, ctOut *Ciphertext) error
+    Polynomial(ct *Ciphertext, poly *Polynomial, ctOut *Ciphertext) error
+    InnerProduct(ct0, ct1 []*Ciphertext, ctOut *Ciphertext) error
+}
+
+// NewEvaluator creates an evaluator
+func NewEvaluator(params Parameters, evk *EvaluationKeySet) Evaluator
+```
+
+### `schemes/bgv` - BGV/BFV Homomorphic Encryption
+
+Exact arithmetic over integers modulo a plaintext modulus.
+
+```go
+import "github.com/luxfi/lattice/v6/schemes/bgv"
+```
+
+#### Parameters
+
+```go
+// ParametersLiteral defines BGV parameters
+type ParametersLiteral struct {
+    LogN           int      // Log2 of ring degree
+    LogQ           []int    // Log2 of ciphertext moduli
+    LogP           []int    // Log2 of key-switching moduli
+    PlaintextModulus uint64 // Plaintext modulus (usually prime)
+    Sigma          float64  // Error standard deviation
+}
+
+// Standard parameter sets
+var (
+    PN12QP109_65537 Parameters // N=4096, t=65537
+    PN13QP218_65537 Parameters // N=8192, t=65537
+    PN14QP438_65537 Parameters // N=16384, t=65537
+)
+```
+
+#### Encoder
+
+```go
+// Encoder for BGV plaintexts
+type Encoder interface {
+    Encode(values interface{}, pt *Plaintext) error
+    Decode(pt *Plaintext, slots int) []uint64
+    EncodeRingT(values []uint64, pt *Plaintext) error
+    DecodeRingT(pt *Plaintext) []uint64
+}
+
+// Batching support
+func (e *Encoder) EncodeBatch(values []uint64, pt *Plaintext) error
+func (e *Encoder) DecodeBatch(pt *Plaintext) []uint64
+```
+
+#### Evaluator
+
+```go
+// BGV-specific operations
+type Evaluator interface {
+    // Standard operations (same as CKKS)
+    Add, Sub, Mul, MulRelin...
+
+    // BGV-specific
+    MulScalar(ct *Ciphertext, scalar uint64, ctOut *Ciphertext) error
+    Relinearize(ct *Ciphertext, ctOut *Ciphertext) error
+    SwitchKeys(ctIn *Ciphertext, swk *SwitchingKey, ctOut *Ciphertext) error
+
+    // Automorphisms
+    Automorphism(ctIn *Ciphertext, galEl uint64, ctOut *Ciphertext) error
+    AutomorphismHoisted(ctIn *Ciphertext, galEl uint64, ctOut *Ciphertext) error
+}
+```
+
+### `multiparty` - Multiparty Protocols
+
+Distributed cryptographic protocols for threshold operations.
+
+```go
+import "github.com/luxfi/lattice/v6/multiparty"
+```
+
+#### Threshold Key Generation
+
+```go
+// TKGProtocol generates keys collaboratively
+type TKGProtocol struct {
+    params Parameters
+}
+
+// NewTKGProtocol creates a protocol instance
+func NewTKGProtocol(params Parameters) *TKGProtocol
+
+// GenShare generates a party's key share
+func (tkg *TKGProtocol) GenShare(sk *SecretKey) *TKGShare
+
+// AggregateShares combines shares into public key
+func (tkg *TKGProtocol) AggregateShares(shares []*TKGShare) *PublicKey
+```
+
+#### Collective Decryption
+
+```go
+// PCKSProtocol for collective decryption
+type PCKSProtocol struct {
+    params Parameters
+}
+
+// GenShare generates decryption share
+func (pcks *PCKSProtocol) GenShare(sk *SecretKey, ct *Ciphertext) *PCKSShare
+
+// AggregateShares combines decryption shares
+func (pcks *PCKSProtocol) AggregateShares(shares []*PCKSShare, ct *Ciphertext) *Plaintext
+```
+
+#### Collective Relinearization
+
+```go
+// RKGProtocol generates relinearization keys
+type RKGProtocol struct {
+    params Parameters
+}
+
+// GenShareRoundOne generates round 1 share
+func (rkg *RKGProtocol) GenShareRoundOne(sk *SecretKey) (*RKGShare, *SecretKey)
+
+// GenShareRoundTwo generates round 2 share
+func (rkg *RKGProtocol) GenShareRoundTwo(sk *SecretKey, share1 *RKGShare) *RKGShare
+
+// GenRelinearizationKey combines shares
+func (rkg *RKGProtocol) GenRelinearizationKey(shares2 []*RKGShare) *RelinearizationKey
+```
+
+## Circuit Packages
+
+### `circuits/ckks/bootstrapping`
+
+Bootstrapping for noise reduction in CKKS.
+
+```go
+import "github.com/luxfi/lattice/v6/circuits/ckks/bootstrapping"
+```
+
+#### Bootstrapper
+
+```go
+// ParametersLiteral for bootstrapping
+type ParametersLiteral struct {
+    LogN     int     // Ring degree for bootstrapping
+    LogSlots int     // Number of slots
+    H        int     // Hamming weight of secret key
+    Sigma    float64 // Error standard deviation
+    // ... additional parameters
+}
+
+// Bootstrapper refreshes ciphertexts
+type Bootstrapper struct {
+    params Parameters
+    btpParams ParametersLiteral
+}
+
+// NewBootstrapper creates bootstrapper
+func NewBootstrapper(params Parameters, btpParams ParametersLiteral, evk *EvaluationKeySet) (*Bootstrapper, error)
+
+// Bootstrap refreshes a ciphertext
+func (btp *Bootstrapper) Bootstrap(ct *Ciphertext) (*Ciphertext, error)
+
+// BootstrapMany bootstraps multiple ciphertexts
+func (btp *Bootstrapper) BootstrapMany(cts []*Ciphertext) ([]*Ciphertext, error)
+```
+
+### `circuits/ckks/comparison`
+
+Comparison operations for CKKS.
+
+```go
+import "github.com/luxfi/lattice/v6/circuits/ckks/comparison"
+```
+
+#### Comparison Functions
+
+```go
+// Comparison evaluates comparison circuits
+type Comparison struct {
+    evaluator Evaluator
+    params    Parameters
+}
+
+// Sign computes sign function
+func (comp *Comparison) Sign(ct *Ciphertext, pol *Polynomial) (*Ciphertext, error)
+
+// Max computes maximum of two ciphertexts
+func (comp *Comparison) Max(ct0, ct1 *Ciphertext) (*Ciphertext, error)
+
+// Min computes minimum
+func (comp *Comparison) Min(ct0, ct1 *Ciphertext) (*Ciphertext, error)
+
+// Step computes step function
+func (comp *Comparison) Step(ct *Ciphertext, threshold float64) (*Ciphertext, error)
+```
+
+### `circuits/ckks/minimax`
+
+Minimax polynomial approximation.
+
+```go
+import "github.com/luxfi/lattice/v6/circuits/ckks/minimax"
+```
+
+#### Polynomial Approximation
+
+```go
+// Remez computes minimax polynomial approximation
+type Remez struct {
+    Function func(float64) float64
+    Interval [2]float64
+    Degree   int
+}
+
+// NewRemez creates approximator
+func NewRemez(f func(float64) float64, interval [2]float64, degree int) *Remez
+
+// Approximate computes coefficients
+func (r *Remez) Approximate() ([]float64, error)
+
+// EvaluatePolynomial evaluates on ciphertext
+func EvaluatePolynomial(eval Evaluator, ct *Ciphertext, coeffs []float64) (*Ciphertext, error)
+```
+
+## Utility Packages
+
+### `utils/bignum`
+
+Arbitrary precision arithmetic.
+
+```go
+import "github.com/luxfi/lattice/v6/utils/bignum"
+```
+
+#### Complex Numbers
+
+```go
+// Complex arbitrary precision complex number
+type Complex struct {
+    Real *big.Float
+    Imag *big.Float
+}
+
+// NewComplex creates complex number
+func NewComplex(real, imag *big.Float) *Complex
+
+// Operations
+func (c *Complex) Add(a, b *Complex) *Complex
+func (c *Complex) Mul(a, b *Complex) *Complex
+func (c *Complex) Quo(a, b *Complex) *Complex
+```
+
+### `utils/sampling`
+
+Cryptographically secure random sampling.
+
+```go
+import "github.com/luxfi/lattice/v6/utils/sampling"
+```
+
+#### Random Number Generation
+
+```go
+// PRNG interface
+type PRNG interface {
+    Read(p []byte) (n int, err error)
+    ReadFloat64() float64
+    ReadUint64() uint64
+}
+
+// NewPRNG creates PRNG from seed
+func NewPRNG(seed []byte) PRNG
+
+// Sampling functions
+func SampleGaussian(prng PRNG, sigma float64) float64
+func SampleTernary(prng PRNG, p float64) int
+func SampleUniform(prng PRNG, mod uint64) uint64
+```
+
+## Error Handling
+
+All functions return errors following Go conventions:
+
+```go
+// Check errors explicitly
+ct, err := encryptor.EncryptNew(pt)
+if err != nil {
+    return fmt.Errorf("encryption failed: %w", err)
+}
+
+// Common errors
+var (
+    ErrInvalidParameters = errors.New("invalid parameters")
+    ErrDimensionMismatch = errors.New("dimension mismatch")
+    ErrInvalidInput      = errors.New("invalid input")
+    ErrNilArgument       = errors.New("nil argument")
+)
+```
+
+## Best Practices
+
+### Memory Management
+
+```go
+// Reuse allocated memory
+ct := ckks.NewCiphertext(params, 1, level)
+for i := 0; i < iterations; i++ {
+    evaluator.Mul(ct, ct, ct) // In-place operation
+}
+
+// Clear sensitive data
+defer func() {
+    sk.Value.Zero()
+    runtime.GC()
+}()
+```
+
+### Performance Optimization
+
+```go
+// Batch operations when possible
+values := make([]complex128, params.Slots())
+encoder.Encode(values, pt) // Encode all slots at once
+
+// Use appropriate precision
+params := ckks.ParametersLiteral{
+    LogDefaultScale: 30, // Lower scale for less precision
+}
+
+// Parallelize independent operations
+var wg sync.WaitGroup
+for i := range ciphertexts {
+    wg.Add(1)
+    go func(i int) {
+        defer wg.Done()
+        evaluator.Mul(cts[i], scalar, cts[i])
+    }(i)
+}
+wg.Wait()
+```
+
+### Security Considerations
+
+```go
+// Validate parameters
+if err := params.Validate(); err != nil {
+    log.Fatalf("insecure parameters: %v", err)
+}
+
+// Use cryptographically secure randomness
+seed := make([]byte, 64)
+if _, err := crypto.Read(seed); err != nil {
+    panic(err)
+}
+prng := sampling.NewPRNG(seed)
+
+// Monitor noise levels
+if ct.Level() == 0 {
+    // Need bootstrapping or computation should stop
+}
+```
+
+## Complete Example
+
+```go
+package main
+
+import (
+    "fmt"
+    "github.com/luxfi/lattice/v6/core/rlwe"
+    "github.com/luxfi/lattice/v6/schemes/ckks"
+)
+
+func main() {
+    // Setup parameters
+    paramsLit := ckks.ParametersLiteral{
+        LogN:            14,
+        LogQ:            []int{50, 40, 40, 40, 40},
+        LogP:            []int{60},
+        LogDefaultScale: 40,
+        Sigma:           3.2,
+    }
+
+    params, err := ckks.NewParametersFromLiteral(paramsLit)
+    if err != nil {
+        panic(err)
+    }
+
+    // Generate keys
+    kgen := rlwe.NewKeyGenerator(params)
+    sk := kgen.GenSecretKeyNew()
+    pk := kgen.GenPublicKeyNew(sk)
+    rlk := kgen.GenRelinearizationKeyNew(sk)
+    evk := rlwe.NewMemEvaluationKeySet(rlk)
+
+    // Setup crypto components
+    encoder := ckks.NewEncoder(params)
+    encryptor := rlwe.NewEncryptor(params, pk)
+    decryptor := rlwe.NewDecryptor(params, sk)
+    evaluator := ckks.NewEvaluator(params, evk)
+
+    // Prepare data
+    values1 := []complex128{1, 2, 3, 4}
+    values2 := []complex128{5, 6, 7, 8}
+
+    // Encode and encrypt
+    pt1 := ckks.NewPlaintext(params, params.MaxLevel())
+    pt2 := ckks.NewPlaintext(params, params.MaxLevel())
+
+    encoder.Encode(values1, pt1)
+    encoder.Encode(values2, pt2)
+
+    ct1, _ := encryptor.EncryptNew(pt1)
+    ct2, _ := encryptor.EncryptNew(pt2)
+
+    // Homomorphic multiplication
+    ctMul, _ := evaluator.MulRelinNew(ct1, ct2)
+    evaluator.Rescale(ctMul, ctMul)
+
+    // Decrypt and decode
+    ptRes := decryptor.DecryptNew(ctMul)
+    result := encoder.Decode(ptRes, params.LogSlots())
+
+    fmt.Println("Result:", result[:4])
+    // Output: [5, 12, 21, 32]
+}
