@@ -1,0 +1,513 @@
+---
+title: Security Parameters Guide
+description: Comprehensive guide to selecting and configuring security parameters for lattice-based cryptography
+---
+
+# Security Parameters Guide
+
+Detailed guide for understanding and selecting appropriate security parameters for lattice-based cryptographic systems, including parameter relationships, security levels, and practical recommendations.
+
+## Security Foundations
+
+### Computational Hardness Assumptions
+
+Lattice cryptography relies on the following hard problems:
+
+| Problem | Description | Quantum Hardness |
+|---------|-------------|------------------|
+| **LWE** | Learning With Errors | √ Quantum-resistant |
+| **RLWE** | Ring Learning With Errors | √ Quantum-resistant |
+| **MLWE** | Module Learning With Errors | √ Quantum-resistant |
+| **SIS** | Short Integer Solution | √ Quantum-resistant |
+| **MSIS** | Module Short Integer Solution | √ Quantum-resistant |
+
+### Security Level Definitions
+
+```go
+// NIST Security Levels
+const (
+    Level1 = 128  // Equivalent to AES-128
+    Level2 = 192  // Between AES-128 and AES-192
+    Level3 = 192  // Equivalent to AES-192
+    Level4 = 256  // Between AES-192 and AES-256
+    Level5 = 256  // Equivalent to AES-256
+)
+
+// Quantum vs Classical Security
+type SecurityLevel struct {
+    Classical int  // Bits of classical security
+    Quantum   int  // Bits of quantum security (≈ Classical/2)
+    NIST      int  // NIST category (1-5)
+}
+```
+
+## Parameter Relationships
+
+### Core Parameters
+
+```go
+// Fundamental parameters for RLWE schemes
+type RLWEParameters struct {
+    // Ring dimension (power of 2)
+    N int  // Security ∝ N
+
+    // Ciphertext modulus
+    Q *big.Int  // Correctness requires Q > noise
+
+    // Error distribution
+    Sigma float64  // Security ∝ σ, Correctness ∝ 1/σ
+
+    // Key distribution
+    KeyDist Distribution  // Ternary, Gaussian, or Uniform
+}
+```
+
+### Parameter Constraints
+
+```plaintext
+Security Constraint:
+    N · log(Q/σ) ≥ SecurityLevel
+
+Correctness Constraint:
+    Q > C · σ · √N · multiplicativeDepth
+
+Performance Constraint:
+    Smaller N → Faster operations
+    Smaller Q → Smaller ciphertexts
+```
+
+## CKKS Parameters
+
+### Parameter Selection Framework
+
+```go
+// CKKS parameter selection
+type CKKSParameterSelector struct {
+    // Required inputs
+    SecurityLevel   int     // Target security (128, 192, 256)
+    Precision       int     // Required precision in bits
+    MultiplicativeDepth int // Maximum multiplication depth
+
+    // Optional constraints
+    MaxN           int     // Maximum ring dimension
+    BootstrapDepth int     // Depth reserved for bootstrapping
+}
+
+func (s *CKKSParameterSelector) SelectParameters() CKKSParameters {
+    // Step 1: Choose minimal N for security
+    N := s.selectRingDimension()
+
+    // Step 2: Calculate modulus chain
+    logQ := s.calculateModulusChain()
+
+    // Step 3: Set error distribution
+    sigma := s.selectErrorDistribution()
+
+    // Step 4: Configure bootstrapping if needed
+    if s.BootstrapDepth > 0 {
+        logQ = s.addBootstrappingLevels(logQ)
+    }
+
+    return CKKSParameters{
+        LogN:            log2(N),
+        LogQ:            logQ,
+        Sigma:           sigma,
+        LogDefaultScale: s.Precision,
+    }
+}
+```
+
+### Recommended CKKS Parameters
+
+| Security | LogN | LogQP | Precision | Mult. Depth | Bootstrappable |
+|----------|------|-------|-----------|-------------|----------------|
+| 128-bit | 13 | 219 | 30 bits | 4 | No |
+| 128-bit | 14 | 439 | 40 bits | 8 | No |
+| 128-bit | 15 | 881 | 50 bits | 18 | Yes |
+| 192-bit | 14 | 359 | 35 bits | 6 | No |
+| 192-bit | 15 | 719 | 45 bits | 12 | Yes |
+| 256-bit | 15 | 659 | 40 bits | 10 | No |
+| 256-bit | 16 | 1319 | 50 bits | 22 | Yes |
+
+### Example CKKS Configuration
+
+```go
+// 128-bit security, high precision
+var CKKS_128_HighPrecision = ckks.ParametersLiteral{
+    LogN:            15,                         // N = 32768
+    LogQ:            []int{60, 50, 50, 50, 50}, // 260 bits total
+    LogP:            []int{61, 61},             // Key switching
+    LogDefaultScale: 50,                         // 50-bit precision
+    Sigma:           3.2,                        // Standard deviation
+    RingType:        ring.Standard,
+}
+
+// 192-bit security, bootstrappable
+var CKKS_192_Bootstrap = ckks.ParametersLiteral{
+    LogN: 15,
+    LogQ: []int{
+        // Computation levels
+        55, 45, 45, 45, 45, 45, 45, 45,
+        // Bootstrapping levels
+        55, 55, 55, 55, 55, 55, 55, 55,
+    },
+    LogP:            []int{61, 61, 61},
+    LogDefaultScale: 45,
+    Sigma:           3.2,
+    H:               192,  // Hamming weight for sparse keys
+}
+```
+
+## BGV/BFV Parameters
+
+### Parameter Selection
+
+```go
+// BGV/BFV parameter constraints
+type BGVParameterSelector struct {
+    SecurityLevel    int
+    PlaintextModulus uint64  // Usually prime
+    MultiplicativeDepth int
+    BatchingSlots    int     // Number of plaintext slots
+}
+
+func (s *BGVParameterSelector) SelectParameters() BGVParameters {
+    // Ensure plaintext modulus is prime
+    t := s.selectPlaintextModulus()
+
+    // Choose N based on slots and security
+    N := max(
+        nextPowerOfTwo(s.BatchingSlots * 2),
+        s.minNForSecurity(),
+    )
+
+    // Calculate modulus chain
+    // Each level needs ~60 bits for noise growth
+    logQ := make([]int, s.MultiplicativeDepth+1)
+    for i := range logQ {
+        logQ[i] = 60
+    }
+
+    return BGVParameters{
+        LogN:             log2(N),
+        LogQ:             logQ,
+        PlaintextModulus: t,
+        Sigma:            3.2,
+    }
+}
+```
+
+### Recommended BGV Parameters
+
+| Security | LogN | T | LogQP | Mult. Depth | Slots |
+|----------|------|---|-------|-------------|-------|
+| 128-bit | 13 | 65537 | 218 | 3 | 4096 |
+| 128-bit | 14 | 65537 | 438 | 7 | 8192 |
+| 128-bit | 15 | 65537 | 883 | 14 | 16384 |
+| 192-bit | 14 | 65537 | 358 | 5 | 8192 |
+| 192-bit | 15 | 65537 | 718 | 11 | 16384 |
+| 256-bit | 15 | 65537 | 658 | 10 | 16384 |
+| 256-bit | 16 | 65537 | 1318 | 21 | 32768 |
+
+## Security Analysis
+
+### Lattice Estimator
+
+```go
+// Estimate security level for given parameters
+func EstimateSecurity(params Parameters) SecurityEstimate {
+    // Use lattice estimator formulas
+    n := params.N
+    q := params.Q
+    sigma := params.Sigma
+
+    // Primal attack cost
+    primalBits := estimatePrimalAttack(n, q, sigma)
+
+    // Dual attack cost
+    dualBits := estimateDualAttack(n, q, sigma)
+
+    // Hybrid attack cost
+    hybridBits := estimateHybridAttack(n, q, sigma)
+
+    // Take minimum
+    classicalBits := min(primalBits, dualBits, hybridBits)
+
+    // Quantum speedup (Grover's algorithm)
+    quantumBits := classicalBits / 2
+
+    return SecurityEstimate{
+        Classical: classicalBits,
+        Quantum:   quantumBits,
+        Attack:    identifyBestAttack(primalBits, dualBits, hybridBits),
+    }
+}
+
+// Concrete security estimates
+func estimatePrimalAttack(n int, q *big.Int, sigma float64) int {
+    // BKZ block size
+    beta := calculateBKZBlocksize(n, q, sigma)
+
+    // Cost model (core-SVP hardness)
+    cost := 0.292 * float64(beta) + 16.4
+
+    return int(cost)
+}
+```
+
+### Parameter Validation
+
+```go
+// Validate parameters meet security requirements
+func ValidateSecurityParameters(params Parameters, targetSecurity int) error {
+    estimate := EstimateSecurity(params)
+
+    if estimate.Classical < targetSecurity {
+        return fmt.Errorf(
+            "insufficient security: %d bits (target: %d)",
+            estimate.Classical, targetSecurity,
+        )
+    }
+
+    // Check noise parameters
+    if params.Sigma < 3.2 {
+        return errors.New("sigma too small for security")
+    }
+
+    // Check modulus size
+    maxQ := calculateMaxModulus(params.N, targetSecurity)
+    if params.Q.Cmp(maxQ) > 0 {
+        return errors.New("modulus too large for target security")
+    }
+
+    return nil
+}
+```
+
+## Noise Management
+
+### Noise Growth Analysis
+
+```go
+// Track noise growth through computation
+type NoiseTracker struct {
+    initialNoise  float64
+    currentNoise  float64
+    noisePerOp    map[string]float64
+}
+
+func (nt *NoiseTracker) EstimateNoise(circuit Circuit) float64 {
+    noise := nt.initialNoise
+
+    for _, op := range circuit.Operations {
+        switch op.Type {
+        case Addition:
+            noise = sqrt(2) * noise
+        case Multiplication:
+            noise = noise * noise * params.N
+        case Rotation:
+            noise = nt.noisePerOp["rotation"] * noise
+        case KeySwitch:
+            noise += nt.noisePerOp["keyswitch"]
+        }
+    }
+
+    return noise
+}
+
+// Determine when bootstrapping is needed
+func RequiresBootstrapping(noise float64, params Parameters) bool {
+    // Maximum tolerable noise
+    maxNoise := float64(params.Q) / (2 * params.Scale)
+
+    // Safety margin
+    safetyFactor := 10.0
+
+    return noise > maxNoise / safetyFactor
+}
+```
+
+### Optimizing for Noise
+
+```go
+// Optimize circuit to minimize noise
+func OptimizeForNoise(circuit Circuit) Circuit {
+    // Reorder operations to minimize depth
+    circuit = reorderOperations(circuit)
+
+    // Batch operations where possible
+    circuit = batchOperations(circuit)
+
+    // Insert rescaling optimally
+    circuit = insertOptimalRescaling(circuit)
+
+    // Add bootstrapping if needed
+    if circuit.Depth() > params.MaxDepth {
+        circuit = insertBootstrapping(circuit)
+    }
+
+    return circuit
+}
+```
+
+## Parameter Sets by Use Case
+
+### Machine Learning
+
+```go
+// Parameters for encrypted ML inference
+var ML_Inference_Params = ckks.ParametersLiteral{
+    LogN:            14,                    // 16384 slots
+    LogQ:            []int{50, 40, 40, 40}, // 4 multiplications
+    LogP:            []int{60},
+    LogDefaultScale: 40,
+    Sigma:           3.2,
+}
+
+// Parameters for encrypted training
+var ML_Training_Params = ckks.ParametersLiteral{
+    LogN: 15,  // 32768 slots for batch processing
+    LogQ: []int{
+        60, 50, 50, 50, 50, 50,  // Forward pass
+        50, 50, 50, 50, 50, 50,  // Backward pass
+    },
+    LogP:            []int{61, 61},
+    LogDefaultScale: 50,
+    Sigma:           3.2,
+}
+```
+
+### Financial Computing
+
+```go
+// High precision for financial calculations
+var Financial_Params = ckks.ParametersLiteral{
+    LogN:            15,
+    LogQ:            []int{60, 55, 55, 55, 55, 55},
+    LogP:            []int{60, 60},
+    LogDefaultScale: 55,  // High precision
+    Sigma:           3.2,
+}
+```
+
+### Private Information Retrieval
+
+```go
+// Optimized for PIR queries
+var PIR_Params = bgv.ParametersLiteral{
+    LogN:             13,      // Smaller for faster response
+    LogQ:             []int{54, 54, 54},
+    PlaintextModulus: 65537,
+    Sigma:            3.2,
+}
+```
+
+## Security Checklist
+
+### Parameter Selection
+- [ ] Security level meets requirements (128/192/256 bits)
+- [ ] Ring dimension N is power of 2
+- [ ] Modulus Q provides enough noise budget
+- [ ] Error distribution σ ≥ 3.2
+- [ ] Parameters validated with lattice estimator
+
+### Implementation Security
+- [ ] Constant-time implementation for sensitive operations
+- [ ] Side-channel attack mitigation
+- [ ] Secure random number generation
+- [ ] Protected memory for secret keys
+- [ ] No key material in logs/errors
+
+### Operational Security
+- [ ] Key rotation schedule defined
+- [ ] Secure key storage (HSM/KMS)
+- [ ] Audit logging enabled
+- [ ] Performance monitoring
+- [ ] Regular security updates
+
+## Advanced Topics
+
+### Sparse Keys
+
+```go
+// Using sparse keys for efficiency
+type SparseKeyParams struct {
+    HammingWeight int  // Number of non-zero coefficients
+}
+
+func GenerateSparseKey(params Parameters, h int) *SecretKey {
+    sk := NewSecretKey(params)
+
+    // Set exactly h coefficients to ±1
+    positions := randomPositions(params.N, h)
+    for _, pos := range positions {
+        sk.Value.Coeffs[pos] = randomSign()
+    }
+
+    return sk
+}
+```
+
+### Modulus Switching
+
+```go
+// Dynamic modulus switching for optimization
+func ModulusSwitch(ct *Ciphertext, targetLevel int) {
+    currentLevel := ct.Level()
+
+    for currentLevel > targetLevel {
+        // Scale down by one modulus
+        ct.Scale(ct, params.Q[currentLevel])
+        currentLevel--
+    }
+
+    ct.SetLevel(targetLevel)
+}
+```
+
+### Multi-Key Operations
+
+```go
+// Parameters for multi-key homomorphic encryption
+type MultiKeyParams struct {
+    BaseParams Parameters
+    NumParties int
+    Threshold  int  // For threshold decryption
+}
+
+func GenerateMultiKeyParams(numParties int, security int) MultiKeyParams {
+    // Increase parameters to handle key switching
+    baseParams := SelectParameters(security)
+
+    // Add extra modulus for relinearization
+    baseParams.LogP = append(baseParams.LogP, 61)
+
+    return MultiKeyParams{
+        BaseParams: baseParams,
+        NumParties: numParties,
+        Threshold:  (numParties + 1) / 2,
+    }
+}
+```
+
+## Troubleshooting
+
+### Common Issues and Solutions
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| Decryption failure | Noise overflow | Increase Q or reduce circuit depth |
+| Poor precision | Scale too small | Increase LogDefaultScale |
+| Slow performance | N too large | Use minimal N for security |
+| Large ciphertexts | Q too large | Optimize modulus chain |
+| Bootstrap fails | Insufficient levels | Reserve more levels for bootstrapping |
+
+## Conclusion
+
+Proper parameter selection is crucial for:
+- **Security**: Meeting cryptographic requirements
+- **Correctness**: Ensuring computations succeed
+- **Performance**: Optimizing speed and size
+- **Practicality**: Balancing all constraints
+
+Always validate parameters with security estimators and test thoroughly before deployment.

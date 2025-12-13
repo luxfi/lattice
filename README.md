@@ -118,7 +118,7 @@ The Lattice library was originally exclusively developed by the EPFL Laboratory 
 until its version 2.4.0.
 
 Starting with the release of version 3.0.0, Lattice is maintained and supported
-by [Lux Industries Inc](https://lux.network).
+by [Lux Industries Inc(https://lux.network).
 
 Also starting from version 3.0.0, the module name has changed to
 `github.com/luxfi/lattice/v[X]`, and the official repository has been moved to
