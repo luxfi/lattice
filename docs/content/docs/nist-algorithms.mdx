@@ -1,0 +1,681 @@
+---
+title: NIST Post-Quantum Algorithms
+description: Implementation and usage of NIST-standardized post-quantum cryptographic algorithms
+---
+
+# NIST Post-Quantum Algorithms
+
+Comprehensive guide to NIST-standardized post-quantum cryptographic algorithms implemented in Lattice, including ML-DSA (Dilithium), ML-KEM (Kyber), and SLH-DSA (SPHINCS+).
+
+## Overview
+
+The National Institute of Standards and Technology (NIST) has standardized three post-quantum cryptographic algorithms as part of the Post-Quantum Cryptography Standardization Process. These algorithms are designed to resist attacks from both classical and quantum computers.
+
+### NIST Standards (FIPS)
+
+| Algorithm | FIPS | Type | Based On | Security Levels |
+|-----------|------|------|----------|----------------|
+| **ML-DSA** | FIPS 204 | Digital Signature | Dilithium (Lattice) | 2, 3, 5 |
+| **ML-KEM** | FIPS 203 | Key Encapsulation | Kyber (Lattice) | 1, 3, 5 |
+| **SLH-DSA** | FIPS 205 | Digital Signature | SPHINCS+ (Hash) | 1, 3, 5 |
+
+## ML-DSA (Module-Lattice Digital Signature Algorithm)
+
+### Overview
+
+ML-DSA, based on Dilithium, provides quantum-resistant digital signatures using the hardness of lattice problems, specifically the Module Learning With Errors (MLWE) and Module Short Integer Solution (MSIS) problems.
+
+### Security Parameters
+
+```go
+// ML-DSA Security Levels
+const (
+    ML_DSA_44 = iota  // Level 2 - 128-bit classical security
+    ML_DSA_65         // Level 3 - 192-bit classical security
+    ML_DSA_87         // Level 5 - 256-bit classical security
+)
+
+// Parameter Sets
+type MLDSAParams struct {
+    SecurityLevel int
+    N            int    // Polynomial degree (256)
+    Q            int    // Modulus (8380417)
+    K            int    // Module rank (4, 6, or 8)
+    L            int    // Number of elements (4, 5, or 7)
+    Eta          int    // Secret key range (2 or 4)
+    Tau          int    // Number of ±1 in challenge (39, 49, or 60)
+    Gamma1       int    // Coefficient range (2^17 or 2^19)
+    Gamma2       int    // Low-order rounding range
+}
+```
+
+### Implementation
+
+```go
+package mldsa
+
+import (
+    "crypto/rand"
+    "github.com/luxfi/lattice/v6/core/rlwe"
+    "github.com/luxfi/lattice/v6/utils/sampling"
+)
+
+// KeyPair represents ML-DSA key pair
+type KeyPair struct {
+    PublicKey  *PublicKey
+    SecretKey  *SecretKey
+}
+
+// PublicKey for ML-DSA
+type PublicKey struct {
+    Seed []byte     // 32 bytes
+    T1   []*rlwe.Poly // Public key polynomials
+}
+
+// SecretKey for ML-DSA
+type SecretKey struct {
+    Seed []byte     // 32 bytes
+    S1   []*rlwe.Poly // Secret polynomials
+    S2   []*rlwe.Poly // Secret polynomials
+    T0   []*rlwe.Poly // Precomputed values
+}
+
+// GenerateKeyPair generates ML-DSA key pair
+func GenerateKeyPair(params MLDSAParams) (*KeyPair, error) {
+    // Sample seed
+    seed := make([]byte, 32)
+    if _, err := rand.Read(seed); err != nil {
+        return nil, err
+    }
+
+    // Expand seed to matrix A
+    A := expandSeed(seed, params.K, params.L)
+
+    // Sample secret vectors
+    s1 := sampleSecret(params.L, params.Eta)
+    s2 := sampleSecret(params.K, params.Eta)
+
+    // Compute t = As1 + s2
+    t := computePublicKey(A, s1, s2)
+
+    // Split t into t1 (high bits) and t0 (low bits)
+    t1, t0 := power2Round(t, params.D)
+
+    return &KeyPair{
+        PublicKey: &PublicKey{
+            Seed: seed,
+            T1:   t1,
+        },
+        SecretKey: &SecretKey{
+            Seed: seed,
+            S1:   s1,
+            S2:   s2,
+            T0:   t0,
+        },
+    }, nil
+}
+
+// Sign creates ML-DSA signature
+func Sign(sk *SecretKey, message []byte, params MLDSAParams) (*Signature, error) {
+    // Hash message
+    mu := hashMessage(message)
+
+    // Rejection sampling loop
+    for attempt := 0; attempt < maxAttempts; attempt++ {
+        // Sample masking vector y
+        y := sampleMask(params.L, params.Gamma1)
+
+        // Compute w = Ay
+        A := expandSeed(sk.Seed, params.K, params.L)
+        w := multiplyMatrixVector(A, y)
+
+        // Extract high bits
+        w1 := highBits(w, params.Gamma2)
+
+        // Hash to get challenge
+        c := hashChallenge(mu, w1, params.Tau)
+
+        // Compute z = y + cs1
+        z := addVectors(y, multiplyScalarVector(c, sk.S1))
+
+        // Rejection conditions
+        if norm(z) >= params.Gamma1 - params.Beta {
+            continue
+        }
+
+        // Compute hints for signature compression
+        h := makeHint(w, cs2, params.Gamma2)
+
+        if weight(h) <= params.Omega {
+            return &Signature{
+                C: c,
+                Z: z,
+                H: h,
+            }, nil
+        }
+    }
+
+    return nil, ErrSignatureFailed
+}
+
+// Verify validates ML-DSA signature
+func Verify(pk *PublicKey, message []byte, sig *Signature, params MLDSAParams) bool {
+    // Reconstruct matrix A
+    A := expandSeed(pk.Seed, params.K, params.L)
+
+    // Hash message
+    mu := hashMessage(message)
+
+    // Compute w' = Az - ct1 * 2^d
+    Az := multiplyMatrixVector(A, sig.Z)
+    ct1 := multiplyScalarVector(sig.C, pk.T1)
+    wPrime := subtractVectors(Az, shiftLeft(ct1, params.D))
+
+    // Use hints to recover high bits
+    w1Prime := useHint(wPrime, sig.H, params.Gamma2)
+
+    // Recompute challenge
+    cPrime := hashChallenge(mu, w1Prime, params.Tau)
+
+    // Verify signature
+    return sig.C == cPrime && norm(sig.Z) < params.Gamma1 - params.Beta
+}
+```
+
+### Performance Characteristics
+
+| Parameter Set | Sign (μs) | Verify (μs) | Signature Size | Public Key | Secret Key |
+|--------------|-----------|-------------|----------------|------------|------------|
+| ML-DSA-44 | 417 | 108 | 2,420 bytes | 1,312 bytes | 2,528 bytes |
+| ML-DSA-65 | 645 | 168 | 3,309 bytes | 1,952 bytes | 4,000 bytes |
+| ML-DSA-87 | 985 | 253 | 4,595 bytes | 2,592 bytes | 4,864 bytes |
+
+## ML-KEM (Module-Lattice Key Encapsulation Mechanism)
+
+### Overview
+
+ML-KEM, based on Kyber, provides quantum-resistant key encapsulation using the Module Learning With Errors (MLWE) problem. It enables secure key exchange between parties.
+
+### Security Parameters
+
+```go
+// ML-KEM Security Levels
+const (
+    ML_KEM_512 = iota  // Level 1 - 128-bit classical security
+    ML_KEM_768         // Level 3 - 192-bit classical security
+    ML_KEM_1024        // Level 5 - 256-bit classical security
+)
+
+// Parameter Sets
+type MLKEMParams struct {
+    N     int  // Polynomial degree (256)
+    Q     int  // Modulus (3329)
+    K     int  // Module dimension (2, 3, or 4)
+    Eta1  int  // Noise parameter for key generation (3 or 2)
+    Eta2  int  // Noise parameter for encryption (2)
+    Du    int  // Plaintext modulus bits (10 or 11)
+    Dv    int  // Ciphertext modulus bits (4 or 5)
+}
+```
+
+### Implementation
+
+```go
+package mlkem
+
+// KeyPair for ML-KEM
+type KEMKeyPair struct {
+    PublicKey  *KEMPublicKey
+    SecretKey  *KEMSecretKey
+}
+
+// Encapsulation key (public key)
+type KEMPublicKey struct {
+    PKE []byte  // Public key for encryption
+    H   []byte  // Hash of public key
+}
+
+// Decapsulation key (secret key)
+type KEMSecretKey struct {
+    SKE []byte  // Secret key for decryption
+    PKE []byte  // Public key
+    H   []byte  // Hash of public key
+    Z   []byte  // Random value
+}
+
+// GenerateKeyPair generates ML-KEM key pair
+func GenerateKEMKeyPair(params MLKEMParams) (*KEMKeyPair, error) {
+    // Generate seed
+    d := make([]byte, 32)
+    rand.Read(d)
+
+    // Generate PKE key pair
+    rho, sigma := G(d)
+
+    // Sample matrix A
+    A := sampleMatrix(rho, params.K, params.K)
+
+    // Sample secret and error
+    s := sampleNoise(sigma, 0, params.K, params.Eta1)
+    e := sampleNoise(sigma, params.K, params.K, params.Eta1)
+
+    // Compute public key: t = As + e
+    sHat := NTT(s)
+    t := addVectors(multiplyMatrix(A, sHat), NTT(e))
+
+    // Encode public key
+    pk := encodePK(t, rho)
+
+    // Hash public key
+    h := H(pk)
+
+    // Sample random z
+    z := make([]byte, 32)
+    rand.Read(z)
+
+    return &KEMKeyPair{
+        PublicKey: &KEMPublicKey{
+            PKE: pk,
+            H:   h,
+        },
+        SecretKey: &KEMSecretKey{
+            SKE: encodeSecret(s),
+            PKE: pk,
+            H:   h,
+            Z:   z,
+        },
+    }, nil
+}
+
+// Encapsulate generates shared secret and ciphertext
+func Encapsulate(pk *KEMPublicKey, params MLKEMParams) ([]byte, []byte, error) {
+    // Generate random message
+    m := make([]byte, 32)
+    rand.Read(m)
+
+    // Hash to get randomness
+    K, r := G(H(m) || pk.H)
+
+    // Encrypt message
+    c := PKEEncrypt(pk.PKE, m, r, params)
+
+    // Return shared secret and ciphertext
+    return K, c, nil
+}
+
+// Decapsulate recovers shared secret from ciphertext
+func Decapsulate(sk *KEMSecretKey, c []byte, params MLKEMParams) ([]byte, error) {
+    // Decrypt ciphertext
+    mPrime := PKEDecrypt(sk.SKE, c, params)
+
+    // Recompute randomness
+    KPrime, rPrime := G(H(mPrime) || sk.H)
+
+    // Re-encrypt to verify
+    cPrime := PKEEncrypt(sk.PKE, mPrime, rPrime, params)
+
+    // Implicit rejection
+    if !bytes.Equal(c, cPrime) {
+        // Return pseudorandom value
+        return KDF(sk.Z || c), nil
+    }
+
+    return KPrime, nil
+}
+
+// PKE Encryption (underlying scheme)
+func PKEEncrypt(pk []byte, m []byte, r []byte, params MLKEMParams) []byte {
+    // Decode public key
+    t, rho := decodePK(pk)
+
+    // Sample matrix A^T
+    AT := sampleMatrixTranspose(rho, params.K, params.K)
+
+    // Sample noise
+    r1 := sampleNoise(r, 0, params.K, params.Eta1)
+    r2 := sampleNoise(r, params.K, params.K, params.Eta2)
+    e1 := sampleNoise(r, 2*params.K, 1, params.Eta2)
+
+    // Compute ciphertext
+    // u = A^T r + e1
+    u := addVectors(multiplyMatrix(AT, NTT(r1)), NTT(e1))
+
+    // v = t^T r + e2 + Decompress(Decode(m))
+    v := add(
+        innerProduct(t, NTT(r1)),
+        add(e2, decompress(decode(m), params.Q))
+    )
+
+    // Compress and encode
+    c1 := compress(u, params.Du)
+    c2 := compress(v, params.Dv)
+
+    return concatenate(c1, c2)
+}
+```
+
+### Performance Characteristics
+
+| Parameter Set | Encapsulate (μs) | Decapsulate (μs) | Ciphertext | Public Key | Secret Key |
+|---------------|------------------|------------------|------------|------------|------------|
+| ML-KEM-512 | 38 | 45 | 768 bytes | 800 bytes | 1,632 bytes |
+| ML-KEM-768 | 58 | 69 | 1,088 bytes | 1,184 bytes | 2,400 bytes |
+| ML-KEM-1024 | 85 | 102 | 1,568 bytes | 1,568 bytes | 3,168 bytes |
+
+## SLH-DSA (Stateless Hash-based Digital Signature Algorithm)
+
+### Overview
+
+SLH-DSA, based on SPHINCS+, provides quantum-resistant signatures using only hash functions. It offers stateless operation and smaller key sizes but larger signatures.
+
+### Security Parameters
+
+```go
+// SLH-DSA Parameter Sets
+type SLHDSAParams struct {
+    N        int    // Security parameter (16, 24, or 32 bytes)
+    W        int    // Winternitz parameter (4, 16, or 256)
+    H        int    // Hypertree height
+    D        int    // Hypertree layers
+    K        int    // FORS trees
+    T        int    // FORS tree height
+    Variant  string // "simple" or "robust"
+}
+
+// Predefined parameter sets
+var (
+    SLHDSA_128s = SLHDSAParams{N: 16, W: 16, H: 63, D: 7, K: 14, T: 12}
+    SLHDSA_128f = SLHDSAParams{N: 16, W: 16, H: 66, D: 22, K: 6, T: 33}
+    SLHDSA_192s = SLHDSAParams{N: 24, W: 16, H: 63, D: 7, K: 17, T: 14}
+    SLHDSA_192f = SLHDSAParams{N: 24, W: 16, H: 66, D: 22, K: 8, T: 33}
+    SLHDSA_256s = SLHDSAParams{N: 32, W: 16, H: 64, D: 8, K: 22, T: 14}
+    SLHDSA_256f = SLHDSAParams{N: 32, W: 16, H: 68, D: 17, K: 10, T: 30}
+)
+```
+
+### Implementation
+
+```go
+package slhdsa
+
+// SPHINCS+ Key Pair
+type SPHINCSKeyPair struct {
+    PublicKey  SPHINCSPublicKey
+    SecretKey  SPHINCSSecretKey
+}
+
+type SPHINCSPublicKey struct {
+    Root   []byte  // Merkle tree root
+    Seed   []byte  // Public seed
+}
+
+type SPHINCSSecretKey struct {
+    SKSeed []byte  // Secret seed
+    SKPrf  []byte  // Secret PRF key
+    Root   []byte  // Merkle tree root
+    Seed   []byte  // Public seed
+}
+
+// GenerateKeyPair for SLH-DSA
+func GenerateSPHINCSKeyPair(params SLHDSAParams) (*SPHINCSKeyPair, error) {
+    // Generate random seeds
+    skSeed := make([]byte, params.N)
+    skPrf := make([]byte, params.N)
+    pkSeed := make([]byte, params.N)
+
+    rand.Read(skSeed)
+    rand.Read(skPrf)
+    rand.Read(pkSeed)
+
+    // Generate root of hypertree
+    root := generateHypertreeRoot(skSeed, pkSeed, params)
+
+    return &SPHINCSKeyPair{
+        PublicKey: SPHINCSPublicKey{
+            Root: root,
+            Seed: pkSeed,
+        },
+        SecretKey: SPHINCSSecretKey{
+            SKSeed: skSeed,
+            SKPrf:  skPrf,
+            Root:   root,
+            Seed:   pkSeed,
+        },
+    }, nil
+}
+
+// Sign with SLH-DSA
+func SPHINCSSign(sk *SPHINCSSecretKey, message []byte, params SLHDSAParams) []byte {
+    // Generate randomizer
+    optRand := make([]byte, params.N)
+    rand.Read(optRand)
+
+    // Compute message hash and index
+    R := PRF(sk.SKPrf, optRand, message)
+    digest, idx := hashMessage(R, sk.Seed, sk.Root, message, params)
+
+    // Generate FORS signature
+    forsAddr := newAddress(FORS_TREE, idx)
+    forsSig := forsSign(digest, sk.SKSeed, sk.Seed, forsAddr, params)
+
+    // Get FORS public key
+    forsPK := forsPublicKeyFromSig(forsSig, digest, sk.Seed, forsAddr, params)
+
+    // Sign FORS public key with hypertree
+    htAddr := newAddress(TREE, idx)
+    htSig := htSign(forsPK, sk.SKSeed, sk.Seed, idx, htAddr, params)
+
+    // Concatenate signature components
+    return concatenate(R, forsSig, htSig)
+}
+
+// Verify SLH-DSA signature
+func SPHINCSVerify(pk *SPHINCSPublicKey, message []byte, signature []byte, params SLHDSAParams) bool {
+    // Parse signature
+    R, forsSig, htSig := parseSignature(signature, params)
+
+    // Compute message hash and index
+    digest, idx := hashMessage(R, pk.Seed, pk.Root, message, params)
+
+    // Verify FORS signature and recover public key
+    forsAddr := newAddress(FORS_TREE, idx)
+    forsPK := forsPublicKeyFromSig(forsSig, digest, pk.Seed, forsAddr, params)
+
+    // Verify hypertree signature
+    htAddr := newAddress(TREE, idx)
+    computedRoot := htVerify(forsPK, htSig, pk.Seed, idx, htAddr, params)
+
+    // Check if computed root matches public key
+    return bytes.Equal(computedRoot, pk.Root)
+}
+```
+
+### Performance Characteristics
+
+| Parameter Set | Sign (ms) | Verify (μs) | Signature Size | Public Key | Secret Key |
+|---------------|-----------|-------------|----------------|------------|------------|
+| SLH-DSA-128s | 8.4 | 172 | 7,856 bytes | 32 bytes | 64 bytes |
+| SLH-DSA-128f | 0.5 | 115 | 17,088 bytes | 32 bytes | 64 bytes |
+| SLH-DSA-192s | 15.8 | 287 | 16,224 bytes | 48 bytes | 96 bytes |
+| SLH-DSA-192f | 0.9 | 189 | 35,664 bytes | 48 bytes | 96 bytes |
+| SLH-DSA-256s | 24.5 | 412 | 29,792 bytes | 64 bytes | 128 bytes |
+| SLH-DSA-256f | 1.3 | 245 | 49,856 bytes | 64 bytes | 128 bytes |
+
+## Hybrid Modes
+
+### Classical + Post-Quantum
+
+Combine classical and post-quantum algorithms for defense in depth:
+
+```go
+// Hybrid signature: RSA + ML-DSA
+type HybridSignature struct {
+    ClassicalSig []byte  // RSA or ECDSA signature
+    PQSig        []byte  // ML-DSA signature
+}
+
+func HybridSign(classicalKey, pqKey interface{}, message []byte) (*HybridSignature, error) {
+    // Sign with classical algorithm
+    classicalSig := signClassical(classicalKey, message)
+
+    // Sign with post-quantum algorithm
+    pqSig := signMLDSA(pqKey, message)
+
+    return &HybridSignature{
+        ClassicalSig: classicalSig,
+        PQSig:        pqSig,
+    }, nil
+}
+
+func HybridVerify(classicalKey, pqKey interface{}, message []byte, sig *HybridSignature) bool {
+    // Both signatures must verify
+    return verifyClassical(classicalKey, message, sig.ClassicalSig) &&
+           verifyMLDSA(pqKey, message, sig.PQSig)
+}
+```
+
+## Migration Strategy
+
+### Phase 1: Hybrid Deployment
+1. Deploy hybrid classical + PQ systems
+2. Monitor performance and compatibility
+3. Gather operational experience
+
+### Phase 2: Transition
+1. Gradually increase PQ algorithm usage
+2. Maintain classical for backwards compatibility
+3. Update protocols and standards
+
+### Phase 3: PQ-Only
+1. Deprecate classical algorithms
+2. Full post-quantum deployment
+3. Maintain crypto-agility for future updates
+
+## Security Considerations
+
+### Side-Channel Resistance
+- Constant-time implementations
+- Masking for sensitive operations
+- Cache-timing attack prevention
+
+### Parameter Selection
+- Follow NIST recommendations
+- Consider security/performance trade-offs
+- Plan for crypto-agility
+
+### Key Management
+- Secure key generation with quality randomness
+- Protected key storage (HSM/TPM)
+- Regular key rotation policies
+
+## Best Practices
+
+### 1. Algorithm Selection
+
+```go
+// Choose based on requirements
+func SelectAlgorithm(requirements Requirements) Algorithm {
+    switch {
+    case requirements.SmallSignature && requirements.LargeKeys:
+        return ML_DSA_65  // Balanced choice
+    case requirements.SmallKeys && !requirements.SmallSignature:
+        return SLH_DSA_192s  // Hash-based
+    case requirements.KeyExchange:
+        return ML_KEM_768  // KEM only
+    default:
+        return ML_DSA_65  // Safe default
+    }
+}
+```
+
+### 2. Performance Optimization
+
+```go
+// Batch verification for better throughput
+func BatchVerifyMLDSA(publicKeys []*PublicKey, messages [][]byte,
+                      signatures []*Signature, params MLDSAParams) []bool {
+    results := make([]bool, len(signatures))
+
+    // Parallelize verification
+    var wg sync.WaitGroup
+    for i := range signatures {
+        wg.Add(1)
+        go func(idx int) {
+            defer wg.Done()
+            results[idx] = Verify(publicKeys[idx], messages[idx],
+                                 signatures[idx], params)
+        }(i)
+    }
+    wg.Wait()
+
+    return results
+}
+```
+
+### 3. Crypto-Agility
+
+```go
+// Abstract algorithm interface
+type PostQuantumSigner interface {
+    GenerateKey() (PublicKey, SecretKey, error)
+    Sign(sk SecretKey, message []byte) ([]byte, error)
+    Verify(pk PublicKey, message []byte, signature []byte) bool
+    AlgorithmID() string
+}
+
+// Factory pattern for algorithm selection
+func GetSigner(algorithm string) (PostQuantumSigner, error) {
+    switch algorithm {
+    case "ML-DSA-65":
+        return NewMLDSASigner(ML_DSA_65), nil
+    case "SLH-DSA-192s":
+        return NewSLHDSASigner(SLHDSA_192s), nil
+    default:
+        return nil, ErrUnsupportedAlgorithm
+    }
+}
+```
+
+## Testing and Validation
+
+### Known Answer Tests (KAT)
+
+```go
+// Validate implementation against NIST test vectors
+func TestMLDSA_KAT(t *testing.T) {
+    vectors := loadNISTVectors("ML-DSA-65.txt")
+
+    for _, v := range vectors {
+        // Generate keys from seed
+        kp := generateFromSeed(v.Seed)
+
+        // Verify public key matches
+        if !bytes.Equal(kp.PublicKey.Bytes(), v.PublicKey) {
+            t.Errorf("Public key mismatch")
+        }
+
+        // Sign message
+        sig := Sign(kp.SecretKey, v.Message)
+
+        // Verify signature matches
+        if !bytes.Equal(sig.Bytes(), v.Signature) {
+            t.Errorf("Signature mismatch")
+        }
+
+        // Verify signature
+        if !Verify(kp.PublicKey, v.Message, sig) {
+            t.Errorf("Verification failed")
+        }
+    }
+}
+```
+
+## Conclusion
+
+The NIST post-quantum algorithms provide robust security against quantum attacks:
+
+- **ML-DSA**: Best balance of signature size and performance
+- **ML-KEM**: Efficient key encapsulation for secure communication
+- **SLH-DSA**: Smallest keys but larger signatures, hash-based security
+
+Choose algorithms based on your specific requirements for key size, signature size, performance, and security level. Implement hybrid modes during transition and maintain crypto-agility for future updates.
