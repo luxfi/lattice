@@ -53,7 +53,7 @@ func run(tc *bgv.TestContext, t *testing.T) {
 			t.Logf("Running modified test for low MaxLevel() < 4")
 		}
 
-		values, _, ciphertext := bgv.NewTestVector(tc.Params, tc.Ecd, tc.Enc, tc.Params.MaxLevel(), tc.Params.DefaultScale())
+		values, _, ciphertext := bgv.NewTestVector(tc.Params, tc.Ecd, tc.Enc, tc.Params.MaxLevel(), tc.Params.DefaultScale(), true)
 
 		coeffs := []uint64{0, 0, 1}
 
@@ -73,7 +73,7 @@ func run(tc *bgv.TestContext, t *testing.T) {
 
 			require.Equal(t, res.Scale.Cmp(tc.Params.DefaultScale()), 0)
 
-			bgv.VerifyTestVectors(tc.Params, tc.Ecd, tc.Dec, res, values, t)
+			bgv.VerifyTestVectors(tc.Params, tc.Ecd, tc.Dec, res, values, true, t)
 		})
 
 		t.Run("Invariant"+tc.String(), func(t *testing.T) {
@@ -87,7 +87,7 @@ func run(tc *bgv.TestContext, t *testing.T) {
 			require.Equal(t, res.Level(), ciphertext.Level())
 			require.Equal(t, res.Scale.Cmp(tc.Params.DefaultScale()), 0)
 
-			bgv.VerifyTestVectors(tc.Params, tc.Ecd, tc.Dec, res, values, t)
+			bgv.VerifyTestVectors(tc.Params, tc.Ecd, tc.Dec, res, values, true, t)
 		})
 	})
 }
