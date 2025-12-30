@@ -8,10 +8,10 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	"github.com/luxfi/lattice/v6/ring"
-	"github.com/luxfi/lattice/v6/ring/ringqp"
-	"github.com/luxfi/lattice/v6/utils/buffer"
-	"github.com/luxfi/lattice/v6/utils/structs"
+	"github.com/luxfi/lattice/v7/ring"
+	"github.com/luxfi/lattice/v7/ring/ringqp"
+	"github.com/luxfi/lattice/v7/utils/buffer"
+	"github.com/luxfi/lattice/v7/utils/structs"
 )
 
 // GadgetCiphertext is a struct for storing an encrypted

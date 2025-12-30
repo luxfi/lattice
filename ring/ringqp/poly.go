@@ -4,8 +4,8 @@ import (
 	"bufio"
 	"io"
 
-	"github.com/luxfi/lattice/v6/ring"
-	"github.com/luxfi/lattice/v6/utils/buffer"
+	"github.com/luxfi/lattice/v7/ring"
+	"github.com/luxfi/lattice/v7/utils/buffer"
 )
 
 // Poly represents a polynomial in the ring of polynomial modulo Q*P.

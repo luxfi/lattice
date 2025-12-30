@@ -3,11 +3,11 @@ package minimax
 import (
 	"fmt"
 
-	"github.com/luxfi/lattice/v6/circuits/ckks/bootstrapping"
-	"github.com/luxfi/lattice/v6/circuits/ckks/polynomial"
-	"github.com/luxfi/lattice/v6/core/rlwe"
-	"github.com/luxfi/lattice/v6/ring"
-	"github.com/luxfi/lattice/v6/schemes/ckks"
+	"github.com/luxfi/lattice/v7/circuits/ckks/bootstrapping"
+	"github.com/luxfi/lattice/v7/circuits/ckks/polynomial"
+	"github.com/luxfi/lattice/v7/core/rlwe"
+	"github.com/luxfi/lattice/v7/ring"
+	"github.com/luxfi/lattice/v7/schemes/ckks"
 )
 
 // Evaluator is an evaluator used to evaluate composite polynomials on ciphertexts.

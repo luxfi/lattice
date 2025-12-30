@@ -2,7 +2,7 @@
 // approximate homomorphic encryption over the complex/real numbers (CKKS scheme).
 package bootstrapping
 
-import "github.com/luxfi/lattice/v6/core/rlwe"
+import "github.com/luxfi/lattice/v7/core/rlwe"
 
 type Bootstrapper interface {
 

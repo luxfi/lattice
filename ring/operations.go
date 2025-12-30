@@ -3,8 +3,8 @@ package ring
 import (
 	"math/big"
 
-	"github.com/luxfi/lattice/v6/utils"
-	"github.com/luxfi/lattice/v6/utils/bignum"
+	"github.com/luxfi/lattice/v7/utils"
+	"github.com/luxfi/lattice/v7/utils/bignum"
 )
 
 // Add evaluates p3 = p1 + p2 coefficient-wise in the ring.

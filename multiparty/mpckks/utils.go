@@ -3,7 +3,7 @@ package mpckks
 import (
 	"math"
 
-	"github.com/luxfi/lattice/v6/core/rlwe"
+	"github.com/luxfi/lattice/v7/core/rlwe"
 )
 
 // GetMinimumLevelForRefresh takes the security parameter lambda, the ciphertext scale, the number of parties and the moduli chain

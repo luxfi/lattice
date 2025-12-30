@@ -7,11 +7,11 @@ import (
 	"math/big"
 	"math/bits"
 
-	"github.com/luxfi/lattice/v6/core/rlwe"
-	"github.com/luxfi/lattice/v6/schemes/ckks"
-	"github.com/luxfi/lattice/v6/utils"
-	"github.com/luxfi/lattice/v6/utils/bignum"
-	"github.com/luxfi/lattice/v6/utils/cosine"
+	"github.com/luxfi/lattice/v7/core/rlwe"
+	"github.com/luxfi/lattice/v7/schemes/ckks"
+	"github.com/luxfi/lattice/v7/utils"
+	"github.com/luxfi/lattice/v7/utils/bignum"
+	"github.com/luxfi/lattice/v7/utils/cosine"
 )
 
 // Type is the type of function/approximation used to evaluate x mod 1.
