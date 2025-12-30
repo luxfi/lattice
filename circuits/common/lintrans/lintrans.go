@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/luxfi/lattice/v6/core/rlwe"
-	"github.com/luxfi/lattice/v6/ring"
-	"github.com/luxfi/lattice/v6/ring/ringqp"
-	"github.com/luxfi/lattice/v6/schemes"
-	"github.com/luxfi/lattice/v6/utils"
+	"github.com/luxfi/lattice/v7/core/rlwe"
+	"github.com/luxfi/lattice/v7/ring"
+	"github.com/luxfi/lattice/v7/ring/ringqp"
+	"github.com/luxfi/lattice/v7/schemes"
+	"github.com/luxfi/lattice/v7/utils"
 )
 
 // Parameters is a struct storing the parameterization of a

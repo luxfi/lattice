@@ -1,6 +1,6 @@
 package mpckks
 
-import "github.com/luxfi/lattice/v6/schemes/ckks"
+import "github.com/luxfi/lattice/v7/schemes/ckks"
 
 var (
 

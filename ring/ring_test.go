@@ -7,11 +7,11 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/luxfi/lattice/v6/utils/buffer"
-	"github.com/luxfi/lattice/v6/utils/sampling"
-	"github.com/luxfi/lattice/v6/utils/structs"
+	"github.com/luxfi/lattice/v7/utils/buffer"
+	"github.com/luxfi/lattice/v7/utils/sampling"
+	"github.com/luxfi/lattice/v7/utils/structs"
 
-	"github.com/luxfi/lattice/v6/utils/bignum"
+	"github.com/luxfi/lattice/v7/utils/bignum"
 	"github.com/stretchr/testify/require"
 )
 

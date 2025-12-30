@@ -3,8 +3,8 @@ package rlwe
 import (
 	"fmt"
 
-	"github.com/luxfi/lattice/v6/ring"
-	"github.com/luxfi/lattice/v6/utils/sampling"
+	"github.com/luxfi/lattice/v7/ring"
+	"github.com/luxfi/lattice/v7/utils/sampling"
 )
 
 // Ciphertext is a generic type for RLWE ciphertexts.

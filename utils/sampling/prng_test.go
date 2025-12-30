@@ -3,7 +3,7 @@ package sampling_test
 import (
 	"testing"
 
-	"github.com/luxfi/lattice/v6/utils/sampling"
+	"github.com/luxfi/lattice/v7/utils/sampling"
 	"github.com/stretchr/testify/require"
 )
 

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/luxfi/lattice/v6/utils"
-	"github.com/luxfi/lattice/v6/utils/buffer"
+	"github.com/luxfi/lattice/v7/utils"
+	"github.com/luxfi/lattice/v7/utils/buffer"
 	"golang.org/x/exp/constraints"
 )
 

@@ -2,11 +2,11 @@
 package lintrans
 
 import (
-	"github.com/luxfi/lattice/v6/circuits/common/lintrans"
-	"github.com/luxfi/lattice/v6/core/rlwe"
-	"github.com/luxfi/lattice/v6/schemes"
-	"github.com/luxfi/lattice/v6/schemes/ckks"
-	"github.com/luxfi/lattice/v6/utils"
+	"github.com/luxfi/lattice/v7/circuits/common/lintrans"
+	"github.com/luxfi/lattice/v7/core/rlwe"
+	"github.com/luxfi/lattice/v7/schemes"
+	"github.com/luxfi/lattice/v7/schemes/ckks"
+	"github.com/luxfi/lattice/v7/utils"
 )
 
 // Diagonals is a wrapper of [lintrans.Diagonals].

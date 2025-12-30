@@ -10,7 +10,7 @@ import (
 	"unsafe"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/luxfi/lattice/v6/utils"
+	"github.com/luxfi/lattice/v7/utils"
 	"github.com/stretchr/testify/require"
 )
 

@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/luxfi/lattice/v6/circuits/ckks/bootstrapping"
-	"github.com/luxfi/lattice/v6/circuits/ckks/comparison"
-	"github.com/luxfi/lattice/v6/circuits/ckks/minimax"
-	"github.com/luxfi/lattice/v6/core/rlwe"
-	"github.com/luxfi/lattice/v6/schemes/ckks"
-	"github.com/luxfi/lattice/v6/utils"
+	"github.com/luxfi/lattice/v7/circuits/ckks/bootstrapping"
+	"github.com/luxfi/lattice/v7/circuits/ckks/comparison"
+	"github.com/luxfi/lattice/v7/circuits/ckks/minimax"
+	"github.com/luxfi/lattice/v7/core/rlwe"
+	"github.com/luxfi/lattice/v7/schemes/ckks"
+	"github.com/luxfi/lattice/v7/utils"
 )
 
 // Evaluator is an evaluator used to evaluate the inverses of ciphertexts.

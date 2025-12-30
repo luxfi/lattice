@@ -1,6 +1,6 @@
 package mpbgv
 
-import "github.com/luxfi/lattice/v6/schemes/bgv"
+import "github.com/luxfi/lattice/v7/schemes/bgv"
 
 var (
 

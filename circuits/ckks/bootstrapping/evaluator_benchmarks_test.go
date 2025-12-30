@@ -6,9 +6,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/luxfi/lattice/v6/core/rlwe"
+	"github.com/luxfi/lattice/v7/core/rlwe"
 
-	"github.com/luxfi/lattice/v6/schemes/ckks"
+	"github.com/luxfi/lattice/v7/schemes/ckks"
 )
 
 func BenchmarkConcurrentBootstrap(b *testing.B) {

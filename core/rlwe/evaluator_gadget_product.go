@@ -3,9 +3,9 @@ package rlwe
 import (
 	"fmt"
 
-	"github.com/luxfi/lattice/v6/ring"
-	"github.com/luxfi/lattice/v6/ring/ringqp"
-	"github.com/luxfi/lattice/v6/utils"
+	"github.com/luxfi/lattice/v7/ring"
+	"github.com/luxfi/lattice/v7/ring/ringqp"
+	"github.com/luxfi/lattice/v7/utils"
 )
 
 // GadgetProduct evaluates poly x Gadget -> RLWE where

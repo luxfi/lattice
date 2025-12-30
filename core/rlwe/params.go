@@ -11,10 +11,10 @@ import (
 	"slices"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/luxfi/lattice/v6/ring"
-	"github.com/luxfi/lattice/v6/ring/ringqp"
-	"github.com/luxfi/lattice/v6/utils"
-	"github.com/luxfi/lattice/v6/utils/buffer"
+	"github.com/luxfi/lattice/v7/ring"
+	"github.com/luxfi/lattice/v7/ring/ringqp"
+	"github.com/luxfi/lattice/v7/utils"
+	"github.com/luxfi/lattice/v7/utils/buffer"
 )
 
 // MaxLogN is the log2 of the largest supported polynomial modulus degree.
