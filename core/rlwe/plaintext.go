@@ -3,8 +3,8 @@ package rlwe
 import (
 	"io"
 
-	"github.com/luxfi/lattice/v6/ring"
-	"github.com/luxfi/lattice/v6/utils/sampling"
+	"github.com/luxfi/lattice/v7/ring"
+	"github.com/luxfi/lattice/v7/utils/sampling"
 )
 
 // Plaintext is a common base type for RLWE plaintexts.

@@ -4,8 +4,8 @@ import (
 	"bufio"
 	"io"
 
-	"github.com/luxfi/lattice/v6/core/rlwe"
-	"github.com/luxfi/lattice/v6/utils/buffer"
+	"github.com/luxfi/lattice/v7/core/rlwe"
+	"github.com/luxfi/lattice/v7/utils/buffer"
 )
 
 // Ciphertext is a generic type for RGSW ciphertext.

@@ -41,11 +41,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/luxfi/lattice/v6/core/rlwe"
-	"github.com/luxfi/lattice/v6/multiparty"
-	"github.com/luxfi/lattice/v6/ring"
-	"github.com/luxfi/lattice/v6/schemes/bgv"
-	"github.com/luxfi/lattice/v6/utils/sampling"
+	"github.com/luxfi/lattice/v7/core/rlwe"
+	"github.com/luxfi/lattice/v7/multiparty"
+	"github.com/luxfi/lattice/v7/ring"
+	"github.com/luxfi/lattice/v7/schemes/bgv"
+	"github.com/luxfi/lattice/v7/utils/sampling"
 )
 
 // party is a type for the parties' state in the protocol, to be kept accross the different phases.

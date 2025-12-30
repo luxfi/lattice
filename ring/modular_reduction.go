@@ -3,7 +3,7 @@ package ring
 import (
 	"math/bits"
 
-	"github.com/luxfi/lattice/v6/utils/bignum"
+	"github.com/luxfi/lattice/v7/utils/bignum"
 )
 
 // MForm switches a to the Montgomery domain by computing

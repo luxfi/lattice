@@ -3,8 +3,8 @@ package ringqp
 import (
 	"fmt"
 
-	"github.com/luxfi/lattice/v6/ring"
-	"github.com/luxfi/lattice/v6/utils/structs"
+	"github.com/luxfi/lattice/v7/ring"
+	"github.com/luxfi/lattice/v7/utils/structs"
 )
 
 // BufferPool represents a pool of polys that can be used (concurrently) to instantiate temporary polynomials in RingQP.

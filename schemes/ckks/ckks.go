@@ -3,7 +3,7 @@
 package ckks
 
 import (
-	"github.com/luxfi/lattice/v6/core/rlwe"
+	"github.com/luxfi/lattice/v7/core/rlwe"
 )
 
 // NewPlaintext allocates a new [rlwe.Plaintext].

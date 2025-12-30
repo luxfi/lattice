@@ -3,8 +3,8 @@ package examples
 import (
 	"testing"
 
-	"github.com/luxfi/lattice/v6/schemes/bgv"
-	"github.com/luxfi/lattice/v6/schemes/ckks"
+	"github.com/luxfi/lattice/v7/schemes/bgv"
+	"github.com/luxfi/lattice/v7/schemes/ckks"
 )
 
 func TestExampleParams(t *testing.T) {

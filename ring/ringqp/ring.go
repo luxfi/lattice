@@ -5,8 +5,8 @@ import (
 	"math"
 	"math/big"
 
-	"github.com/luxfi/lattice/v6/ring"
-	"github.com/luxfi/lattice/v6/utils/bignum"
+	"github.com/luxfi/lattice/v7/ring"
+	"github.com/luxfi/lattice/v7/utils/bignum"
 )
 
 // Ring is a structure that implements the operation in the ring R_QP.

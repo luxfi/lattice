@@ -3,8 +3,8 @@ package rlwe
 import (
 	"fmt"
 
-	"github.com/luxfi/lattice/v6/ring/ringqp"
-	"github.com/luxfi/lattice/v6/utils"
+	"github.com/luxfi/lattice/v7/ring/ringqp"
+	"github.com/luxfi/lattice/v7/utils"
 )
 
 // Automorphism computes phi(ct), where phi is the map X -> X^galEl. The method requires

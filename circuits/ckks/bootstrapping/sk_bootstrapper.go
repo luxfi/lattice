@@ -1,9 +1,9 @@
 package bootstrapping
 
 import (
-	"github.com/luxfi/lattice/v6/core/rlwe"
-	"github.com/luxfi/lattice/v6/schemes/ckks"
-	"github.com/luxfi/lattice/v6/utils/bignum"
+	"github.com/luxfi/lattice/v7/core/rlwe"
+	"github.com/luxfi/lattice/v7/schemes/ckks"
+	"github.com/luxfi/lattice/v7/utils/bignum"
 )
 
 // SecretKeyBootstrapper is an implementation of the [rlwe.Bootstrapping] interface that

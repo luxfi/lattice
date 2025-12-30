@@ -6,8 +6,8 @@ import (
 	"math/bits"
 	"unsafe"
 
-	"github.com/luxfi/lattice/v6/utils"
-	"github.com/luxfi/lattice/v6/utils/bignum"
+	"github.com/luxfi/lattice/v7/utils"
+	"github.com/luxfi/lattice/v7/utils/bignum"
 )
 
 const (

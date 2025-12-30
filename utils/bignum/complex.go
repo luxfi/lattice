@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/luxfi/lattice/v6/utils"
+	"github.com/luxfi/lattice/v7/utils"
 )
 
 // Complex is a type for arbitrary precision complex number

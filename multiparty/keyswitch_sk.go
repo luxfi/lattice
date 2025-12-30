@@ -5,11 +5,11 @@ import (
 	"io"
 	"math"
 
-	"github.com/luxfi/lattice/v6/ring"
+	"github.com/luxfi/lattice/v7/ring"
 
-	"github.com/luxfi/lattice/v6/core/rlwe"
-	"github.com/luxfi/lattice/v6/utils"
-	"github.com/luxfi/lattice/v6/utils/sampling"
+	"github.com/luxfi/lattice/v7/core/rlwe"
+	"github.com/luxfi/lattice/v7/utils"
+	"github.com/luxfi/lattice/v7/utils/sampling"
 )
 
 // KeySwitchProtocol is the structure storing the parameters and precomputations for the collective key-switching protocol.

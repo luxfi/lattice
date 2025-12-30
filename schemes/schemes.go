@@ -1,7 +1,7 @@
 // Package schemes contains the implemented cryptosystems.
 package schemes
 
-import "github.com/luxfi/lattice/v6/core/rlwe"
+import "github.com/luxfi/lattice/v7/core/rlwe"
 
 // Encoder is a scheme-agnostic encoding interface.
 type Encoder interface {

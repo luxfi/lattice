@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/luxfi/lattice/v6/utils/sampling"
+	"github.com/luxfi/lattice/v7/utils/sampling"
 )
 
 func BenchmarkNTT(b *testing.B) {

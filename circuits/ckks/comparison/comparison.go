@@ -4,11 +4,11 @@ package comparison
 import (
 	"math/big"
 
-	"github.com/luxfi/lattice/v6/circuits/ckks/minimax"
-	"github.com/luxfi/lattice/v6/core/rlwe"
-	"github.com/luxfi/lattice/v6/schemes/ckks"
-	"github.com/luxfi/lattice/v6/utils"
-	"github.com/luxfi/lattice/v6/utils/bignum"
+	"github.com/luxfi/lattice/v7/circuits/ckks/minimax"
+	"github.com/luxfi/lattice/v7/core/rlwe"
+	"github.com/luxfi/lattice/v7/schemes/ckks"
+	"github.com/luxfi/lattice/v7/utils"
+	"github.com/luxfi/lattice/v7/utils/bignum"
 )
 
 // Evaluator is an evaluator providing an API for homomorphic comparisons.

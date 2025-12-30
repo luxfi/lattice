@@ -6,11 +6,11 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	"github.com/luxfi/lattice/v6/circuits/ckks/dft"
-	"github.com/luxfi/lattice/v6/circuits/ckks/mod1"
-	"github.com/luxfi/lattice/v6/ring"
-	"github.com/luxfi/lattice/v6/schemes/ckks"
-	"github.com/luxfi/lattice/v6/utils"
+	"github.com/luxfi/lattice/v7/circuits/ckks/dft"
+	"github.com/luxfi/lattice/v7/circuits/ckks/mod1"
+	"github.com/luxfi/lattice/v7/ring"
+	"github.com/luxfi/lattice/v7/schemes/ckks"
+	"github.com/luxfi/lattice/v7/utils"
 )
 
 // Parameters is a struct storing the parameters
