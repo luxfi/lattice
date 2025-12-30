@@ -3,10 +3,10 @@ package rlwe
 import (
 	"fmt"
 
-	"github.com/luxfi/lattice/v6/ring"
-	"github.com/luxfi/lattice/v6/ring/ringqp"
-	"github.com/luxfi/lattice/v6/utils"
-	"github.com/luxfi/lattice/v6/utils/sampling"
+	"github.com/luxfi/lattice/v7/ring"
+	"github.com/luxfi/lattice/v7/ring/ringqp"
+	"github.com/luxfi/lattice/v7/utils"
+	"github.com/luxfi/lattice/v7/utils/sampling"
 )
 
 // KeyGenerator is a structure that stores the elements required to create new keys,

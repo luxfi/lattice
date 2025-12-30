@@ -5,8 +5,8 @@ import (
 	"math/big"
 	"slices"
 
-	"github.com/luxfi/lattice/v6/ring"
-	"github.com/luxfi/lattice/v6/utils"
+	"github.com/luxfi/lattice/v7/ring"
+	"github.com/luxfi/lattice/v7/utils"
 )
 
 // NoisePublicKey returns the log2 of the standard deviation of the input [PublicKey] with respect to the given [Secret] and parameters.

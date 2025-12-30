@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/luxfi/lattice/v6/core/rgsw"
-	"github.com/luxfi/lattice/v6/core/rlwe"
-	"github.com/luxfi/lattice/v6/ring"
-	"github.com/luxfi/lattice/v6/utils/bignum"
+	"github.com/luxfi/lattice/v7/core/rgsw"
+	"github.com/luxfi/lattice/v7/core/rlwe"
+	"github.com/luxfi/lattice/v7/ring"
+	"github.com/luxfi/lattice/v7/utils/bignum"
 )
 
 // Evaluator is a struct that stores the necessary

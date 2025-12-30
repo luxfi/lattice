@@ -3,9 +3,9 @@ package rlwe
 import (
 	"fmt"
 
-	"github.com/luxfi/lattice/v6/ring"
-	"github.com/luxfi/lattice/v6/ring/ringqp"
-	"github.com/luxfi/lattice/v6/utils/structs"
+	"github.com/luxfi/lattice/v7/ring"
+	"github.com/luxfi/lattice/v7/ring/ringqp"
+	"github.com/luxfi/lattice/v7/utils/structs"
 )
 
 // BufferPool represents a pool of different objects (plaintexts, ciphertexts, polys) that can be used to instantiate temporary buffers.

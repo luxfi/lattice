@@ -8,13 +8,13 @@ import (
 	"math/big"
 	"slices"
 
-	ltcommon "github.com/luxfi/lattice/v6/circuits/ckks/lintrans"
-	"github.com/luxfi/lattice/v6/circuits/common/lintrans"
-	"github.com/luxfi/lattice/v6/core/rlwe"
-	"github.com/luxfi/lattice/v6/ring"
-	"github.com/luxfi/lattice/v6/schemes/ckks"
-	"github.com/luxfi/lattice/v6/utils"
-	"github.com/luxfi/lattice/v6/utils/bignum"
+	ltcommon "github.com/luxfi/lattice/v7/circuits/ckks/lintrans"
+	"github.com/luxfi/lattice/v7/circuits/common/lintrans"
+	"github.com/luxfi/lattice/v7/core/rlwe"
+	"github.com/luxfi/lattice/v7/ring"
+	"github.com/luxfi/lattice/v7/schemes/ckks"
+	"github.com/luxfi/lattice/v7/utils"
+	"github.com/luxfi/lattice/v7/utils/bignum"
 )
 
 // Type is a type used to distinguish between different discrete Fourier transformations.

@@ -5,10 +5,10 @@ import (
 	"math/big"
 	"math/bits"
 
-	"github.com/luxfi/lattice/v6/circuits/common/polynomial"
-	"github.com/luxfi/lattice/v6/core/rlwe"
-	"github.com/luxfi/lattice/v6/schemes/bgv"
-	"github.com/luxfi/lattice/v6/utils"
+	"github.com/luxfi/lattice/v7/circuits/common/polynomial"
+	"github.com/luxfi/lattice/v7/core/rlwe"
+	"github.com/luxfi/lattice/v7/schemes/bgv"
+	"github.com/luxfi/lattice/v7/utils"
 )
 
 // simEvaluator is a struct used to pre-computed the scaling

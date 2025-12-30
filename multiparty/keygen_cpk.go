@@ -3,10 +3,10 @@ package multiparty
 import (
 	"io"
 
-	"github.com/luxfi/lattice/v6/core/rlwe"
-	"github.com/luxfi/lattice/v6/ring"
-	"github.com/luxfi/lattice/v6/ring/ringqp"
-	"github.com/luxfi/lattice/v6/utils/sampling"
+	"github.com/luxfi/lattice/v7/core/rlwe"
+	"github.com/luxfi/lattice/v7/ring"
+	"github.com/luxfi/lattice/v7/ring/ringqp"
+	"github.com/luxfi/lattice/v7/utils/sampling"
 )
 
 // PublicKeyGenProtocol is the structure storing the parameters and and precomputations for

@@ -5,7 +5,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/luxfi/lattice/v6/core/rlwe"
+	"github.com/luxfi/lattice/v7/core/rlwe"
 )
 
 func BenchmarkBGV(b *testing.B) {

@@ -6,11 +6,11 @@ import (
 	"io"
 	"math/bits"
 
-	"github.com/luxfi/lattice/v6/core/rlwe"
-	"github.com/luxfi/lattice/v6/schemes"
-	"github.com/luxfi/lattice/v6/utils/bignum"
-	"github.com/luxfi/lattice/v6/utils/buffer"
-	"github.com/luxfi/lattice/v6/utils/structs"
+	"github.com/luxfi/lattice/v7/core/rlwe"
+	"github.com/luxfi/lattice/v7/schemes"
+	"github.com/luxfi/lattice/v7/utils/bignum"
+	"github.com/luxfi/lattice/v7/utils/buffer"
+	"github.com/luxfi/lattice/v7/utils/structs"
 )
 
 // PowerBasis is a struct storing powers of a ciphertext.

@@ -11,7 +11,7 @@ import (
 	"math"
 	"math/big"
 
-	"github.com/luxfi/lattice/v6/utils/bignum"
+	"github.com/luxfi/lattice/v7/utils/bignum"
 )
 
 const (

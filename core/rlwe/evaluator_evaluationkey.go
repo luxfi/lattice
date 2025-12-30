@@ -3,7 +3,7 @@ package rlwe
 import (
 	"fmt"
 
-	"github.com/luxfi/lattice/v6/utils"
+	"github.com/luxfi/lattice/v7/utils"
 )
 
 // ApplyEvaluationKey is a generic method to apply an [EvaluationKey] on a ciphertext.

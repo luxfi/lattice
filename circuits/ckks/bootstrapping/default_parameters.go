@@ -1,9 +1,9 @@
 package bootstrapping
 
 import (
-	"github.com/luxfi/lattice/v6/ring"
-	"github.com/luxfi/lattice/v6/schemes/ckks"
-	"github.com/luxfi/lattice/v6/utils"
+	"github.com/luxfi/lattice/v7/ring"
+	"github.com/luxfi/lattice/v7/schemes/ckks"
+	"github.com/luxfi/lattice/v7/utils"
 )
 
 type defaultParametersLiteral struct {

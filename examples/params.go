@@ -1,9 +1,9 @@
 package examples
 
 import (
-	"github.com/luxfi/lattice/v6/ring"
-	"github.com/luxfi/lattice/v6/schemes/bgv"
-	"github.com/luxfi/lattice/v6/schemes/ckks"
+	"github.com/luxfi/lattice/v7/ring"
+	"github.com/luxfi/lattice/v7/schemes/bgv"
+	"github.com/luxfi/lattice/v7/schemes/ckks"
 )
 
 var (

@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"math/bits"
 
-	"github.com/luxfi/lattice/v6/core/rlwe"
-	"github.com/luxfi/lattice/v6/schemes"
-	"github.com/luxfi/lattice/v6/utils"
-	"github.com/luxfi/lattice/v6/utils/bignum"
+	"github.com/luxfi/lattice/v7/core/rlwe"
+	"github.com/luxfi/lattice/v7/schemes"
+	"github.com/luxfi/lattice/v7/utils"
+	"github.com/luxfi/lattice/v7/utils/bignum"
 )
 
 // CoefficientGetter defines an interface to get the coefficients of a Polynomial.
