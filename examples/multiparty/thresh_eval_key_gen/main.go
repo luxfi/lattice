@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/luxfi/lattice/v6/core/rlwe"
-	"github.com/luxfi/lattice/v6/multiparty"
-	"github.com/luxfi/lattice/v6/utils/sampling"
+	"github.com/luxfi/lattice/v7/core/rlwe"
+	"github.com/luxfi/lattice/v7/multiparty"
+	"github.com/luxfi/lattice/v7/utils/sampling"
 )
 
 // This example showcases the use of the multiparty package to generate an evaluation key in a multiparty setting.

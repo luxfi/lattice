@@ -6,9 +6,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/luxfi/lattice/v6/core/rlwe"
-	"github.com/luxfi/lattice/v6/multiparty"
-	"github.com/luxfi/lattice/v6/schemes/bgv"
+	"github.com/luxfi/lattice/v7/core/rlwe"
+	"github.com/luxfi/lattice/v7/multiparty"
+	"github.com/luxfi/lattice/v7/schemes/bgv"
 )
 
 func BenchmarkInteger(b *testing.B) {

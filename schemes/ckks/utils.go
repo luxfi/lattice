@@ -4,9 +4,9 @@ import (
 	"math"
 	"math/big"
 
-	"github.com/luxfi/lattice/v6/core/rlwe"
-	"github.com/luxfi/lattice/v6/ring"
-	"github.com/luxfi/lattice/v6/utils/bignum"
+	"github.com/luxfi/lattice/v7/core/rlwe"
+	"github.com/luxfi/lattice/v7/ring"
+	"github.com/luxfi/lattice/v7/utils/bignum"
 )
 
 // GetRootsBigComplex returns the roots e^{2*pi*i/m *j} for 0 <= j <= NthRoot

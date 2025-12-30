@@ -1,10 +1,10 @@
 package mpbgv
 
 import (
-	"github.com/luxfi/lattice/v6/core/rlwe"
-	"github.com/luxfi/lattice/v6/multiparty"
-	"github.com/luxfi/lattice/v6/ring"
-	"github.com/luxfi/lattice/v6/schemes/bgv"
+	"github.com/luxfi/lattice/v7/core/rlwe"
+	"github.com/luxfi/lattice/v7/multiparty"
+	"github.com/luxfi/lattice/v7/ring"
+	"github.com/luxfi/lattice/v7/schemes/bgv"
 )
 
 // RefreshProtocol is a struct storing the relevant parameters for the Refresh protocol.

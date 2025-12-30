@@ -4,7 +4,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/luxfi/lattice/v6/utils/factorization"
+	"github.com/luxfi/lattice/v7/utils/factorization"
 	"github.com/stretchr/testify/require"
 )
 

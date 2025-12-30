@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/luxfi/lattice/v6/core/rlwe"
-	"github.com/luxfi/lattice/v6/ring"
-	"github.com/luxfi/lattice/v6/utils/buffer"
+	"github.com/luxfi/lattice/v7/core/rlwe"
+	"github.com/luxfi/lattice/v7/ring"
+	"github.com/luxfi/lattice/v7/utils/buffer"
 )
 
 // GaloisKeyGenProtocol is the structure storing the parameters for the collective GaloisKeys generation.

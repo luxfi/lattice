@@ -6,8 +6,8 @@ import (
 	"math/rand"
 	"slices"
 
-	"github.com/luxfi/lattice/v6/core/rlwe"
-	"github.com/luxfi/lattice/v6/schemes/bgv"
+	"github.com/luxfi/lattice/v7/core/rlwe"
+	"github.com/luxfi/lattice/v7/schemes/bgv"
 )
 
 func main() {

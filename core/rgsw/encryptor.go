@@ -1,9 +1,9 @@
 package rgsw
 
 import (
-	"github.com/luxfi/lattice/v6/core/rlwe"
-	"github.com/luxfi/lattice/v6/ring"
-	"github.com/luxfi/lattice/v6/ring/ringqp"
+	"github.com/luxfi/lattice/v7/core/rlwe"
+	"github.com/luxfi/lattice/v7/ring"
+	"github.com/luxfi/lattice/v7/ring/ringqp"
 )
 
 // Encryptor is a type for encrypting RGSW ciphertexts. It implements the [rlwe.Encryptor]

@@ -4,10 +4,10 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/luxfi/lattice/v6/core/rlwe"
-	"github.com/luxfi/lattice/v6/ring/ringqp"
-	"github.com/luxfi/lattice/v6/utils/bignum"
-	"github.com/luxfi/lattice/v6/utils/buffer"
+	"github.com/luxfi/lattice/v7/core/rlwe"
+	"github.com/luxfi/lattice/v7/ring/ringqp"
+	"github.com/luxfi/lattice/v7/utils/bignum"
+	"github.com/luxfi/lattice/v7/utils/buffer"
 
 	"github.com/stretchr/testify/require"
 )

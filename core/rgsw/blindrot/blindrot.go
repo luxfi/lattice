@@ -2,8 +2,8 @@
 package blindrot
 
 import (
-	"github.com/luxfi/lattice/v6/core/rlwe"
-	"github.com/luxfi/lattice/v6/ring"
+	"github.com/luxfi/lattice/v7/core/rlwe"
+	"github.com/luxfi/lattice/v7/ring"
 )
 
 // InitTestPolynomial takes a function g, and creates a test polynomial polynomial for the function in the interval [a, b].

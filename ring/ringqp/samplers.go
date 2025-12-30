@@ -1,8 +1,8 @@
 package ringqp
 
 import (
-	"github.com/luxfi/lattice/v6/ring"
-	"github.com/luxfi/lattice/v6/utils/sampling"
+	"github.com/luxfi/lattice/v7/ring"
+	"github.com/luxfi/lattice/v7/utils/sampling"
 )
 
 // UniformSampler is a type for sampling polynomials in Ring.
