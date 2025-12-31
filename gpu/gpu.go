@@ -14,10 +14,10 @@
 package gpu
 
 /*
+#cgo pkg-config: lux-lattice
 #cgo CXXFLAGS: -std=c++17 -O3
-#cgo darwin LDFLAGS: -L/Users/z/work/luxcpp/lattice/build/lib -Wl,-rpath,/Users/z/work/luxcpp/lattice/build/lib -llattice -framework Metal -framework Foundation -lstdc++
-#cgo linux LDFLAGS: -L/usr/local/lib -llattice -lstdc++ -lcudart
-#cgo LDFLAGS: -lstdc++
+#cgo darwin LDFLAGS: -framework Metal -framework Foundation -lstdc++
+#cgo linux LDFLAGS: -lstdc++ -lcudart
 
 #include <stdbool.h>
 #include <stdint.h>
