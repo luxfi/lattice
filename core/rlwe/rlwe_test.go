@@ -397,17 +397,13 @@ func testKeyGenerator(tc *TestContext, bpw2 int, t *testing.T) {
 	// Checks that the secret-key has exactly params.h non-zero coefficients
 	t.Run(testString(params, params.MaxLevelQ(), params.MaxLevelP(), bpw2, "KeyGenerator/GenSecretKey"), func(t *testing.T) {
 
-		// Test all distribution types - removed skips
-		var skipProb bool
 		switch xs := params.Xs().(type) {
 		case ring.Ternary:
-			skipProb = xs.P != 0
+			if xs.P != 0 {
+				t.Skip("cannot run test for probabilistic ternary distribution")
+			}
 		default:
-			skipProb = true
-		}
-		if skipProb {
-			// For non-ternary distributions, use a simplified test
-			t.Logf("Running simplified test for non-ternary distribution")
+			t.Skip("cannot run test for non ternary distribution")
 		}
 
 		skINTT := NewSecretKey(params)
@@ -736,13 +732,9 @@ func testGadgetProduct(tc *TestContext, levelQ, bpw2 int, t *testing.T) {
 			buffDecompQP := poolQP.GetBuffDecompQP(params, levelQ, levelP)
 			defer poolQP.RecycleBuffDecompQP(buffDecompQP)
 
-			// Test all parameter configurations - removed skips
+			// Hoisting is not supported with bit decomposition
 			if bpw2 != 0 {
-				t.Logf("Running modified test for BaseTwoDecomposition != 0")
-			}
-
-			if tc.params.MaxLevelP() == -1 {
-				t.Logf("Running simplified test for #P = 0 case")
+				t.Skip("method is unsupported for BaseTwoDecomposition != 0")
 			}
 
 			skOut := kgen.GenSecretKeyNew()
@@ -962,7 +954,7 @@ func testAutomorphism(tc *TestContext, level, bpw2 int, t *testing.T) {
 	t.Run(testString(params, level, params.MaxLevelP(), bpw2, "Evaluator/AutomorphismHoisted"), func(t *testing.T) {
 
 		if bpw2 != 0 {
-			t.Logf("Running modified test for BaseTwoDecomposition != 0")
+			t.Skip("method is unsupported for BaseTwoDecomposition != 0")
 		}
 
 		// Setup temporary buffer for decomposition
@@ -1017,7 +1009,7 @@ func testAutomorphism(tc *TestContext, level, bpw2 int, t *testing.T) {
 	t.Run(testString(params, level, params.MaxLevelP(), bpw2, "Evaluator/AutomorphismHoistedLazy"), func(t *testing.T) {
 
 		if bpw2 != 0 {
-			t.Logf("Running modified test for BaseTwoDecomposition != 0")
+			t.Skip("method is unsupported for BaseTwoDecomposition != 0")
 		}
 
 		// Setup temporary buffer for decomposition
@@ -1086,7 +1078,7 @@ func testSlotOperations(tc *TestContext, level, bpw2 int, t *testing.T) {
 	t.Run(testString(params, level, params.MaxLevelP(), bpw2, "Evaluator/PartialTrace"), func(t *testing.T) {
 
 		if params.MaxLevelP() == -1 {
-			t.Logf("Running simplified test for #P = 0 case")
+			t.Skip("test requires #P > 0")
 		}
 
 		batch := 5
