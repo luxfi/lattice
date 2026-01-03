@@ -1,6 +1,6 @@
-//go:build !cgo
+//go:build !cgo || !gpu
 
-// Package gpu provides pure Go implementations when CGO is disabled.
+// Package gpu provides pure Go implementations when CGO is disabled or the gpu build tag is not set.
 // These implementations use the lattice/ring package for NTT and polynomial operations.
 package gpu
 
@@ -52,10 +52,7 @@ func NewNTTContext(N uint32, Q uint64) (*NTTContext, error) {
 		return nil, fmt.Errorf("failed to create SubRing: %w", err)
 	}
 
-	// Generate NTT constants
-	if err := subRing.GenNTTConstants(); err != nil {
-		return nil, fmt.Errorf("failed to generate NTT constants: %w", err)
-	}
+	// NTT constants are generated internally by NewSubRing via NewSubRingWithCustomNTT
 
 	return &NTTContext{
 		subRing: subRing,
@@ -260,7 +257,7 @@ func SampleGaussian(N uint32, Q uint64, sigma float64, seed []byte) ([]uint64, e
 	if len(seed) >= 32 {
 		prng, _ = sampling.NewKeyedPRNG(seed[:32])
 	} else {
-		prng = sampling.NewPRNG()
+		prng, _ = sampling.NewPRNG()
 	}
 
 	// Use Box-Muller transform for Gaussian sampling
@@ -308,7 +305,7 @@ func SampleUniform(N uint32, Q uint64, seed []byte) ([]uint64, error) {
 	if len(seed) >= 32 {
 		prng, _ = sampling.NewKeyedPRNG(seed[:32])
 	} else {
-		prng = sampling.NewPRNG()
+		prng, _ = sampling.NewPRNG()
 	}
 
 	qBig := new(big.Int).SetUint64(Q)
