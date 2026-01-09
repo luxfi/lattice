@@ -23,7 +23,7 @@ package gpu
 #include <stdint.h>
 #include <stdlib.h>
 
-// libLattice GPU-accelerated operations
+// libLattice GPU-accelerated operations (extern declarations match library exports)
 bool lattice_gpu_available(void);
 const char* lattice_get_backend(void);
 void lattice_clear_cache(void);
@@ -37,6 +37,10 @@ void lattice_ntt_get_params(const LatticeNTTContext* ctx, uint32_t* N, uint64_t*
 // NTT operations
 int lattice_ntt_forward(LatticeNTTContext* ctx, uint64_t* data, uint32_t batch);
 int lattice_ntt_inverse(LatticeNTTContext* ctx, uint64_t* data, uint32_t batch);
+
+// Batch NTT operations
+int lattice_ntt_batch_forward(LatticeNTTContext* ctx, uint64_t* data, uint32_t batch);
+int lattice_ntt_batch_inverse(LatticeNTTContext* ctx, uint64_t* data, uint32_t batch);
 
 // Polynomial operations
 int lattice_poly_mul_ntt(LatticeNTTContext* ctx, uint64_t* result, const uint64_t* a, const uint64_t* b);
@@ -54,6 +58,33 @@ int lattice_sample_ternary(uint64_t* result, uint32_t N, uint64_t Q, double dens
 uint64_t lattice_find_primitive_root(uint32_t N, uint64_t Q);
 uint64_t lattice_mod_inverse(uint64_t a, uint64_t Q);
 bool lattice_is_ntt_prime(uint32_t N, uint64_t Q);
+
+// Aliases for readability
+#define NTTContext                 LatticeNTTContext
+#define ntt_create                 lattice_ntt_create
+#define ntt_destroy                lattice_ntt_destroy
+#define ntt_get_params             lattice_ntt_get_params
+#define ntt_forward                lattice_ntt_forward
+#define ntt_inverse                lattice_ntt_inverse
+#define ntt_batch_forward          lattice_ntt_batch_forward
+#define ntt_batch_inverse          lattice_ntt_batch_inverse
+
+// Polynomial operations
+#define poly_mul_ntt               lattice_poly_mul_ntt
+#define poly_mul                   lattice_poly_mul
+#define poly_add                   lattice_poly_add
+#define poly_sub                   lattice_poly_sub
+#define poly_scalar_mul            lattice_poly_scalar_mul
+
+// Sampling
+#define sample_gaussian            lattice_sample_gaussian
+#define sample_uniform             lattice_sample_uniform
+#define sample_ternary             lattice_sample_ternary
+
+// Utility
+#define find_primitive_root        lattice_find_primitive_root
+#define mod_inverse                lattice_mod_inverse
+#define is_ntt_prime               lattice_is_ntt_prime
 */
 import "C"
 
@@ -80,7 +111,7 @@ func ClearCache() {
 
 // NTTContext holds precomputed data for GPU-accelerated NTT operations.
 type NTTContext struct {
-	ptr *C.LatticeNTTContext
+	ptr *C.NTTContext
 	N   uint32
 	Q   uint64
 	mu  sync.RWMutex
@@ -97,7 +128,7 @@ func NewNTTContext(N uint32, Q uint64) (*NTTContext, error) {
 		return nil, fmt.Errorf("Q-1 (%d) must be divisible by 2N (%d) for NTT-friendly prime", Q-1, 2*uint64(N))
 	}
 
-	ptr := C.lattice_ntt_create(C.uint32_t(N), C.uint64_t(Q))
+	ptr := C.ntt_create(C.uint32_t(N), C.uint64_t(Q))
 	if ptr == nil {
 		return nil, fmt.Errorf("failed to create NTT context for N=%d, Q=%d", N, Q)
 	}
@@ -115,7 +146,7 @@ func (ctx *NTTContext) Close() {
 	defer ctx.mu.Unlock()
 
 	if ctx.ptr != nil {
-		C.lattice_ntt_destroy(ctx.ptr)
+		C.ntt_destroy(ctx.ptr)
 		ctx.ptr = nil
 	}
 }
@@ -143,7 +174,7 @@ func (ctx *NTTContext) NTT(polys [][]uint64) ([][]uint64, error) {
 		results[i] = make([]uint64, N)
 		copy(results[i], poly)
 
-		err := C.lattice_ntt_forward(ctx.ptr, (*C.uint64_t)(unsafe.Pointer(&results[i][0])), 1)
+		err := C.ntt_forward(ctx.ptr, (*C.uint64_t)(unsafe.Pointer(&results[i][0])), 1)
 		if err != 0 {
 			return nil, fmt.Errorf("NTT forward failed with error %d", err)
 		}
@@ -175,10 +206,86 @@ func (ctx *NTTContext) INTT(polys [][]uint64) ([][]uint64, error) {
 		results[i] = make([]uint64, N)
 		copy(results[i], poly)
 
-		err := C.lattice_ntt_inverse(ctx.ptr, (*C.uint64_t)(unsafe.Pointer(&results[i][0])), 1)
+		err := C.ntt_inverse(ctx.ptr, (*C.uint64_t)(unsafe.Pointer(&results[i][0])), 1)
 		if err != 0 {
 			return nil, fmt.Errorf("INTT inverse failed with error %d", err)
 		}
+	}
+
+	return results, nil
+}
+
+// BatchNTT performs forward NTT on all polynomials in a single GPU dispatch.
+// This is more efficient than NTT for large batches as it minimizes GPU kernel launches.
+func (ctx *NTTContext) BatchNTT(polys [][]uint64) ([][]uint64, error) {
+	if ctx.ptr == nil {
+		return nil, fmt.Errorf("NTT context is closed")
+	}
+
+	if len(polys) == 0 {
+		return polys, nil
+	}
+
+	N := int(ctx.N)
+	batch := len(polys)
+
+	// Allocate contiguous buffer for all polynomials
+	data := make([]uint64, batch*N)
+	for i, poly := range polys {
+		if len(poly) != N {
+			return nil, fmt.Errorf("polynomial %d has wrong size: got %d, expected %d", i, len(poly), N)
+		}
+		copy(data[i*N:(i+1)*N], poly)
+	}
+
+	// Single GPU dispatch for all polynomials
+	err := C.ntt_batch_forward(ctx.ptr, (*C.uint64_t)(unsafe.Pointer(&data[0])), C.uint32_t(batch))
+	if err != 0 {
+		return nil, fmt.Errorf("batch NTT forward failed with error %d", err)
+	}
+
+	// Split back into slices
+	results := make([][]uint64, batch)
+	for i := range results {
+		results[i] = data[i*N : (i+1)*N]
+	}
+
+	return results, nil
+}
+
+// BatchINTT performs inverse NTT on all polynomials in a single GPU dispatch.
+// This is more efficient than INTT for large batches as it minimizes GPU kernel launches.
+func (ctx *NTTContext) BatchINTT(polys [][]uint64) ([][]uint64, error) {
+	if ctx.ptr == nil {
+		return nil, fmt.Errorf("NTT context is closed")
+	}
+
+	if len(polys) == 0 {
+		return polys, nil
+	}
+
+	N := int(ctx.N)
+	batch := len(polys)
+
+	// Allocate contiguous buffer for all polynomials
+	data := make([]uint64, batch*N)
+	for i, poly := range polys {
+		if len(poly) != N {
+			return nil, fmt.Errorf("polynomial %d has wrong size: got %d, expected %d", i, len(poly), N)
+		}
+		copy(data[i*N:(i+1)*N], poly)
+	}
+
+	// Single GPU dispatch for all polynomials
+	err := C.ntt_batch_inverse(ctx.ptr, (*C.uint64_t)(unsafe.Pointer(&data[0])), C.uint32_t(batch))
+	if err != 0 {
+		return nil, fmt.Errorf("batch INTT inverse failed with error %d", err)
+	}
+
+	// Split back into slices
+	results := make([][]uint64, batch)
+	for i := range results {
+		results[i] = data[i*N : (i+1)*N]
 	}
 
 	return results, nil
@@ -210,7 +317,7 @@ func (ctx *NTTContext) PolyMul(a, b [][]uint64) ([][]uint64, error) {
 
 		results[i] = make([]uint64, N)
 
-		err := C.lattice_poly_mul(ctx.ptr,
+		err := C.poly_mul(ctx.ptr,
 			(*C.uint64_t)(unsafe.Pointer(&results[i][0])),
 			(*C.uint64_t)(unsafe.Pointer(&a[i][0])),
 			(*C.uint64_t)(unsafe.Pointer(&b[i][0])))
@@ -236,7 +343,7 @@ func (ctx *NTTContext) PolyMulNTT(a, b []uint64) ([]uint64, error) {
 
 	result := make([]uint64, N)
 
-	err := C.lattice_poly_mul_ntt(ctx.ptr,
+	err := C.poly_mul_ntt(ctx.ptr,
 		(*C.uint64_t)(unsafe.Pointer(&result[0])),
 		(*C.uint64_t)(unsafe.Pointer(&a[0])),
 		(*C.uint64_t)(unsafe.Pointer(&b[0])))
@@ -256,7 +363,7 @@ func PolyAdd(a, b []uint64, Q uint64) ([]uint64, error) {
 	N := uint32(len(a))
 	result := make([]uint64, N)
 
-	err := C.lattice_poly_add(
+	err := C.poly_add(
 		(*C.uint64_t)(unsafe.Pointer(&result[0])),
 		(*C.uint64_t)(unsafe.Pointer(&a[0])),
 		(*C.uint64_t)(unsafe.Pointer(&b[0])),
@@ -278,7 +385,7 @@ func PolySub(a, b []uint64, Q uint64) ([]uint64, error) {
 	N := uint32(len(a))
 	result := make([]uint64, N)
 
-	err := C.lattice_poly_sub(
+	err := C.poly_sub(
 		(*C.uint64_t)(unsafe.Pointer(&result[0])),
 		(*C.uint64_t)(unsafe.Pointer(&a[0])),
 		(*C.uint64_t)(unsafe.Pointer(&b[0])),
@@ -296,7 +403,7 @@ func PolyScalarMul(a []uint64, scalar, Q uint64) ([]uint64, error) {
 	N := uint32(len(a))
 	result := make([]uint64, N)
 
-	err := C.lattice_poly_scalar_mul(
+	err := C.poly_scalar_mul(
 		(*C.uint64_t)(unsafe.Pointer(&result[0])),
 		(*C.uint64_t)(unsafe.Pointer(&a[0])),
 		C.uint64_t(scalar),
@@ -318,7 +425,7 @@ func SampleGaussian(N uint32, Q uint64, sigma float64, seed []byte) ([]uint64, e
 		seedPtr = (*C.uint8_t)(unsafe.Pointer(&seed[0]))
 	}
 
-	err := C.lattice_sample_gaussian(
+	err := C.sample_gaussian(
 		(*C.uint64_t)(unsafe.Pointer(&result[0])),
 		C.uint32_t(N),
 		C.uint64_t(Q),
@@ -340,7 +447,7 @@ func SampleUniform(N uint32, Q uint64, seed []byte) ([]uint64, error) {
 		seedPtr = (*C.uint8_t)(unsafe.Pointer(&seed[0]))
 	}
 
-	err := C.lattice_sample_uniform(
+	err := C.sample_uniform(
 		(*C.uint64_t)(unsafe.Pointer(&result[0])),
 		C.uint32_t(N),
 		C.uint64_t(Q),
@@ -361,7 +468,7 @@ func SampleTernary(N uint32, Q uint64, density float64, seed []byte) ([]uint64, 
 		seedPtr = (*C.uint8_t)(unsafe.Pointer(&seed[0]))
 	}
 
-	err := C.lattice_sample_ternary(
+	err := C.sample_ternary(
 		(*C.uint64_t)(unsafe.Pointer(&result[0])),
 		C.uint32_t(N),
 		C.uint64_t(Q),
@@ -376,7 +483,7 @@ func SampleTernary(N uint32, Q uint64, density float64, seed []byte) ([]uint64, 
 
 // FindPrimitiveRoot finds a primitive 2N-th root of unity modulo Q.
 func FindPrimitiveRoot(N uint32, Q uint64) (uint64, error) {
-	root := uint64(C.lattice_find_primitive_root(C.uint32_t(N), C.uint64_t(Q)))
+	root := uint64(C.find_primitive_root(C.uint32_t(N), C.uint64_t(Q)))
 	if root == 0 {
 		return 0, fmt.Errorf("no primitive root found for N=%d, Q=%d", N, Q)
 	}
@@ -385,7 +492,7 @@ func FindPrimitiveRoot(N uint32, Q uint64) (uint64, error) {
 
 // ModInverse computes the modular inverse a^{-1} mod Q.
 func ModInverse(a, Q uint64) (uint64, error) {
-	inv := uint64(C.lattice_mod_inverse(C.uint64_t(a), C.uint64_t(Q)))
+	inv := uint64(C.mod_inverse(C.uint64_t(a), C.uint64_t(Q)))
 	if inv == 0 && a != 1 {
 		return 0, fmt.Errorf("%d is not invertible mod %d", a, Q)
 	}
@@ -394,5 +501,5 @@ func ModInverse(a, Q uint64) (uint64, error) {
 
 // IsNTTPrime checks if Q is a valid NTT-friendly prime for ring dimension N.
 func IsNTTPrime(N uint32, Q uint64) bool {
-	return bool(C.lattice_is_ntt_prime(C.uint32_t(N), C.uint64_t(Q)))
+	return bool(C.is_ntt_prime(C.uint32_t(N), C.uint64_t(Q)))
 }
