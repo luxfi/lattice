@@ -89,9 +89,8 @@ type ExecutionContext struct {
 	gpuCtx any // Will be *gpu.NTTContext when GPU is available
 
 	// Ring parameters
-	ringQ    *ring.Ring
-	ringP    *ring.Ring // May be nil
-	degree   int
+	ringQ  *ring.Ring
+	degree int
 	maxLevel int
 
 	// Statistics
@@ -260,7 +259,7 @@ func (e *Executor) registerDefaultOps() {
 	// Negate operation
 	e.ops[OpNegate] = func(ctx *ExecutionContext, node *Node, level int) error {
 		if len(node.Inputs) != 1 {
-			return fmt.Errorf("Negate requires 1 input, got %d", len(node.Inputs))
+			return fmt.Errorf("negate requires 1 input, got %d", len(node.Inputs))
 		}
 
 		in, ok := ctx.GetCiphertext(CiphertextID(node.Inputs[0]))
@@ -329,7 +328,7 @@ func (e *Executor) registerDefaultOps() {
 	// Copy operation
 	e.ops[OpCopy] = func(ctx *ExecutionContext, node *Node, level int) error {
 		if len(node.Inputs) != 1 {
-			return fmt.Errorf("Copy requires 1 input, got %d", len(node.Inputs))
+			return fmt.Errorf("copy requires 1 input, got %d", len(node.Inputs))
 		}
 
 		in, ok := ctx.GetCiphertext(CiphertextID(node.Inputs[0]))
