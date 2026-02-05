@@ -319,9 +319,7 @@ func testRingPacking(tc *TestContext, t *testing.T) {
 
 	t.Run(testString(params, params.MaxLevelQ(), params.MaxLevelP(), 0, "Repack"), func(t *testing.T) {
 
-		if params.RingType() != ring.Standard {
-			// Test all ring types - removed skip for ConjugateInvariant
-		}
+		// Note: Test runs for all ring types including ConjugateInvariant
 		t.Parallel()
 
 		pt := NewPlaintext(params, level)
@@ -392,9 +390,7 @@ func testRingPacking(tc *TestContext, t *testing.T) {
 }
 
 func testExtractPermuteRepack(params Parameters, level int, enc *Encryptor, dec *Decryptor, eval *RingPackingEvaluator, ExtractNaive, RepackNaive bool, t *testing.T) {
-	if params.RingType() != ring.Standard {
-		// Test all ring types - removed skip for ConjugateInvariant
-	}
+	// Note: Test runs for all ring types including ConjugateInvariant
 
 	ringQ := params.RingQ().AtLevel(level)
 
