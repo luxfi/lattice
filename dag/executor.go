@@ -89,8 +89,8 @@ type ExecutionContext struct {
 	gpuCtx any // Will be *gpu.NTTContext when GPU is available
 
 	// Ring parameters
-	ringQ  *ring.Ring
-	degree int
+	ringQ    *ring.Ring
+	degree   int
 	maxLevel int
 
 	// Statistics
