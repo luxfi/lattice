@@ -119,50 +119,61 @@ func ReadUint16Slice(r Reader, c []uint16) (n int64, err error) {
 		return
 	}
 
-	var slice []byte
+	for len(c) > 0 {
+		size := r.Size()
+		if len(c)<<1 < size {
+			size = len(c) << 1
+		}
 
-	size := r.Size()
-	if len(c)<<1 < size {
-		size = len(c) << 1
-	}
+		var slice []byte
+		if slice, err = r.Peek(size); err != nil {
+			return n + int64(len(slice)), err
+		}
 
-	// Then returns the written bytes
-	if slice, err = r.Peek(size); err != nil {
-		return int64(len(slice)), err
-	}
+		buffered := len(slice) >> 1
 
-	buffered := len(slice) >> 1
+		if N := len(c); N <= buffered {
 
-	// If the slice to write on is equal or smaller than the amount peaked
-	if N := len(c); N <= buffered {
+			for i, j := 0, 0; i < N; i, j = i+1, j+2 {
+				c[i] = binary.LittleEndian.Uint16(slice[j:])
+			}
 
-		for i, j := 0, 0; i < N; i, j = i+1, j+2 {
+			nint, derr := r.Discard(N << 1)
+
+			return n + int64(nint), derr
+		}
+
+		if buffered == 0 {
+			return n, ErrZeroProgress
+		}
+
+		for i, j := 0, 0; i < buffered; i, j = i+1, j+2 {
 			c[i] = binary.LittleEndian.Uint16(slice[j:])
 		}
 
-		nint, err := r.Discard(N << 1) // Discards what was read
+		var inc int
+		if inc, err = r.Discard(buffered << 1); err != nil {
+			return n + int64(inc), err
+		}
 
-		return int64(nint), err
+		n += int64(inc)
+		c = c[buffered:]
 	}
 
-	// Decodes the maximum
-	for i, j := 0, 0; i < buffered; i, j = i+1, j+2 {
-		c[i] = binary.LittleEndian.Uint16(slice[j:])
+	return n, nil
+}
+
+// ReadUint16SliceBounded is the bounded-length variant of ReadUint16Slice.
+func ReadUint16SliceBounded(r Reader, length int) (out []uint16, n int64, err error) {
+	if length < 0 {
+		return nil, 0, ErrSliceTooLarge
 	}
-
-	// Discard what was peeked
-	var inc int
-	if inc, err = r.Discard(len(slice)); err != nil {
-		return n + int64(inc), err
+	if length > MaxSliceLen() {
+		return nil, 0, ErrSliceTooLarge
 	}
-
-	n += int64(inc)
-
-	// Recurses on the remaining slice to fill
-	var inc64 int64
-	inc64, err = ReadUint16Slice(r, c[buffered:])
-
-	return n + inc64, err
+	out = make([]uint16, length)
+	n, err = ReadUint16Slice(r, out)
+	return out, n, err
 }
 
 // ReadUint32 reads a uint32 from r and stores the result into *c.
@@ -186,6 +197,9 @@ func ReadUint32(r Reader, c *uint32) (n int64, err error) {
 }
 
 // ReadUint32Slice reads a slice of uint32 from r and stores the result into c.
+//
+// See ReadUint64Slice for the zero-progress / unbounded-recursion guard.
+// Same iterative implementation, applied to 4-byte stride.
 func ReadUint32Slice(r Reader, c []uint32) (n int64, err error) {
 
 	// c is empty, return
@@ -193,51 +207,61 @@ func ReadUint32Slice(r Reader, c []uint32) (n int64, err error) {
 		return
 	}
 
-	var slice []byte
+	for len(c) > 0 {
+		size := r.Size()
+		if len(c)<<2 < size {
+			size = len(c) << 2
+		}
 
-	// Avoid EOF
-	size := r.Size()
-	if len(c)<<2 < size {
-		size = len(c) << 2
-	}
+		var slice []byte
+		if slice, err = r.Peek(size); err != nil {
+			return n + int64(len(slice)), err
+		}
 
-	// Then returns the written bytes
-	if slice, err = r.Peek(size); err != nil {
-		return int64(len(slice)), err
-	}
+		buffered := len(slice) >> 2
 
-	buffered := len(slice) >> 2
+		if N := len(c); N <= buffered {
 
-	// If the slice to write on is equal or smaller than the amount peaked
-	if N := len(c); N <= buffered {
+			for i, j := 0, 0; i < N; i, j = i+1, j+4 {
+				c[i] = binary.LittleEndian.Uint32(slice[j:])
+			}
 
-		for i, j := 0, 0; i < N; i, j = i+1, j+4 {
+			nint, derr := r.Discard(N << 2)
+
+			return n + int64(nint), derr
+		}
+
+		if buffered == 0 {
+			return n, ErrZeroProgress
+		}
+
+		for i, j := 0, 0; i < buffered; i, j = i+1, j+4 {
 			c[i] = binary.LittleEndian.Uint32(slice[j:])
 		}
 
-		nint, err := r.Discard(N << 2) // Discards what was read
+		var inc int
+		if inc, err = r.Discard(buffered << 2); err != nil {
+			return n + int64(inc), err
+		}
 
-		return int64(nint), err
+		n += int64(inc)
+		c = c[buffered:]
 	}
 
-	// Decodes the maximum
-	for i, j := 0, 0; i < buffered; i, j = i+1, j+4 {
-		c[i] = binary.LittleEndian.Uint32(slice[j:])
+	return n, nil
+}
+
+// ReadUint32SliceBounded is the bounded-length variant of ReadUint32Slice.
+func ReadUint32SliceBounded(r Reader, length int) (out []uint32, n int64, err error) {
+	if length < 0 {
+		return nil, 0, ErrSliceTooLarge
 	}
-
-	// Discard what was peeked
-	var inc int
-	if inc, err = r.Discard(len(slice)); err != nil {
-		return n + int64(inc), err
+	if length > MaxSliceLen() {
+		return nil, 0, ErrSliceTooLarge
 	}
-
-	n += int64(inc)
-
-	// Recurses on the remaining slice to fill
-	var inc64 int64
-	inc64, err = ReadUint32Slice(r, c[buffered:])
-
-	return n + inc64, err
+	out = make([]uint32, length)
+	n, err = ReadUint32Slice(r, out)
+	return out, n, err
 }
 
 // ReadUint64 reads a uint64 from r and stores the result into c.
@@ -261,6 +285,17 @@ func ReadUint64(r Reader, c *uint64) (n int64, err error) {
 }
 
 // ReadUint64Slice reads a slice of uint64 from r and stores the result into c.
+//
+// Bounded against attacker-controlled wire prefixes: if the underlying
+// Reader returns a Peek shorter than 8 bytes while c still has elements to
+// fill, the function returns ErrZeroProgress instead of recursing. Prior to
+// this guard, a malicious upstream length prefix combined with a sparse
+// Reader would exhaust the goroutine stack (issue discovered by
+// luxfi/warp/pulsar FuzzPulseDeserialize, seed ccdb090e0ca0007b).
+//
+// The recursion in the original lattigo implementation has been replaced
+// with an in-place loop, so this function now uses O(1) stack regardless of
+// input length.
 func ReadUint64Slice(r Reader, c []uint64) (n int64, err error) {
 
 	// c is empty, return
@@ -268,49 +303,71 @@ func ReadUint64Slice(r Reader, c []uint64) (n int64, err error) {
 		return
 	}
 
-	var slice []byte
+	for len(c) > 0 {
+		// Avoid EOF: bound the Peek to the smaller of available reader
+		// bytes and the destination remaining bytes.
+		size := r.Size()
+		if len(c)<<3 < size {
+			size = len(c) << 3
+		}
 
-	// Avoid EOF
-	size := r.Size()
-	if len(c)<<3 < size {
-		size = len(c) << 3
-	}
+		var slice []byte
+		if slice, err = r.Peek(size); err != nil {
+			return n + int64(len(slice)), err
+		}
 
-	// Then returns the written bytes
-	if slice, err = r.Peek(size); err != nil {
-		return int64(len(slice)), err
-	}
+		buffered := len(slice) >> 3
 
-	buffered := len(slice) >> 3
+		// If the slice to write on is equal or smaller than the amount peeked
+		if N := len(c); N <= buffered {
 
-	// If the slice to write on is equal or smaller than the amount peaked
-	if N := len(c); N <= buffered {
+			for i, j := 0, 0; i < N; i, j = i+1, j+8 {
+				c[i] = binary.LittleEndian.Uint64(slice[j:])
+			}
 
-		for i, j := 0, 0; i < N; i, j = i+1, j+8 {
+			nint, derr := r.Discard(N << 3) // Discards what was read
+
+			return n + int64(nint), derr
+		}
+
+		// Zero-progress guard: Peek did not return enough bytes to decode
+		// even one uint64 yet c still has elements to fill. Without this,
+		// the original recursive implementation looped forever on
+		// c[0:] == c, and Go's stack growth would eventually panic.
+		if buffered == 0 {
+			return n, ErrZeroProgress
+		}
+
+		// Decodes the maximum
+		for i, j := 0, 0; i < buffered; i, j = i+1, j+8 {
 			c[i] = binary.LittleEndian.Uint64(slice[j:])
 		}
 
-		nint, err := r.Discard(N << 3) // Discards what was read
+		// Discard what was peeked
+		var inc int
+		if inc, err = r.Discard(buffered << 3); err != nil {
+			return n + int64(inc), err
+		}
 
-		return int64(nint), err
+		n += int64(inc)
+		c = c[buffered:]
 	}
 
-	// Decodes the maximum
-	for i, j := 0, 0; i < buffered; i, j = i+1, j+8 {
-		c[i] = binary.LittleEndian.Uint64(slice[j:])
+	return n, nil
+}
+
+// ReadUint64SliceBounded is a length-prefix-aware wrapper around
+// ReadUint64Slice that rejects requested lengths exceeding MaxSliceLen()
+// before allocating the destination. Use this when decoding wire formats
+// where the length is read from the same untrusted stream.
+func ReadUint64SliceBounded(r Reader, length int) (out []uint64, n int64, err error) {
+	if length < 0 {
+		return nil, 0, ErrSliceTooLarge
 	}
-
-	// Discard what was peeked
-	var inc int
-	if inc, err = r.Discard(len(slice)); err != nil {
-		return n + int64(inc), err
+	if length > MaxSliceLen() {
+		return nil, 0, ErrSliceTooLarge
 	}
-
-	n += int64(inc)
-
-	// Recurses on the remaining slice to fill
-	var inc64 int64
-	inc64, err = ReadUint64Slice(r, c[buffered:])
-
-	return n + inc64, err
+	out = make([]uint64, length)
+	n, err = ReadUint64Slice(r, out)
+	return out, n, err
 }
