@@ -153,6 +153,7 @@ func (s *CBDSampler) cbdEta3(coeffs [][]uint64, moduli []uint64, N int, buf []by
 	for i := 0; i < N; i++ {
 		// Extract 6 bits starting at bitPos
 		byteIdx := bitPos / 8
+		/* #nosec G115 -- bitPos%8 is always in [0,7] */
 		bitOff := uint(bitPos % 8)
 
 		var bits6 uint64
@@ -190,6 +191,7 @@ func (s *CBDSampler) cbdGeneric(coeffs [][]uint64, moduli []uint64, N int, buf [
 		// Count popcount of first eta bits
 		for k := 0; k < s.eta; k++ {
 			byteIdx := bitPos / 8
+			/* #nosec G115 -- bitPos%8 is always in [0,7] */
 			bitOff := uint(bitPos % 8)
 			a += (uint64(buf[byteIdx]) >> bitOff) & 1
 			bitPos++
@@ -198,6 +200,7 @@ func (s *CBDSampler) cbdGeneric(coeffs [][]uint64, moduli []uint64, N int, buf [
 		// Count popcount of next eta bits
 		for k := 0; k < s.eta; k++ {
 			byteIdx := bitPos / 8
+			/* #nosec G115 -- bitPos%8 is always in [0,7] */
 			bitOff := uint(bitPos % 8)
 			b += (uint64(buf[byteIdx]) >> bitOff) & 1
 			bitPos++
