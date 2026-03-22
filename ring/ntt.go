@@ -213,6 +213,11 @@ func nttCoreLazy(p1, p2 []uint64, N int, Q, MRedConstant uint64, roots []uint64)
 		panic(fmt.Sprintf("cannot nttCoreLazy: ensure that len(p1)=%d, len(p2)=%d and len(roots)=%d >= N=%d", len(p1), len(p2), len(roots), N))
 	}
 
+	// Try SIMD-accelerated path (available with GOEXPERIMENT=simd on amd64 with AVX2).
+	if nttCoreLazyAccel(p1, p2, N, Q, MRedConstant, roots) {
+		return
+	}
+
 	if N < MinimumRingDegreeForLoopUnrolledNTT {
 		nttLazy(p1, p2, N, Q, MRedConstant, roots)
 	} else {
@@ -556,6 +561,11 @@ func inttCoreLazy(p1, p2 []uint64, N int, Q, MRedConstant uint64, roots []uint64
 	// Sanity check
 	if len(p1) < N || len(p2) < N || len(roots) < N {
 		panic(fmt.Sprintf("cannot inttCoreLazy: ensure that len(p1)=%d, len(p2)=%d and len(roots)=%d >= N=%d", len(p1), len(p2), len(roots), N))
+	}
+
+	// Try SIMD-accelerated path (available with GOEXPERIMENT=simd on amd64 with AVX2).
+	if inttCoreLazyAccel(p1, p2, N, Q, MRedConstant, roots) {
+		return
 	}
 
 	if N < MinimumRingDegreeForLoopUnrolledNTT {

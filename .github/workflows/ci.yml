@@ -14,7 +14,7 @@ jobs:
     - name: Setup Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.25.7'
+        go-version: '1.26'
 
     - uses: actions/cache@v4
       with:
@@ -34,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go: ["1.25", "1.24"]
+        go: ["1.26", "1.25"]
 
     steps:
       - uses: actions/checkout@v4
@@ -58,3 +58,29 @@ jobs:
 
       - name: Run Makefile tests
         run: make test
+
+  tests-simd:
+    name: Run SIMD NTT tests (GOEXPERIMENT=simd)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-simd-build-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-simd-build-
+
+      - name: Build with SIMD
+        run: GOEXPERIMENT=simd go build ./...
+
+      - name: Test with SIMD
+        run: GOEXPERIMENT=simd go test -count=1 ./ring/ -v -run 'TestNTT|TestMRedLazy4|TestMul64x4|TestNTTSimd'
