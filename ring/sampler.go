@@ -8,9 +8,10 @@ import (
 )
 
 const (
-	discreteGaussianName = "DiscreteGaussian"
-	ternaryDistName      = "Ternary"
-	uniformDistName      = "Uniform"
+	discreteGaussianName    = "DiscreteGaussian"
+	ternaryDistName         = "Ternary"
+	uniformDistName         = "Uniform"
+	centeredBinomialName    = "CenteredBinomial"
 )
 
 // Sampler is an interface for random polynomial samplers.
@@ -25,12 +26,14 @@ type Sampler interface {
 
 // DistributionParameters is an interface for distribution
 // parameters in the ring.
-// There are three implementation of this interface:
+// There are four implementations of this interface:
 //   - DiscreteGaussian for sampling polynomials with discretized
 //     gaussian coefficient of given standard deviation and bound.
 //   - Ternary for sampling polynomials with coefficients in [-1, 1].
 //   - Uniform for sampling polynomial with uniformly random
 //     coefficients in the ring.
+//   - CenteredBinomial for constant-time sampling with coefficients
+//     in [-Eta, Eta] using the CBD method from NIST ML-KEM (FIPS 203).
 type DistributionParameters interface {
 	// Type returns a string representation of the distribution name.
 	Type() string
@@ -61,6 +64,15 @@ type Ternary struct {
 // i.e., with coefficients uniformly distributed in the given ring.
 type Uniform struct{}
 
+// CenteredBinomial represents the parameters of a centered binomial distribution
+// (CBD) as used by NIST ML-KEM (FIPS 203). For parameter Eta, coefficients are
+// sampled in [-Eta, Eta] by computing popcount(η random bits) - popcount(η random bits).
+// This sampler is constant-time with no data-dependent branching.
+// Typical values: Eta=2 (ML-KEM-512/768), Eta=3 (ML-KEM-1024).
+type CenteredBinomial struct {
+	Eta int
+}
+
 // NewSampler returns a new sampler that follows the distribution given by DistributionParameters.
 // WARNING: If the PRNG is deterministic/keyed (of type [sampling.KeyedPRNG]), *concurrent* calls to the sampler will not necessarily result in a deterministic output.
 func NewSampler(prng sampling.PRNG, baseRing *Ring, X DistributionParameters, montgomery bool) (Sampler, error) {
@@ -71,8 +83,10 @@ func NewSampler(prng sampling.PRNG, baseRing *Ring, X DistributionParameters, mo
 		return NewTernarySampler(prng, baseRing, X, montgomery)
 	case Uniform:
 		return NewUniformSampler(prng, baseRing), nil
+	case CenteredBinomial:
+		return NewCBDSampler(prng, baseRing, X, montgomery), nil
 	default:
-		return nil, fmt.Errorf("invalid distribution: want ring.DiscreteGaussianDistribution, ring.TernaryDistribution or ring.UniformDistribution but have %T", X)
+		return nil, fmt.Errorf("invalid distribution: want ring.DiscreteGaussian, ring.Ternary, ring.Uniform or ring.CenteredBinomial but have %T", X)
 	}
 }
 
@@ -128,6 +142,19 @@ func (d Uniform) MarshalJSON() ([]byte, error) {
 }
 
 func (d Uniform) mustBeDist() {}
+
+func (d CenteredBinomial) Type() string {
+	return centeredBinomialName
+}
+
+func (d CenteredBinomial) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		Type string
+		Eta  int
+	}{Type: d.Type(), Eta: d.Eta})
+}
+
+func (d CenteredBinomial) mustBeDist() {}
 
 func getFloatFromMap(distDef map[string]interface{}, key string) (float64, error) {
 	val, hasVal := distDef[key]
@@ -203,6 +230,15 @@ func ParametersFromMap(distDef map[string]interface{}) (DistributionParameters, 
 			return nil, errBound
 		}
 		return DiscreteGaussian{Sigma: sigma, Bound: bound}, nil
+	case centeredBinomialName:
+		eta, errEta := getIntFromMap(distDef, "Eta")
+		if errEta != nil {
+			return nil, errEta
+		}
+		if eta < 1 || eta > 16 {
+			return nil, fmt.Errorf("CenteredBinomial Eta must be in [1, 16], got %d", eta)
+		}
+		return CenteredBinomial{Eta: eta}, nil
 	default:
 		return nil, fmt.Errorf("distribution type %s does not exist", distTypeStr)
 	}
