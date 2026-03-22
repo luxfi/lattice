@@ -163,7 +163,7 @@ func (eval Evaluator) EvaluateManyNew(ctIn *rlwe.Ciphertext, linearTransformatio
 	params := eval.GetRLWEParameters()
 	opOut = make([]*rlwe.Ciphertext, len(linearTransformations))
 	for i := range opOut {
-		opOut[i] = rlwe.NewCiphertext(params, 1, linearTransformations[i].LevelQ)
+		opOut[i] = rlwe.NewCiphertext(params, 1, linearTransformations[i].LevelQ) // #nosec G602 -- i bounded by len(linearTransformations) via opOut
 	}
 	return opOut, eval.EvaluateMany(ctIn, linearTransformations, opOut)
 }

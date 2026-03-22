@@ -82,11 +82,11 @@ func NewElementAtLevelFromPoly(level int, poly []ring.Poly) (*Element[ring.Poly]
 	Value := make([]ring.Poly, len(poly))
 	for i := range Value {
 
-		if len(poly[i].Coeffs) < level+1 {
+		if len(poly[i].Coeffs) < level+1 { // #nosec G602 -- i bounded by len(poly) via Value
 			return nil, fmt.Errorf("cannot NewElementAtLevelFromPoly: provided ring.Poly[%d] level is too small", i)
 		}
 
-		Value[i].Coeffs = poly[i].Coeffs[:level+1]
+		Value[i].Coeffs = poly[i].Coeffs[:level+1] // #nosec G602 -- i bounded by len(poly) via Value
 	}
 
 	return &Element[ring.Poly]{Value: Value}, nil

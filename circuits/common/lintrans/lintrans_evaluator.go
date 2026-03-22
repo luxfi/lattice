@@ -30,7 +30,7 @@ func (eval Evaluator) EvaluateMany(ctIn *rlwe.Ciphertext, linearTransformations 
 		return fmt.Errorf("output *rlwe.Ciphertext slice is too small")
 	}
 	for i := range linearTransformations {
-		if opOut[i] == nil {
+		if opOut[i] == nil { // #nosec G602 -- len(opOut) >= len(linearTransformations) checked above
 			return fmt.Errorf("output slice contains unallocated ciphertext")
 		}
 	}
@@ -58,7 +58,7 @@ func (eval Evaluator) EvaluateMany(ctIn *rlwe.Ciphertext, linearTransformations 
 	for i, lt := range linearTransformations {
 
 		if lt.N1 == 0 {
-			if err = eval.MultiplyByDiagMatrix(ctIn, lt, buffDecompQP, opOut[i]); err != nil {
+			if err = eval.MultiplyByDiagMatrix(ctIn, lt, buffDecompQP, opOut[i]); err != nil { // #nosec G602 -- len(opOut) >= len(linearTransformations) checked above
 				return
 			}
 		} else {
@@ -69,7 +69,7 @@ func (eval Evaluator) EvaluateMany(ctIn *rlwe.Ciphertext, linearTransformations 
 				return
 			}
 
-			if err = eval.MultiplyByDiagMatrixBSGS(ctIn, lt, ctPreRot, opOut[i]); err != nil {
+			if err = eval.MultiplyByDiagMatrixBSGS(ctIn, lt, ctPreRot, opOut[i]); err != nil { // #nosec G602 -- len(opOut) >= len(linearTransformations) checked above
 				return
 			}
 		}
