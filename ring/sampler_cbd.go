@@ -217,6 +217,7 @@ func (s *CBDSampler) cbdGeneric(coeffs [][]uint64, moduli []uint64, N int, buf [
 
 // ctLt returns 0xFFFFFFFFFFFFFFFF if a < b, 0 otherwise (constant-time).
 func ctLt(a, b uint64) uint64 {
-	// If a < b, then a - b underflows, setting the high bit
-	return uint64(int64(a-b) >> 63)
+	// If a < b, then a - b underflows, setting the high bit.
+	/* #nosec G115 -- intentional: constant-time comparison requires signed arithmetic on the borrow bit */
+	return uint64(int64(a-b) >> 63) //nolint:gosec
 }
