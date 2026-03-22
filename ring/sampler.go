@@ -8,10 +8,10 @@ import (
 )
 
 const (
-	discreteGaussianName    = "DiscreteGaussian"
-	ternaryDistName         = "Ternary"
-	uniformDistName         = "Uniform"
-	centeredBinomialName    = "CenteredBinomial"
+	discreteGaussianName = "DiscreteGaussian"
+	ternaryDistName      = "Ternary"
+	uniformDistName      = "Uniform"
+	centeredBinomialName = "CenteredBinomial"
 )
 
 // Sampler is an interface for random polynomial samplers.
