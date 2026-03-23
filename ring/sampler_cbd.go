@@ -157,7 +157,9 @@ func (s *CBDSampler) cbdEta3(coeffs [][]uint64, moduli []uint64, N int, buf []by
 		bitOff := uint(bitPos % 8)
 
 		var bits6 uint64
-		if byteIdx+1 < len(buf) {
+		if byteIdx+2 < len(buf) {
+			bits6 = (uint64(buf[byteIdx]) | uint64(buf[byteIdx+1])<<8 | uint64(buf[byteIdx+2])<<16) >> bitOff
+		} else if byteIdx+1 < len(buf) {
 			bits6 = (uint64(buf[byteIdx]) | uint64(buf[byteIdx+1])<<8) >> bitOff
 		} else {
 			bits6 = uint64(buf[byteIdx]) >> bitOff
