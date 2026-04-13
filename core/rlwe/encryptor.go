@@ -102,16 +102,26 @@ func newEncryptor(params Parameters) *Encryptor {
 // CAUTION: THIS FUNCTION SHOULD BE USED FOR TESTING PURPOSES ONLY.
 // WARNING: The resulting encryptor is not meant to be used concurrently.
 func newTestEncryptorWithKeyedPRNG(params ParameterProvider, key EncryptionKey, prng *sampling.KeyedPRNG) *Encryptor {
+	return NewEncryptorFromPRNG(params, key, prng)
+}
+
+// NewEncryptorFromPRNG creates an [Encryptor] using the provided deterministic PRNG
+// instead of crypto/rand. This is required for consensus-critical code where all
+// validators must produce identical keys from the same seed.
+//
+// WARNING: The resulting encryptor is not safe for concurrent use. The caller must
+// ensure sequential access or use external synchronization.
+func NewEncryptorFromPRNG(params ParameterProvider, key EncryptionKey, prng *sampling.KeyedPRNG) *Encryptor {
 	p := *params.GetRLWEParameters()
 
 	enc := NewEncryptor(params, key)
 	xeSampler, err := ring.NewSampler(prng, p.RingQ(), p.Xe(), false)
 	if err != nil {
-		panic(fmt.Errorf("NewEncryptorWithPRNG: cannot create xeSampler %w", err))
+		panic(fmt.Errorf("NewEncryptorFromPRNG: cannot create xeSampler %w", err))
 	}
 	xsSampler, err := ring.NewSampler(prng, p.RingQ(), p.Xs(), false)
 	if err != nil {
-		panic(fmt.Errorf("NewEncryptorWithPRNG: cannot create xsSampler %w", err))
+		panic(fmt.Errorf("NewEncryptorFromPRNG: cannot create xsSampler %w", err))
 	}
 	uniformSampler := ringqp.NewUniformSampler(prng, *p.RingQP())
 	enc.prng = prng
@@ -120,6 +130,15 @@ func newTestEncryptorWithKeyedPRNG(params ParameterProvider, key EncryptionKey, 
 	enc.uniformSampler = uniformSampler
 
 	return enc
+}
+
+// NewKeyGeneratorFromEncryptor creates a [KeyGenerator] from a pre-configured [Encryptor].
+// This allows callers to provide a deterministic PRNG for consensus-critical keygen.
+func NewKeyGeneratorFromEncryptor(enc *Encryptor, params ParameterProvider) *KeyGenerator {
+	return &KeyGenerator{
+		Encryptor: enc,
+		pool:      NewPool(params.GetRLWEParameters().RingQP()),
+	}
 }
 
 // Encrypt encrypts the input plaintext using the stored encryption key and writes the result on ct.
