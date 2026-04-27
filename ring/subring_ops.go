@@ -231,8 +231,32 @@ func (s *SubRing) SubThenMulScalarMontgomeryTwoModulus(p1, p2 []uint64, scalarMo
 	subthenmulscalarmontgomeryTwoModulusvec(p1, p2, scalarMont, p3, s.Modulus, s.MRedConstant)
 }
 
+// nttGPUDispatcher is the optional GPU dispatch hook. The gpu package
+// installs a non-nil dispatcher (build-tagged on cgo + gpu) that returns
+// true when it has handled the call. The pure-Go path runs only when
+// the dispatcher returns false (no GPU bound for this SubRing, threshold
+// not reached, GPU unavailable, etc.). Pure-Go behaviour is unchanged
+// when the dispatcher is left nil.
+type subRingNTTDispatcher func(s *SubRing, src, dst []uint64) bool
+
+var (
+	nttForwardDispatcher  subRingNTTDispatcher
+	nttBackwardDispatcher subRingNTTDispatcher
+)
+
+// SetGPUDispatchers installs the forward/backward GPU dispatchers. The
+// gpu package is the only intended caller; passing nil reverts to the
+// pure-Go path. Safe to call from package init.
+func SetGPUDispatchers(forward, backward subRingNTTDispatcher) {
+	nttForwardDispatcher = forward
+	nttBackwardDispatcher = backward
+}
+
 // NTT evaluates p2 = NTT(p1).
 func (s *SubRing) NTT(p1, p2 []uint64) {
+	if nttForwardDispatcher != nil && nttForwardDispatcher(s, p1, p2) {
+		return
+	}
 	s.ntt.Forward(p1, p2)
 }
 
@@ -243,6 +267,9 @@ func (s *SubRing) NTTLazy(p1, p2 []uint64) {
 
 // INTT evaluates p2 = INTT(p1).
 func (s *SubRing) INTT(p1, p2 []uint64) {
+	if nttBackwardDispatcher != nil && nttBackwardDispatcher(s, p1, p2) {
+		return
+	}
 	s.ntt.Backward(p1, p2)
 }
 

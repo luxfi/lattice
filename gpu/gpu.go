@@ -36,7 +36,10 @@ type NTTContext struct {
 	mu      sync.RWMutex
 }
 
-// NewNTTContext creates a new NTT context using pure Go implementation.
+// NewNTTContext creates a new NTT context using the pure-Go ring.
+// Constructed via ring.NewRing so the SubRing's NTT constants
+// (RootsForward/RootsBackward/NInv) are generated; bare ring.NewSubRing
+// returns a SubRing without those tables.
 func NewNTTContext(N uint32, Q uint64) (*NTTContext, error) {
 	if N == 0 || (N&(N-1)) != 0 {
 		return nil, fmt.Errorf("N must be a power of 2, got %d", N)
@@ -47,15 +50,13 @@ func NewNTTContext(N uint32, Q uint64) (*NTTContext, error) {
 		return nil, fmt.Errorf("Q-1 (%d) must be divisible by 2N (%d) for NTT-friendly prime", Q-1, 2*uint64(N))
 	}
 
-	subRing, err := ring.NewSubRing(int(N), Q)
+	r, err := ring.NewRing(int(N), []uint64{Q})
 	if err != nil {
-		return nil, fmt.Errorf("failed to create SubRing: %w", err)
+		return nil, fmt.Errorf("failed to create Ring: %w", err)
 	}
 
-	// NTT constants are generated internally by NewSubRing via NewSubRingWithCustomNTT
-
 	return &NTTContext{
-		subRing: subRing,
+		subRing: r.SubRings[0],
 		N:       N,
 		Q:       Q,
 	}, nil
