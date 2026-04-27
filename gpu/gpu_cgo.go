@@ -31,6 +31,16 @@ void lattice_clear_cache(void);
 // NTT context
 typedef struct LatticeNTTContext LatticeNTTContext;
 LatticeNTTContext* lattice_ntt_create(uint32_t N, uint64_t Q);
+
+// Montgomery-form constructor: roots/constants come from
+// luxfi/lattice/v7/ring.SubRing so the Metal output is byte-equal to
+// ring.NTTStandard. Roots arrays are length N (not N/2 -- the ring API
+// stores in bit-reversed order with index 0 reserved).
+LatticeNTTContext* lattice_ntt_create_montgomery(uint32_t N, uint64_t Q,
+                                                 uint64_t mred_constant,
+                                                 uint64_t n_inv,
+                                                 const uint64_t* roots_forward,
+                                                 const uint64_t* roots_backward);
 void lattice_ntt_destroy(LatticeNTTContext* ctx);
 void lattice_ntt_get_params(const LatticeNTTContext* ctx, uint32_t* N, uint64_t* Q);
 
@@ -38,7 +48,7 @@ void lattice_ntt_get_params(const LatticeNTTContext* ctx, uint32_t* N, uint64_t*
 int lattice_ntt_forward(LatticeNTTContext* ctx, uint64_t* data, uint32_t batch);
 int lattice_ntt_inverse(LatticeNTTContext* ctx, uint64_t* data, uint32_t batch);
 
-// Batch NTT operations
+// Batch NTT operations -- contiguous buffer of (batch * N) uint64_t.
 int lattice_ntt_batch_forward(LatticeNTTContext* ctx, uint64_t* data, uint32_t batch);
 int lattice_ntt_batch_inverse(LatticeNTTContext* ctx, uint64_t* data, uint32_t batch);
 
