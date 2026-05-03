@@ -273,7 +273,7 @@ func SampleGaussian(N uint32, Q uint64, sigma float64, seed []byte) ([]uint64, e
 				b := make([]byte, 8)
 				prng.Read(b)
 				sample = int64(b[0]) | int64(b[1])<<8 | int64(b[2])<<16 | int64(b[3])<<24
-				sample = sample % (2*bound + 1) - bound
+				sample = sample%(2*bound+1) - bound
 				if sample >= -bound && sample <= bound {
 					break
 				}

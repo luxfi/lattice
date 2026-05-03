@@ -27,8 +27,8 @@ func TestIsNTTPrime(t *testing.T) {
 		name string
 	}{
 		{256, 0x1000000004A01, true, "Ringtail Q"},
-		{256, 0x40201, true, "Ringtail QXi"},   // 262657 - prime, ≡ 1 (mod 512)
-		{256, 0x7FE01, true, "Ringtail QNu"},   // 523777 - prime, ≡ 1 (mod 512)
+		{256, 0x40201, true, "Ringtail QXi"},    // 262657 - prime, ≡ 1 (mod 512)
+		{256, 0x7FE01, true, "Ringtail QNu"},    // 523777 - prime, ≡ 1 (mod 512)
 		{256, 0x40000, false, "Non-prime 2^18"}, // 262144 - NOT prime
 		{256, 0x80000, false, "Non-prime 2^19"}, // 524288 - NOT prime
 	}
@@ -68,7 +68,7 @@ func TestNTTRoundTrip(t *testing.T) {
 	// Create a test polynomial
 	poly := make([]uint64, TestN)
 	for i := range poly {
-		poly[i] = uint64(i + 1) % TestQ
+		poly[i] = uint64(i+1) % TestQ
 	}
 
 	// Save original

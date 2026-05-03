@@ -531,8 +531,9 @@ func testThreshold(tc *testContext, levelQ, levelP, bpw2 int, t *testing.T) {
 				}
 			}
 
-			// Test binary encoding
+			// Test binary encoding (secret-share + generator polynomial)
 			buffer.RequireSerializerCorrect(t, &P[0].tsks)
+			buffer.RequireSerializerCorrect(t, &P[0].gen)
 
 			// Determining which parties are active. In a distributed context, a party
 			// would receive the ids of active players and retrieve (or compute) the corresponding keys.
@@ -541,6 +542,17 @@ func testThreshold(tc *testContext, levelQ, levelP, bpw2 int, t *testing.T) {
 			for i, p := range activeParties {
 				activeShamirPks[i] = p.tpk
 			}
+
+			// Combiner must reject an active-set that names a party absent from
+			// the set passed to NewCombiner — without this validation it panics
+			// in MulRNSScalar on a nil RNSScalar lookup.
+			t.Run("CombinerRejectsUnknownActive", func(t *testing.T) {
+				bogus := append([]ShamirPublicPoint(nil), activeShamirPks...)
+				bogus[0] = ShamirPublicPoint(0xDEADBEEF) // not in shamirPks
+				err := P[0].Combiner.GenAdditiveShare(bogus, P[0].tpk, P[0].tsks, rlwe.NewSecretKey(tc.params))
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "not in the Combiner's others set")
+			})
 
 			// Combining
 			// Slow because each party has to generate its public key on-the-fly. In
