@@ -42,12 +42,12 @@ type NTTContext struct {
 // returns a SubRing without those tables.
 func NewNTTContext(N uint32, Q uint64) (*NTTContext, error) {
 	if N == 0 || (N&(N-1)) != 0 {
-		return nil, fmt.Errorf("N must be a power of 2, got %d", N)
+		return nil, fmt.Errorf("ring degree N must be a power of 2, got %d", N)
 	}
 
 	// Check if Q is NTT-friendly (Q-1 divisible by 2N)
 	if (Q-1)%(2*uint64(N)) != 0 {
-		return nil, fmt.Errorf("Q-1 (%d) must be divisible by 2N (%d) for NTT-friendly prime", Q-1, 2*uint64(N))
+		return nil, fmt.Errorf("modulus Q-1 (%d) must be divisible by 2N (%d) for NTT-friendly prime", Q-1, 2*uint64(N))
 	}
 
 	r, err := ring.NewRing(int(N), []uint64{Q})
@@ -271,9 +271,9 @@ func SampleGaussian(N uint32, Q uint64, sigma float64, seed []byte) ([]uint64, e
 			var sample int64
 			for {
 				b := make([]byte, 8)
-				prng.Read(b)
+				_, _ = prng.Read(b)
 				sample = int64(b[0]) | int64(b[1])<<8 | int64(b[2])<<16 | int64(b[3])<<24
-				sample = sample % (2*bound + 1) - bound
+				sample = sample%(2*bound+1) - bound
 				if sample >= -bound && sample <= bound {
 					break
 				}
@@ -282,7 +282,7 @@ func SampleGaussian(N uint32, Q uint64, sigma float64, seed []byte) ([]uint64, e
 			// Accept with Gaussian probability
 			prob := math.Exp(-float64(sample*sample) / (2 * sigma * sigma))
 			threshold := make([]byte, 8)
-			prng.Read(threshold)
+			_, _ = prng.Read(threshold)
 			if float64(threshold[0])/256.0 < prob {
 				if sample >= 0 {
 					result[i] = uint64(sample)
@@ -314,7 +314,7 @@ func SampleUniform(N uint32, Q uint64, seed []byte) ([]uint64, error) {
 	for i := uint32(0); i < N; i++ {
 		// Sample uniform in [0, Q)
 		b := make([]byte, 8)
-		prng.Read(b)
+		_, _ = prng.Read(b)
 		val := new(big.Int).SetBytes(b)
 		val.Mod(val, qBig)
 		result[i] = val.Uint64()
@@ -338,7 +338,7 @@ func SampleTernary(N uint32, Q uint64, density float64, seed []byte) ([]uint64, 
 
 	for i := uint32(0); i < N; i++ {
 		b := make([]byte, 2)
-		reader.Read(b)
+		_, _ = reader.Read(b)
 
 		// Probability of non-zero
 		p := float64(b[0]) / 256.0

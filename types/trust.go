@@ -65,6 +65,7 @@ const (
 	TrustAttestedGpuOnly ComputeTrustMode = 1
 
 	// TrustCpuGpuCompositeTEE: CPU TEE + GPU TEE jointly attested.
+	//lint:ignore ST1003 Public API; the "Cpu"/"Gpu" mixed-case spelling matches the wire-format String() return value documented at line 80.
 	TrustCpuGpuCompositeTEE ComputeTrustMode = 2
 
 	// TrustConfidentialIO: protected IO path where the platform supports
@@ -122,13 +123,16 @@ const (
 	IOLevelNone ConfidentialIOLevel = 0
 
 	// IOLevelCpuTeeOnly: CPU TEE only.
+	//lint:ignore ST1003 Public API; mixed-case spelling matches the wire-format String() return value documented above.
 	IOLevelCpuTeeOnly ConfidentialIOLevel = 1
 
 	// IOLevelCpuGpuComposite: CPU TEE + GPU TEE attested, device buffers
 	// protected.
+	//lint:ignore ST1003 Public API; mixed-case spelling matches the wire-format String() return value documented above.
 	IOLevelCpuGpuComposite ConfidentialIOLevel = 2
 
 	// IOLevelProtectedCpuGpuTransfer: encrypted CPU<->GPU PCIe transfer.
+	//lint:ignore ST1003 Public API; mixed-case spelling matches the wire-format String() return value documented above.
 	IOLevelProtectedCpuGpuTransfer ConfidentialIOLevel = 3
 
 	// IOLevelFullDeviceIOAttested: full attested device IO path
