@@ -5,6 +5,7 @@ go 1.26.1
 require (
 	github.com/ALTree/bigfloat v0.2.0
 	github.com/google/go-cmp v0.7.0
+	github.com/luxfi/math v1.3.0
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/crypto v0.49.0
 	golang.org/x/exp v0.0.0-20260312153236-7ab1446f8b90
