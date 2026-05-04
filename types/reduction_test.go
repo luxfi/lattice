@@ -95,7 +95,7 @@ func TestNewReductionBudget_RejectsTooLargeModulus(t *testing.T) {
 }
 
 func TestReductionBudget_ChargeAndReset(t *testing.T) {
-	rb, err := NewReductionBudget(ReductionLazy4, (1 << 30) - 35)
+	rb, err := NewReductionBudget(ReductionLazy4, (1<<30)-35)
 	if err != nil {
 		t.Fatalf("NewReductionBudget: %v", err)
 	}

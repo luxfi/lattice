@@ -159,7 +159,7 @@ func SafeBoundFor(mode ReductionMode, modulus uint64) uint32 {
 // conservative so that intermediate sums of k operands each in [0, k*q)
 // stay strictly below 2^64.
 func lazyModeFits(mode ReductionMode, modulus uint64) bool {
-	bitlen := uint(bits.Len64(modulus))
+	bitlen := bits.Len64(modulus) // returns int in [0, 64]
 	switch mode {
 	case ReductionStrictEveryOp:
 		return bitlen <= 64

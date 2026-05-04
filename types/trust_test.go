@@ -229,9 +229,9 @@ func TestTrustEnum_CrossLangByteImage(t *testing.T) {
 	}
 
 	tt := trustTriple{
-		Trust:   TrustConfidentialIO,             // 3
-		IO:      IOLevelProtectedCpuGpuTransfer,  // 3
-		Privacy: PrivacyValidatorKeyMaterial,     // 3
+		Trust:   TrustConfidentialIO,            // 3
+		IO:      IOLevelProtectedCpuGpuTransfer, // 3
+		Privacy: PrivacyValidatorKeyMaterial,    // 3
 		_pad:    0,
 	}
 	want := []byte{0x03, 0x03, 0x03, 0x00}
