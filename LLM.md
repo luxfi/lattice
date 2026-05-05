@@ -1,6 +1,5 @@
 # AI Assistant Knowledge Base
 
-**Last Updated**: 2026-03-22
 **Project**: lattice
 **Organization**: luxfi
 
