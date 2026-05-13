@@ -1,6 +1,6 @@
 module github.com/luxfi/lattice/v7
 
-go 1.26.1
+go 1.26.3
 
 require (
 	github.com/ALTree/bigfloat v0.2.0
