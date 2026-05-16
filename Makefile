@@ -10,11 +10,11 @@ checks: check_tools
 	@echo Checking correct formatting of files
 	
 	@FMTOUT=$$(go fmt ./...); \
-	if [ -z $$FMTOUT ]; then\
+	if [ -z "$$FMTOUT" ]; then\
         echo "go fmt: OK";\
 	else \
 		echo "go fmt: problems in files:";\
-		echo $$FMTOUT;\
+		echo "$$FMTOUT";\
 		false;\
     fi
 
