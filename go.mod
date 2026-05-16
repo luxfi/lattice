@@ -5,16 +5,11 @@ go 1.26.3
 require (
 	github.com/ALTree/bigfloat v0.2.0
 	github.com/google/go-cmp v0.7.0
-	github.com/luxfi/math v1.4.0
+	github.com/luxfi/math v1.4.1
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/crypto v0.49.0
 	golang.org/x/exp v0.0.0-20260312153236-7ab1446f8b90
 )
-
-// LP-107 Phase 3: math has not been published yet. Point at the local
-// canonical-relocation branch on disk; the user replaces this with a
-// proper version pin after pushing.
-replace github.com/luxfi/math => /Users/z/work/lux/math
 
 require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
