@@ -1,4 +1,4 @@
-//go:build cgo && gpu
+//go:build cgo
 
 // Montgomery-form GPU dispatch.
 //
