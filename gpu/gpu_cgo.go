@@ -1,4 +1,4 @@
-//go:build cgo && gpu
+//go:build cgo
 
 // Package gpu provides GPU-accelerated lattice operations via libLattice.
 //

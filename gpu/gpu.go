@@ -1,6 +1,6 @@
-//go:build !cgo || !gpu
+//go:build !cgo
 
-// Package gpu provides pure Go implementations when CGO is disabled or the gpu build tag is not set.
+// Package gpu provides pure Go implementations when CGO is disabled.
 // These implementations use the lattice/ring package for NTT and polynomial operations.
 package gpu
 

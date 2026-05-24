@@ -86,3 +86,16 @@ All files reference the same knowledge base. Updates here propagate to all AI sy
 ---
 
 **Note**: This file serves as the single source of truth for all AI assistants working on this project.
+
+## GPU NTT (`gpu/`)
+
+CGo is the only build-tag axis. There is no `gpu` build tag.
+
+| File | Build | Role |
+|------|-------|------|
+| `gpu/gpu.go` | `//go:build !cgo` | Pure-Go NTT delegating to `ring.SubRing`. `GPUAvailable()` returns false. |
+| `gpu/gpu_cgo.go` | `//go:build cgo` | CGO bindings to `libLattice` (Metal on darwin, CUDA on linux, CPU fallback). `GPUAvailable()` returns true iff `lattice_gpu_available()`. |
+| `gpu/gpu_montgomery_purego.go` / `_cgo.go` | `!cgo` / `cgo` | Montgomery-form NTT dispatch matching `ring.NTTStandard` byte-for-byte. |
+
+Consumers verify byte-equality between GPU and CPU NTT on first use per
+`(N, Q)` before routing batch work to the GPU.

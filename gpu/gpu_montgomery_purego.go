@@ -1,15 +1,14 @@
-//go:build !cgo || !gpu
+//go:build !cgo
 
 // Copyright (c) 2024-2025 Lux Industries Inc.
 // SPDX-License-Identifier: Apache-2.0
 
 // Package gpu — pure-Go Montgomery NTT dispatch path.
 //
-// Default build (no cgo, or no `-tags gpu`) routes Forward/Backward
-// through the canonical pure-Go Montgomery NTT in
-// github.com/luxfi/lattice/v7/ring (SubRing.NTT / INTT). There is one
-// and only one Go implementation of the Montgomery NTT in the Lux
-// stack — this file does not re-implement it, only delegates.
+// Default build (no cgo) routes Forward/Backward through the canonical
+// pure-Go Montgomery NTT in github.com/luxfi/lattice/v7/ring (SubRing.NTT
+// / INTT). There is one and only one Go implementation of the Montgomery
+// NTT in the Lux stack — this file does not re-implement it, only delegates.
 //
 // Output is byte-equal to the cgo+gpu path (which itself is byte-equal
 // to the pure-Go reference by contract). Callers see identical
