@@ -131,6 +131,10 @@ func (m *Matrix[T]) ReadFrom(r io.Reader) (n int64, err error) {
 			return int64(n), fmt.Errorf("buffer.ReadAsUint64[int]: %w", err)
 		}
 
+		if size < 0 || size > buffer.MaxSliceLen() {
+			return n, fmt.Errorf("Matrix.ReadFrom: declared rows %d exceeds cap %d: %w", size, buffer.MaxSliceLen(), buffer.ErrSliceTooLarge)
+		}
+
 		if cap(*m) < size {
 			*m = make([][]T, size)
 		}
