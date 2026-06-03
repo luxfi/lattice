@@ -44,7 +44,7 @@ func main() {
 
     // For each block:
     for _, block := range blocks {
-        // Validate block using Avalanche consensus protocol
+        // Validate block using Quasar consensus protocol
         if network.validateBlock(block, sampleSize) {
             // If the block is valid, add it to the blockchain
             network.addBlock(block)
