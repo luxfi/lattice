@@ -174,6 +174,10 @@ func (v *Vector[T]) ReadFrom(r io.Reader) (n int64, err error) {
 
 		n += inc
 
+		if size < 0 || size > buffer.MaxSliceLen() {
+			return n, fmt.Errorf("Vector.ReadFrom: declared length %d exceeds cap %d: %w", size, buffer.MaxSliceLen(), buffer.ErrSliceTooLarge)
+		}
+
 		if cap(*v) < size {
 			*v = make([]T, size)
 		}
