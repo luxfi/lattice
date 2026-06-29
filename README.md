@@ -1,3 +1,5 @@
+<p align="center"><img src=".github/hero.svg" alt="lattice" width="880"></p>
+
 # Lattice: lattice-based multiparty homomorphic encryption library in Go
 
 <p align="center">
