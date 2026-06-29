@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-label="lattice">
+<rect width="1280" height="640" fill="#0A0A0A"/>
+<svg x="96" y="215" width="210" height="210" viewBox="17 26 66 66"><path d="M50 88 L17.09 31 L82.91 31 Z" fill="#fff"/></svg>
+<text x="378" y="276" font-family="Inter,system-ui,-apple-system,sans-serif" font-size="78" font-weight="800" letter-spacing="-2" fill="#ffffff">lattice</text>
+<text x="378" y="322" font-family="Inter,system-ui,sans-serif" font-size="30" fill="#ffffff" opacity=".66">▼ LUX Lattice is a multiparty homomorphic encryption designed for post…</text>
+<rect x="378" y="338" width="806" height="3" rx="1.5" fill="#ffffff" opacity=".9"/>
+<text x="378" y="390" font-family="Inter,system-ui,sans-serif" font-size="24" font-weight="600" fill="#ffffff" opacity=".5">github.com/luxfi</text>
+<text x="1184" y="390" text-anchor="end" font-family="Inter,system-ui,sans-serif" font-size="24" font-weight="600" fill="#ffffff" opacity=".5">lux.network</text>
+</svg>
