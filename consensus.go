@@ -1,3 +1,10 @@
+//go:build ignore
+
+// Design note, not code: encrypted-vote block validation over BFV — sample
+// nodes, collect homomorphic votes, tally without decrypting ballots. Excluded
+// from the build because Network and Node do not exist in this module.
+package lattice
+
 func (n *Network) validateBlock(block *bfv.Ciphertext, sampleSize int) bool {
     // 1. Sample a subset of nodes
     sampleNodes := n.sampleNodes(sampleSize)
