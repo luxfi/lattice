@@ -1,0 +1,16 @@
+# Native CI for luxfi/lattice, on the git.hanzo.ai runner fleet.
+#
+# No images: this is a library. What it ships is the module itself, so the
+# whole pipeline is the gate below.
+test:
+  - name: build
+    run: |
+      set -e
+      go build ./...
+  - name: unit
+    # The whole tree rather than a named list, so a package added later is
+    # covered without editing this file. 46 packages, ~25s from cold.
+    # `make test` is this same command with the test cache cleared first.
+    run: |
+      set -e
+      go test ./... -count=1
