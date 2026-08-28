@@ -7,7 +7,7 @@
 // - Tracking ciphertext dependencies automatically
 // - Managing memory for intermediate results
 //
-// Copyright (c) 2024-2025 Lux Partners Limited
+// Copyright (c) 2024-2025 Lux Industries Inc
 // SPDX-License-Identifier: BSD-3-Clause
 package dag
 
