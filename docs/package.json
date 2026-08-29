@@ -12,26 +12,26 @@
   },
   "dependencies": {
     "@hanzo/font": "1.9.2",
-    "fumadocs-core": "^15.8.5",
-    "fumadocs-mdx": "^12.0.3",
-    "fumadocs-ui": "^15.8.5",
-    "lucide-react": "^0.468.0",
-    "next": "16.0.1",
-    "react": "19.2.0",
-    "react-dom": "19.2.0",
-    "tailwindcss": "^4.1.16",
-    "zod": "^3.24.1"
+    "fumadocs-core": "^16.15.4",
+    "fumadocs-mdx": "^15.4.0",
+    "fumadocs-ui": "^16.15.4",
+    "lucide-react": "^1.33.0",
+    "next": "16.3.3",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "tailwindcss": "^4.3.3",
+    "zod": "^4.5.2"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4.1.16",
-    "@types/node": "^22.10.2",
-    "@types/react": "^19.0.1",
-    "@types/react-dom": "^19.0.2",
-    "autoprefixer": "^10.4.20",
-    "postcss": "^8.4.49",
-    "rehype-pretty-code": "^0.14.1",
-    "shiki": "^1.27.2",
-    "typescript": "^5.7.2"
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "26.4.0",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.5",
+    "autoprefixer": "^10.5.4",
+    "postcss": "^8.5.26",
+    "rehype-pretty-code": "^0.14.5",
+    "shiki": "^4.4.3",
+    "typescript": "7.0.2"
   },
   "packageManager": "pnpm@10.12.4"
 }
